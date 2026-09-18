@@ -109,9 +109,11 @@ function dashboardView(session) {
   const role = session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado';
   app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand"><span class="brand-mark">G</span>Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>Restaurante Central</strong><small>${role}</small></div></div><nav><a class="active" data-view="tables">⌘ <span>Mesas</span></a><a data-view="orders">▤ <span>Pedidos</span></a><a data-view="products">◫ <span>Inventario</span></a><a data-view="reports">◌ <span>Reportes</span></a></nav><div class="sidebar-footer">${themeSwitcher()}<button id="logout" class="logout">↪ Cerrar sesión</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>⌁</span><h3>Selecciona una mesa</h3><p>Verás aquí el resumen de la atención.</p></div></aside></main>`;
   bindThemeControls();
+  document.querySelector('nav').insertAdjacentHTML('afterbegin', '<a class="active" data-view="overview">⌂ <span>Resumen</span></a>');
+  document.querySelector('[data-view="tables"]').classList.remove('active');
   document.querySelector('#logout').addEventListener('click', () => logout(session));
   document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => navigate(link.dataset.view, session)));
-  navigate('tables', session);
+  navigate('overview', session);
 }
 
 async function loadTables(session) {
@@ -125,10 +127,28 @@ async function navigate(view, session) {
   document.querySelectorAll('[data-view]').forEach(link => link.classList.toggle('active', link.dataset.view === view));
   const content = document.querySelector('#content');
   document.querySelector('#detail').innerHTML = '<div class="detail-empty"><span>⌁</span><h3>Selecciona una mesa</h3><p>Verás aquí el resumen de la atención.</p></div>';
+  if (view === 'overview') { content.innerHTML = overviewView(session); await loadOverview(session); return; }
   if (view === 'tables') { content.innerHTML = tablesView(session); bindTableAdmin(session); await loadTables(session); return; }
   if (view === 'products') { content.innerHTML = productsView(session); bindProductAdmin(session); await loadProducts(session); return; }
   if (view === 'orders') { content.innerHTML = ordersView(); return; }
   content.innerHTML = reportsView(); await loadReport(session);
+}
+
+function overviewView(session) {
+  const user = escapeHtml(session.username || 'Equipo');
+  return `<header class="overview-header"><div><p class="eyebrow">CENTRO DE OPERACIÓN</p><h1>Hola, ${user}</h1><p class="muted">Este es el pulso de tu restaurante para comenzar la jornada.</p></div><div class="header-actions"><span class="date">● Sistema listo</span></div></header><section class="overview-grid"><article class="overview-card overview-primary"><span class="overview-icon">⌂</span><div><small>Mesas ocupadas</small><strong id="overview-busy">...</strong><p>Controla el ritmo de la sala</p></div><button class="overview-link" data-quick-view="tables">Ver sala →</button></article><article class="overview-card"><span class="overview-icon">◇</span><div><small>Mesas disponibles</small><strong id="overview-free">...</strong><p>Listas para recibir clientes</p></div><button class="overview-link" data-quick-view="tables">Abrir mapa →</button></article><article class="overview-card"><span class="overview-icon">✦</span><div><small>Stock por revisar</small><strong id="overview-low-stock">...</strong><p>Productos con cinco unidades o menos</p></div><button class="overview-link" data-quick-view="products">Ver inventario →</button></article></section><section class="overview-actions"><div><p class="eyebrow">ACCESOS RÁPIDOS</p><h2>Continúa tu operación</h2><p class="muted">Elige el siguiente paso según el momento de tu servicio.</p></div><div class="quick-actions"><button class="quick-action" data-quick-view="tables"><span>⌘</span><strong>Gestionar mesas</strong><small>Abre mesas y revisa pedidos</small></button><button class="quick-action" data-quick-view="orders"><span>▤</span><strong>Revisar pedidos</strong><small>Consulta las cuentas abiertas</small></button><button class="quick-action" data-quick-view="products"><span>◫</span><strong>Ver inventario</strong><small>Consulta disponibilidad del menú</small></button></div></section>`;
+}
+
+async function loadOverview(session) {
+  document.querySelectorAll('[data-quick-view]').forEach(button => button.addEventListener('click', () => navigate(button.dataset.quickView, session)));
+  try {
+    const [loadedTables, loadedProducts] = await Promise.all([apiRequest('/api/tables', session), apiRequest('/api/products', session)]);
+    tables = loadedTables;
+    products = loadedProducts;
+    document.querySelector('#overview-busy').textContent = tables.filter(table => table.status === 'OCUPADA').length;
+    document.querySelector('#overview-free').textContent = tables.filter(table => table.status === 'LIBRE').length;
+    document.querySelector('#overview-low-stock').textContent = products.filter(product => product.active && product.stock <= 5).length;
+  } catch (error) { showToast(error.message, true); }
 }
 
 function tablesView(session) { const adminTools = session.role === 'ADMINISTRADOR' ? `<section class="admin-tools"><div><h2>Configurar sala</h2><p>Crea, edita, elimina o une mesas. Estas acciones solo están disponibles para administradores.</p></div><form id="create-table-form" class="inline-form"><input name="tableNumber" type="number" min="1" placeholder="N.º mesa" required><input name="seats" type="number" min="1" placeholder="Puestos" required><button class="primary" type="submit">＋ Crear mesa</button></form><form id="join-table-form" class="inline-form"><select name="firstTableId" required><option value="">Primera mesa</option>${tables.filter(table => table.status === 'LIBRE' && !table.joinedTableId).map(table => `<option value="${table.id}">Mesa ${table.tableNumber}</option>`).join('')}</select><select name="secondTableId" required><option value="">Segunda mesa</option>${tables.filter(table => table.status === 'LIBRE' && !table.joinedTableId).map(table => `<option value="${table.id}">Mesa ${table.tableNumber}</option>`).join('')}</select><button class="outline" type="submit">Unir mesas</button></form></section>` : ''; return `<header><div><p class="eyebrow">SALA PRINCIPAL</p><h1>Mesas</h1><p class="muted">Selecciona una mesa para comenzar a atender.</p></div><div class="header-actions"><span class="date">● En vivo</span></div></header>${adminTools}<section class="metrics"><article><span>Mesas activas</span><strong>${tables.filter(table => table.status === 'OCUPADA').length} <em>/ ${tables.length}</em></strong><small>Estado en tiempo real</small></article><article><span>Disponibles</span><strong>${tables.filter(table => table.status === 'LIBRE').length}</strong><small>Listas para recibir clientes</small></article><article><span>Atención</span><strong>Hoy</strong><small>Gestiona pedidos desde cada mesa</small></article></section><section class="room"><div class="room-head"><div><h2>Mapa de sala</h2><p>Abre una mesa para registrar su pedido.</p></div><div class="legend"><i></i> Disponible <i class="occupied"></i> Ocupada</div></div><div id="table-grid" class="table-grid"></div></section>`; }
