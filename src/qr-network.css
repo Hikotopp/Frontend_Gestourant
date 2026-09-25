@@ -1,0 +1,27 @@
+.brand-mark svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+
+.table-qr-url {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 9px;
+  border-radius: 7px;
+  background: #f5f6f2;
+  color: #476355;
+  font-size: 9px;
+  text-decoration: none;
+}
+
+.table-qr-url:hover {
+  text-decoration: underline;
+}
+
+.table-qr-local-note {
+  padding: 10px;
+  border-radius: 9px;
+  background: #fff4e1;
+  color: #78581f !important;
+}

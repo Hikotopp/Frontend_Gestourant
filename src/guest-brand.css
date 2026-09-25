@@ -1,0 +1,32 @@
+.guest-brand .brand-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #163e35;
+  color: #fff;
+  box-shadow: none;
+}
+
+.guest-brand .brand-mark svg {
+  width: 30px;
+  height: 30px;
+  color: inherit;
+}
+
+.guest-footer .brand-mark {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 7px;
+  background: #163e35;
+  color: #fff;
+}
+
+.guest-footer .brand-mark svg {
+  width: 19px;
+  height: 19px;
+  color: inherit;
+}

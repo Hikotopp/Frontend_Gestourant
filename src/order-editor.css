@@ -1,0 +1,133 @@
+.order-live-status {
+  margin: 0 0 12px;
+  color: #21836e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.order-items {
+  gap: 12px;
+}
+
+.order-item {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #e1e7e2;
+  border-radius: 10px;
+  background: #fcfdfc;
+}
+
+.order-item-heading,
+.order-menu-product,
+.order-item-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-item-heading {
+  font-size: 12px;
+}
+
+.order-item-heading strong:last-child {
+  white-space: nowrap;
+}
+
+.allergy-label {
+  margin: 0;
+  color: #56655f;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.allergy-label input {
+  margin-top: 6px;
+  padding: 9px 10px;
+  font-size: 12px;
+}
+
+.order-item-actions button,
+.order-menu-product button {
+  padding: 8px 9px;
+  font-size: 11px;
+}
+
+.order-item-actions .danger {
+  border: 0;
+  border-radius: 8px;
+  background: #fff0ed;
+  color: #a7473f;
+  font-weight: 700;
+}
+
+.removed-ingredients {
+  margin: 0;
+  color: #a7473f;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.allergy-warning {
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff5e5;
+  color: #76521f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.order-menu {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.order-menu h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.order-menu-product {
+  padding: 8px 0;
+  border-bottom: 1px solid #e8ece9;
+}
+
+.order-menu-product > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.order-menu-product small {
+  color: #71807c;
+}
+
+#close-order:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1000px) {
+  .detail {
+    display: grid;
+    grid-column: 1 / -1;
+    place-items: start;
+    border-top: 1px solid #e3e9e5;
+    border-left: 0;
+    text-align: left;
+  }
+}
+
+@media (max-width: 680px) {
+  .detail {
+    display: grid;
+    padding: 20px 16px;
+  }
+
+  .order-item-actions {
+    align-items: stretch;
+  }
+}
