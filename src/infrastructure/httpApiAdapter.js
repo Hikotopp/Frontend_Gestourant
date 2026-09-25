@@ -1,5 +1,9 @@
 import { logger } from './logger';
 
+function safeLogPath(path) {
+  return path.replace(/^\/api\/guest\/[^/]+/, '/api/guest/:token');
+}
+
 export function createHttpApiAdapter(baseUrl = '') {
   return {
     async request(path, session, options = {}) {
@@ -9,13 +13,13 @@ export function createHttpApiAdapter(baseUrl = '') {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        logger.error('API request failed', { path, status: response.status });
+        logger.error('API request failed', { path: safeLogPath(path), status: response.status });
         const message = response.status === 401
           ? 'El usuario o la contraseña son incorrectos.'
           : data.message || 'No fue posible completar la operación.';
-        throw new Error(message);
+        throw Object.assign(new Error(message), { status: response.status });
       }
-      logger.info('API request completed', { path, status: response.status });
+      logger.info('API request completed', { path: safeLogPath(path), status: response.status });
       return data;
     }
   };
