@@ -5,6 +5,10 @@ function safeLogPath(path) {
 }
 
 export function createHttpApiAdapter(baseUrl = '') {
+  if (import.meta.env.PROD && baseUrl && new URL(baseUrl, window.location.origin).protocol !== 'https:') {
+    throw new Error('La API de Gestourant debe usar HTTPS en producción.');
+  }
+
   return {
     async request(path, session, options = {}) {
       const response = await fetch(`${baseUrl}${path}`, {
