@@ -1,0 +1,25 @@
+.report-filter-card,.report-history-card{background:var(--surface,#fff);border:1px solid var(--line,#e3e9e5);border-radius:14px;padding:20px;margin:20px 0}
+.report-filter-card{display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.report-date-fields{display:flex;gap:14px;flex-wrap:wrap}
+.report-date-fields label{display:grid;gap:7px;margin:0;color:var(--text,#263532);font-size:12px}
+.report-date-fields input{min-width:180px;padding:11px 12px}
+.report-actions{display:flex;gap:9px;align-items:center}
+.report-actions button{width:auto;margin:0;white-space:nowrap}
+.report-download:disabled{opacity:.55;cursor:not-allowed}
+.report-message{min-height:20px;margin:14px 0;color:var(--muted,#71807c);font-size:13px}
+.report-message.is-error{color:#b82931}
+.report-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.report-history-card{margin-top:24px}
+.report-history-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:15px}
+.report-history-heading .eyebrow{margin-bottom:6px}
+.report-history-heading h2{font-size:20px;margin:0}
+.report-history-heading>span{color:var(--muted,#71807c);font-size:12px}
+.report-table-wrap{overflow-x:auto}
+.report-table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}
+.report-table th,.report-table td{padding:12px 10px;border-bottom:1px solid var(--line,#e3e9e5);font-size:12px}
+.report-table th{color:var(--muted,#71807c);font-weight:700}
+.report-table td{color:var(--text,#263532)}
+.report-table td:last-child,.report-table th:nth-last-child(2){text-align:right}
+.report-empty{margin:0;padding:22px 8px;color:var(--muted,#71807c);font-size:13px}
+@media(max-width:900px){.report-filter-card{align-items:stretch;flex-direction:column}.report-actions{justify-content:flex-start;flex-wrap:wrap}.report-actions button{width:auto}.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.report-date-fields{display:grid;grid-template-columns:1fr}.report-date-fields label,.report-date-fields input{width:100%}.report-actions{display:grid;grid-template-columns:1fr}.report-actions button{width:100%}.report-metrics{grid-template-columns:1fr 1fr}}

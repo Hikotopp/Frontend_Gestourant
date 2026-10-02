@@ -66,5 +66,6 @@ Comprueba:
 4. En Chrome/Edge DevTools → **Application**, verifica el manifiesto y el service worker activo.
 5. Con la app cargada, activa **Network → Offline** y recarga: debe abrir el shell público y mostrar el aviso sin conexión. El inicio de sesión y los cambios de datos no funcionan offline por diseño.
 6. Inicia sesión, no interactúes durante 2 minutos: debe bloquearse. El contador debe iniciar en `03:00` y cerrar la sesión al agotarse.
+7. En **Reportes**, el empleado puede consultar por fecha las facturas de pedidos que abrió; el administrador puede consultar las de todo el restaurante por rango de fechas y ver quién abrió cada pedido. El Excel debe incluir una hoja de resumen y otra con el detalle de las facturas. El servidor aplica el filtro por empleado y restringe el historial completo al rol administrador.
 
 En este despliegue la base de datos se alcanza por la red privada de Railway. No habilites acceso público a MySQL salvo que tengas una necesidad específica y controles de red adecuados.
