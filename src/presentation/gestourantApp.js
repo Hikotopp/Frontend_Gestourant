@@ -7,6 +7,7 @@ import '../floor-layout.css';
 import '../floor-polish.css';
 import '../kitchen-board.css';
 import '../qr-network.css';
+import './reports.css';
 import QRCode from 'qrcode';
 import {
   formatIdleCountdown,
@@ -17,6 +18,7 @@ import { brandMark } from './brandMark';
 import { isAvailableForOrder } from '../domain/product';
 import { guestOrderingView } from './guestOrdering';
 import { productPhoto } from './productPhoto';
+import { downloadCashCloseXlsx } from './cashCloseXlsx';
 
 let services;
 let logger;
@@ -609,7 +611,7 @@ async function navigate(view, session) {
   }
   if (view === 'orders') { content.innerHTML = ordersView(); loadGuestRequests(session); guestRequestPoll = window.setInterval(() => loadGuestRequests(session), 5000); return; }
   if (view === 'kitchen') { content.innerHTML = kitchenView(); loadKitchenRequests(session); kitchenPoll = window.setInterval(() => loadKitchenRequests(session), 5000); return; }
-  content.innerHTML = reportsView(); await loadReport(session);
+  content.innerHTML = reportsView(session); await loadReport(session);
 }
 
 function overviewView(session) {
@@ -650,7 +652,15 @@ function productsView(session) {
 }
 function ordersView() { return `<header class="page-heading"><div><p class="eyebrow">OPERACIÓN · PEDIDOS QR</p><h1>Solicitudes de clientes</h1><p class="muted">Revisa cada solicitud; solo al confirmarla pasa a la cuenta y se descuenta del inventario.</p></div><div class="service-status"><span class="live-dot"></span>Actualización automática</div></header><section id="guest-request-queue" class="guest-request-queue"><p class="muted">Cargando solicitudes…</p></section>`; }
 function kitchenView() { return `<header class="page-heading"><div><p class="eyebrow">SERVICIO · PREPARACIÓN</p><h1>Comandas de cocina</h1><p class="muted">Pedidos confirmados por el equipo. Actualiza el estado para que el cliente sepa cómo va.</p></div><div class="service-status"><span class="live-dot"></span>Actualización automática</div></header><section id="kitchen-request-queue" class="guest-request-queue"><p class="muted">Cargando comandas…</p></section>`; }
-function reportsView() { return `<header><div><p class="eyebrow">CONTROL</p><h1>Reportes</h1><p class="muted">Resumen de caja del día.</p></div></header><section class="metrics report-metrics"><article><span>Facturas</span><strong id="report-invoices">...</strong></article><article><span>Efectivo</span><strong id="report-cash">...</strong></article><article><span>Total vendido</span><strong id="report-total">...</strong></article></section>`; }
+function reportsView(session) {
+  const administrator = session.role === 'ADMINISTRADOR';
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  return `<header class="page-heading"><div><p class="eyebrow">CONTROL · CIERRE E HISTORIAL</p><h1>Reportes</h1><p class="muted">${administrator ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.'}</p></div></header>
+    <section class="report-filter-card"><div class="report-date-fields"><label for="report-from">${administrator ? 'Desde' : 'Fecha del turno'}<input id="report-from" type="date" value="${today}" required></label>${administrator ? `<label for="report-to">Hasta<input id="report-to" type="date" value="${today}" required></label>` : ''}</div><div class="report-actions"><button id="report-search" class="outline" type="button">Consultar ${administrator ? 'historial' : 'fecha'}</button><button id="download-cash-close" class="primary report-download" type="button" disabled>Descargar Excel (.xlsx)</button></div></section>
+    <p id="report-message" class="report-message" role="status">Cargando reporte…</p>
+    <section class="metrics report-metrics"><article><span>Facturas</span><strong id="report-invoices">—</strong></article><article><span>Efectivo</span><strong id="report-cash">—</strong></article><article><span>Pagos digitales</span><strong id="report-digital">—</strong></article><article><span>Total vendido</span><strong id="report-total">—</strong></article></section>
+    <section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">DETALLE</p><h2>Facturas del periodo</h2></div><span id="report-period"></span></div><div id="report-history" class="report-table-wrap"><p class="muted">Cargando facturas…</p></div></section>`;
+}
 
 async function loadProducts(session) {
   try { products = await services.products.list(session); renderProducts(); } catch (error) { showToast(error.message, true); }
@@ -716,7 +726,89 @@ function editProduct(id) { const product = products.find(item => item.id === id)
 async function deleteProduct(id) { const product = products.find(item => item.id === id), session = JSON.parse(sessionStorage.getItem('gestourant_session')); if (!product || !window.confirm(`¿Eliminar ${product.name} del menú?`)) return; try { await services.products.remove(session, id); showToast('Producto eliminado.'); navigate('products', session); } catch (error) { showToast(error.message, true); } }
 
 async function loadReport(session) {
-  try { const report = await services.reports.getCashClose(session); document.querySelector('#report-invoices').textContent = report.facturas; document.querySelector('#report-cash').textContent = `$ ${Number(report.efectivo).toLocaleString('es-CO')}`; document.querySelector('#report-total').textContent = `$ ${Number(report.total).toLocaleString('es-CO')}`; } catch (error) { showToast(error.message, true); }
+  const administrator = session.role === 'ADMINISTRADOR';
+  const fromInput = document.querySelector('#report-from');
+  const toInput = administrator ? document.querySelector('#report-to') : fromInput;
+  const searchButton = document.querySelector('#report-search');
+  const downloadButton = document.querySelector('#download-cash-close');
+  let currentReport = null;
+  let reportRequest = 0;
+
+  const clearResults = () => {
+    ['#report-invoices', '#report-cash', '#report-digital', '#report-total'].forEach(selector => {
+      document.querySelector(selector).textContent = '—';
+    });
+    document.querySelector('#report-period').textContent = '';
+    document.querySelector('#report-history').innerHTML = '<p class="report-empty">Consulta un periodo para ver las facturas.</p>';
+  };
+
+  const showReport = async () => {
+    const requestId = ++reportRequest;
+    const from = fromInput.value;
+    const to = toInput.value;
+    const message = document.querySelector('#report-message');
+    if (!from || !to || to < from) {
+      currentReport = null;
+      searchButton.disabled = false;
+      downloadButton.disabled = true;
+      clearResults();
+      message.textContent = 'Verifica las fechas: la fecha final debe ser igual o posterior a la inicial.';
+      message.classList.add('is-error');
+      return;
+    }
+
+    searchButton.disabled = true;
+    downloadButton.disabled = true;
+    message.textContent = 'Consultando facturas…';
+    message.classList.remove('is-error');
+    try {
+      const report = await services.reports.getHistory(session, from, to, administrator);
+      if (requestId !== reportRequest) return;
+      currentReport = report;
+      document.querySelector('#report-invoices').textContent = currentReport.facturas;
+      document.querySelector('#report-cash').textContent = `$ ${Number(currentReport.efectivo).toLocaleString('es-CO')}`;
+      document.querySelector('#report-digital').textContent = `$ ${Number(currentReport.digital).toLocaleString('es-CO')}`;
+      document.querySelector('#report-total').textContent = `$ ${Number(currentReport.total).toLocaleString('es-CO')}`;
+      document.querySelector('#report-period').textContent = from === to ? from : `${from} — ${to}`;
+      const invoices = currentReport.invoices || [];
+      const rows = invoices.map(invoice => `<tr><td>${escapeHtml(invoice.invoiceNumber)}</td><td>${escapeHtml(String(invoice.issuedAt).replace('T', ' '))}</td><td>Mesa ${escapeHtml(invoice.tableNumber)}</td><td>${invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'}</td><td>$ ${Number(invoice.total).toLocaleString('es-CO')}</td>${administrator ? `<td>${escapeHtml(invoice.employee)}</td>` : ''}</tr>`).join('');
+      document.querySelector('#report-history').innerHTML = invoices.length
+        ? `<table class="report-table"><thead><tr><th>Factura</th><th>Fecha y hora</th><th>Mesa</th><th>Pago</th><th>Total</th>${administrator ? '<th>Pedido abierto por</th>' : ''}</tr></thead><tbody>${rows}</tbody></table>`
+        : '<p class="report-empty">No hay facturas para el periodo seleccionado.</p>';
+      message.textContent = `${invoices.length} factura${invoices.length === 1 ? '' : 's'} encontrada${invoices.length === 1 ? '' : 's'}.`;
+      downloadButton.disabled = false;
+    } catch (error) {
+      if (requestId !== reportRequest) return;
+      currentReport = null;
+      clearResults();
+      message.textContent = `No se pudo consultar el historial: ${error.message}`;
+      message.classList.add('is-error');
+    } finally {
+      if (requestId === reportRequest) searchButton.disabled = false;
+    }
+  };
+
+  searchButton.addEventListener('click', showReport);
+  [fromInput, ...(administrator ? [toInput] : [])].forEach(input => input.addEventListener('change', () => {
+    reportRequest += 1;
+    searchButton.disabled = false;
+    currentReport = null;
+    downloadButton.disabled = true;
+    clearResults();
+    const message = document.querySelector('#report-message');
+    message.textContent = 'Consulta las fechas seleccionadas para cargar el reporte.';
+    message.classList.remove('is-error');
+  }));
+  downloadButton.addEventListener('click', () => {
+    if (!currentReport) return;
+    try {
+      downloadCashCloseXlsx(currentReport, administrator);
+      showToast('Historial de facturas descargado en Excel.');
+    } catch (error) {
+      showToast(`No se pudo descargar el reporte: ${error.message}`, true);
+    }
+  });
+  await showReport();
 }
 
 async function logout(session, inactivity = false) {

@@ -82,7 +82,14 @@ export function createHttpGestourantGateway(apiPort) {
       advanceRequest: (session, id) => api.request(`/api/kitchen/requests/${id}/advance`, session, { method: 'PATCH' })
     },
     reports: {
-      getCashClose: session => api.request('/api/reports/cash-close', session)
+      getCashClose: session => api.request('/api/reports/cash-close', session),
+      getHistory: (session, from, to, administrator) => {
+        const query = new URLSearchParams({ from, to });
+        return api.request(
+          `/api/reports/history${administrator ? '/all' : ''}?${query}`,
+          session
+        );
+      }
     }
   };
 }
