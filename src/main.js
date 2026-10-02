@@ -10,5 +10,5 @@ if (initializePwa(logger)) {
   const apiPort = createHttpApiAdapter(apiBase);
   const gateway = createHttpGestourantGateway(apiPort);
   const services = createGestourantServices(gateway);
-  startGestourantApp(services, logger);
+  startGestourantApp(services, logger, apiBase);
 }

@@ -20,6 +20,7 @@ import { productPhoto } from './productPhoto';
 
 let services;
 let logger;
+let apiBase = '';
 const app = document.querySelector('#app');
 let tables = [];
 let products = [];
@@ -1085,8 +1086,9 @@ async function initializeApplication() {
   else publicHomeView();
 }
 
-export function startGestourantApp(applicationServices, applicationLogger) {
+export function startGestourantApp(applicationServices, applicationLogger, apiBaseUrl = '') {
   services = applicationServices;
   logger = applicationLogger;
+  apiBase = apiBaseUrl;
   initializeApplication();
 }
