@@ -114,13 +114,43 @@
   border: 1px solid #dce4df;
   border-radius: 11px;
   background: #fff;
+  background-color: #fff !important;
+  color: #172728 !important;
+  color-scheme: light;
   font-size: 13px;
+}
+
+.login-card input:not([type=checkbox])::placeholder {
+  color: #85918c;
+  opacity: 1;
+}
+
+.login-card input:not([type=checkbox]):-webkit-autofill,
+.login-card input:not([type=checkbox]):-webkit-autofill:hover,
+.login-card input:not([type=checkbox]):-webkit-autofill:focus {
+  -webkit-text-fill-color: #172728;
+  box-shadow: 0 0 0 1000px #fff inset;
+  transition: background-color 9999s ease-out;
 }
 
 .login-card input:focus,
 .login-card select:focus {
   border-color: #287766;
   box-shadow: 0 0 0 4px #28776616;
+}
+
+.login-card .password-wrap input {
+  background-color: #fff !important;
+  color: #172728 !important;
+}
+
+.login-card .password-wrap button {
+  color: #47645c;
+}
+
+.login-card .password-wrap button:hover,
+.login-card .password-wrap button:focus-visible {
+  color: #176758;
 }
 
 .login-card .primary {
