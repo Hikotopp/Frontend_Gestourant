@@ -1,11 +1,9 @@
-import './guest-ordering.css';
-import './guest-brand.css';
-import { createHttpApiAdapter } from './infrastructure/httpApiAdapter';
+import '../guest-ordering.css';
+import '../guest-brand.css';
+import { calculateCartTotal } from '../domain/product';
 import { brandMark } from './brandMark';
 import { fallbackProductPhoto, productPhoto } from './productPhoto';
 
-const apiBase = import.meta.env.VITE_API_URL || '';
-const api = createHttpApiAdapter(apiBase);
 const money = value => `$ ${Number(value || 0).toLocaleString('es-CO')} COP`;
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
 const requestStatusLabel = status => ({
@@ -16,7 +14,7 @@ const requestStatusLabel = status => ({
   RECHAZADA: 'No aceptada'
 })[status] || status;
 
-export async function guestOrderingView(token) {
+export async function guestOrderingView(token, services) {
   const app = document.querySelector('#app');
   const state = { token, guestSessionToken: null, data: null, requests: [], cart: new Map(), filter: 'TODOS', search: '', loading: true, message: '', sending: false };
   app.innerHTML = '<main class="guest-shell"><div class="guest-loading"><span class="guest-spinner"></span><p>Preparando la carta de tu mesa…</p></div></main>';
@@ -37,12 +35,9 @@ export async function guestOrderingView(token) {
 
   async function refresh() {
     try {
-      const tablePath = `/api/guest/${encodeURIComponent(token)}`;
       const [data, requests] = await Promise.all([
-        api.request(tablePath, null),
-        api.request(`${tablePath}/requests`, null, {
-          headers: { 'X-Guest-Session': state.guestSessionToken }
-        })
+        services.guest.getTable(token),
+        services.guest.listRequests(token, state.guestSessionToken)
       ]);
       state.data = data;
       state.requests = requests;
@@ -64,7 +59,7 @@ export async function guestOrderingView(token) {
     }
     const { data } = state;
     const cartItems = [...state.cart.values()].filter(item => item.quantity > 0);
-    const cartTotal = cartItems.reduce((total, item) => total + (Number(item.product.price) * item.quantity), 0);
+    const cartTotal = calculateCartTotal(cartItems);
     const filteredProducts = data.menu.filter(product =>
       (state.filter === 'TODOS' || product.category === state.filter)
       && `${product.name} ${product.description} ${product.category}`.toLowerCase().includes(state.search.toLowerCase())
@@ -137,14 +132,12 @@ export async function guestOrderingView(token) {
       state.sending = true;
       render();
       try {
-        await api.request(`/api/guest/${encodeURIComponent(token)}/requests`, null, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Guest-Session': state.guestSessionToken },
-          body: JSON.stringify({ items: [...state.cart.values()].map(item => ({
+        await services.guest.createRequest(token, state.guestSessionToken, {
+          items: [...state.cart.values()].map(item => ({
             productId: item.product.id,
             quantity: item.quantity,
             removedIngredients: item.removedIngredients
-          })) })
+          }))
         });
         state.cart.clear();
         state.message = '';

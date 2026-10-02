@@ -1,0 +1,20 @@
+.network-status {
+  position: fixed;
+  z-index: 2000;
+  inset: 0 0 auto;
+  padding: 0.7rem 1rem;
+  color: #fff;
+  background: #8a3b22;
+  text-align: center;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.idle-countdown {
+  display: inline-block;
+  min-width: 3.2em;
+  margin-left: 0.25em;
+  color: #9d3927;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
