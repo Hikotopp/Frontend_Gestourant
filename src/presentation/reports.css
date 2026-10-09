@@ -21,5 +21,10 @@
 .report-table td{color:var(--text,#263532)}
 .report-table td:last-child,.report-table th:nth-last-child(2){text-align:right}
 .report-empty{margin:0;padding:22px 8px;color:var(--muted,#71807c);font-size:13px}
+.backup-warning{display:grid;gap:5px;margin:20px 0;padding:16px 18px;border:1px solid #efd49c;border-radius:12px;background:#fff8e8;color:#704f12;font-size:13px}
+.backup-warning span{color:#836b3b}
+.backup-actions{display:flex;justify-content:flex-end;gap:8px}
+.backup-actions button{width:auto;margin:0;white-space:nowrap}
+.backup-actions button:disabled,#create-backup:disabled{opacity:.55;cursor:wait}
 @media(max-width:900px){.report-filter-card{align-items:stretch;flex-direction:column}.report-actions{justify-content:flex-start;flex-wrap:wrap}.report-actions button{width:auto}.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:520px){.report-date-fields{display:grid;grid-template-columns:1fr}.report-date-fields label,.report-date-fields input{width:100%}.report-actions{display:grid;grid-template-columns:1fr}.report-actions button{width:100%}.report-metrics{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.report-date-fields{display:grid;grid-template-columns:1fr}.report-date-fields label,.report-date-fields input{width:100%}.report-actions{display:grid;grid-template-columns:1fr}.report-actions button{width:100%}.report-metrics{grid-template-columns:1fr 1fr}.backup-actions{justify-content:flex-start;flex-wrap:wrap}.backup-actions button{width:auto}}

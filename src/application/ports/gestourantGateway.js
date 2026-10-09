@@ -5,6 +5,7 @@ const requiredOperations = {
   orders: ['addProduct', 'removeItem', 'updateItem', 'close'],
   guest: ['getTable', 'listRequests', 'createRequest', 'listStaffRequests', 'approveStaffRequest', 'rejectStaffRequest'],
   kitchen: ['listRequests', 'advanceRequest'],
+  backups: ['list', 'create', 'download', 'restore'],
   reports: ['getCashClose']
 };
 

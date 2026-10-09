@@ -564,7 +564,7 @@ function dashboardView(session) {
   currentSession = session;
   const user = escapeHtml(session.username || 'Equipo');
   const role = session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado';
-  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>Restaurante Central</strong><small>${role} · Turno activo</small></div></div><nav aria-label="Navegación principal"><a data-view="overview">${icon('overview')}<span>Resumen</span></a><a class="active" data-view="tables">${icon('tables')}<span>Mesas</span></a><a data-view="orders">${icon('orders')}<span>Pedidos</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>Cocina</span></a><a data-view="products">${icon('products')}<span>Menú e inventario</span></a><a data-view="reports">${icon('reports')}<span>Reportes</span></a></nav><div class="sidebar-footer">${themeSwitcher()}<button id="logout" class="logout">↪ Cerrar sesión</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>Tu sala está lista</h3><p>Selecciona una mesa para ver la cuenta y comenzar el servicio.</p></div></aside></main>`;
+  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>Restaurante Central</strong><small>${role} · Turno activo</small></div></div><nav aria-label="Navegación principal"><a data-view="overview">${icon('overview')}<span>Resumen</span></a><a class="active" data-view="tables">${icon('tables')}<span>Mesas</span></a><a data-view="orders">${icon('orders')}<span>Pedidos</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>Cocina</span></a><a data-view="products">${icon('products')}<span>Menú e inventario</span></a><a data-view="reports">${icon('reports')}<span>Reportes</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('reports')}<span>Copias de seguridad</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}<button id="logout" class="logout">↪ Cerrar sesión</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>Tu sala está lista</h3><p>Selecciona una mesa para ver la cuenta y comenzar el servicio.</p></div></aside></main>`;
   bindThemeControls();
   document.querySelector('#logout').addEventListener('click', () => logout(session));
   document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => navigate(link.dataset.view, session)));
@@ -611,6 +611,12 @@ async function navigate(view, session) {
   }
   if (view === 'orders') { content.innerHTML = ordersView(); loadGuestRequests(session); guestRequestPoll = window.setInterval(() => loadGuestRequests(session), 5000); return; }
   if (view === 'kitchen') { content.innerHTML = kitchenView(); loadKitchenRequests(session); kitchenPoll = window.setInterval(() => loadKitchenRequests(session), 5000); return; }
+  if (view === 'backups') {
+    if (session.role !== 'ADMINISTRADOR') { showToast('Solo el administrador puede gestionar copias de seguridad.', true); return; }
+    content.innerHTML = backupsView();
+    await loadBackups(session);
+    return;
+  }
   content.innerHTML = reportsView(session); await loadReport(session);
 }
 
@@ -724,6 +730,92 @@ function renderProducts() {
 
 function editProduct(id) { const product = products.find(item => item.id === id), form = document.querySelector('#create-product-form'); if (!product || !form) return; form.dataset.editingId = String(id); form.elements.name.value = product.name; form.elements.category.value = product.category || 'PLATO'; form.elements.description.value = product.description || ''; form.elements.imageUrl.value = product.imageUrl || ''; form.elements.price.value = product.price; form.elements.stock.value = product.stock; form.elements.active.checked = product.active; document.querySelector('#product-form-title').textContent = 'Editar producto'; document.querySelector('#product-submit').textContent = 'Guardar cambios'; document.querySelector('#cancel-product-edit').classList.remove('hidden-field'); form.closest('details').open = true; form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 async function deleteProduct(id) { const product = products.find(item => item.id === id), session = JSON.parse(sessionStorage.getItem('gestourant_session')); if (!product || !window.confirm(`¿Eliminar ${product.name} del menú?`)) return; try { await services.products.remove(session, id); showToast('Producto eliminado.'); navigate('products', session); } catch (error) { showToast(error.message, true); } }
+
+function backupsView() {
+  return `<header class="overview-header"><div><p class="eyebrow">ADMINISTRACIÓN</p><h1>Copias de seguridad</h1><p class="muted">Crea respaldos completos de MySQL, descarga una copia o restaura un punto anterior.</p></div><div class="header-actions"><button type="button" class="primary" id="create-backup">Crear copia ahora</button></div></header><section class="backup-warning"><strong>Restaurar reemplaza los datos actuales de la base de datos.</strong><span>La operación requiere confirmación y solo está disponible para el administrador.</span></section><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">ALMACENAMIENTO SEGURO</p><h2>Historial de respaldos</h2></div><span id="backup-count">Cargando…</span></div><p id="backup-message" class="report-message" aria-live="polite"></p><div id="backup-history" class="report-table-wrap"><p class="report-empty">Cargando copias de seguridad…</p></div></section>`;
+}
+
+async function loadBackups(session) {
+  const list = document.querySelector('#backup-history');
+  const message = document.querySelector('#backup-message');
+  const count = document.querySelector('#backup-count');
+  const createButton = document.querySelector('#create-backup');
+  if (!list || !message || !createButton) return;
+
+  const render = backups => {
+    count.textContent = `${backups.length} copia${backups.length === 1 ? '' : 's'}`;
+    list.innerHTML = backups.length ? `<table class="report-table"><thead><tr><th>Archivo</th><th>Fecha y hora (UTC)</th><th>Tamaño</th><th>Acciones</th></tr></thead><tbody>${backups.map(backup => `<tr><td>${escapeHtml(backup.fileName)}</td><td>${new Date(backup.createdAt).toLocaleString('es-CO', { timeZone: 'UTC' })}</td><td>${formatBackupSize(backup.sizeBytes)}</td><td><div class="backup-actions"><button type="button" class="outline backup-download" data-backup-id="${escapeHtml(backup.id)}">Descargar</button><button type="button" class="outline backup-restore" data-backup-id="${escapeHtml(backup.id)}">Restaurar</button></div></td></tr>`).join('')}</tbody></table>` : '<p class="report-empty">Todavía no hay copias. Crea la primera para que aparezca aquí.</p>';
+    list.querySelectorAll('.backup-download').forEach(button => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await services.backups.download(session, button.dataset.backupId);
+        showToast('Descarga del respaldo iniciada.');
+      } catch (error) {
+        showToast(`No se pudo descargar el respaldo: ${error.message}`, true);
+      } finally {
+        button.disabled = false;
+      }
+    }));
+    list.querySelectorAll('.backup-restore').forEach(button => button.addEventListener('click', async () => {
+      const accepted = window.confirm('Esta acción reemplazará la base de datos actual. Se recomienda descargar un respaldo reciente antes de continuar.');
+      if (!accepted || window.prompt('Escribe RESTAURAR para confirmar:') !== 'RESTAURAR') return;
+      button.disabled = true;
+      try {
+        await services.backups.restore(session, button.dataset.backupId);
+        showToast('La base de datos se restauró correctamente.');
+        message.textContent = 'Restauración completada.';
+        await refresh();
+      } catch (error) {
+        showToast(`No se pudo restaurar la base de datos: ${error.message}`, true);
+      } finally {
+        button.disabled = false;
+      }
+    }));
+  };
+  const refresh = async () => {
+    message.textContent = 'Consultando el almacenamiento seguro…';
+    message.classList.remove('is-error');
+    try {
+      render(await services.backups.list(session));
+      message.textContent = '';
+    } catch (error) {
+      list.innerHTML = `<p class="report-empty">No se pudo cargar el historial: ${escapeHtml(error.message)}</p>`;
+      count.textContent = 'No disponible';
+      message.textContent = 'Verifica que el almacenamiento S3 y sus credenciales estén configurados.';
+      message.classList.add('is-error');
+    }
+  };
+  createButton.onclick = async () => {
+    createButton.disabled = true;
+    createButton.textContent = 'Creando copia…';
+    message.textContent = 'Generando el respaldo de MySQL y guardándolo de forma segura…';
+    message.classList.remove('is-error');
+    try {
+      const backup = await services.backups.create(session);
+      showToast(`Copia creada: ${backup.fileName}`);
+      await refresh();
+    } catch (error) {
+      message.textContent = `No se pudo crear la copia: ${error.message}`;
+      message.classList.add('is-error');
+      showToast(message.textContent, true);
+    } finally {
+      createButton.disabled = false;
+      createButton.textContent = 'Crear copia ahora';
+    }
+  };
+  await refresh();
+}
+
+function formatBackupSize(size) {
+  const bytes = Number(size);
+  if (!Number.isFinite(bytes) || bytes < 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
+  return `${value.toLocaleString('es-CO', { maximumFractionDigits: 1 })} ${units[unit]}`;
+}
 
 async function loadReport(session) {
   const administrator = session.role === 'ADMINISTRADOR';

@@ -329,6 +329,31 @@
   color: #253832;
 }
 
+[data-theme='dark'] .login-card label {
+  color: var(--ink);
+}
+
+[data-theme='dark'] .login-card .oauth-consent,
+[data-theme='dark'] .login-card .social-divider,
+[data-theme='dark'] .login-card .provider-setup-note,
+[data-theme='dark'] .login-card .privacy-link {
+  color: var(--muted);
+}
+
+[data-theme='dark'] .login-card .oauth-consent a,
+[data-theme='dark'] .login-card .privacy-link a {
+  color: var(--brand);
+}
+
+[data-theme='dark'] .login-card .password-wrap button {
+  color: var(--muted);
+}
+
+[data-theme='dark'] .login-card .password-wrap button:hover,
+[data-theme='dark'] .login-card .password-wrap button:focus-visible {
+  color: var(--brand);
+}
+
 .cookie-notice .eyebrow {
   margin-bottom: 6px;
 }

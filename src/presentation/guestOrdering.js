@@ -1,7 +1,9 @@
 import '../guest-ordering.css';
 import '../guest-brand.css';
+import './guest-menu-download.css';
 import { calculateCartTotal } from '../domain/product';
 import { brandMark } from './brandMark';
+import { downloadMenuXlsx, printMenuPdf } from './menuDownload';
 import { fallbackProductPhoto, productPhoto } from './productPhoto';
 
 const money = value => `$ ${Number(value || 0).toLocaleString('es-CO')} COP`;
@@ -73,7 +75,7 @@ export async function guestOrderingView(token, services) {
         <p class="guest-privacy-note">Aquí solo aparecen las solicitudes enviadas desde esta pestaña. Para consultar la cuenta compartida de la mesa, pide ayuda al equipo.</p>
         ${state.requests.length ? `<div class="guest-request-list">${state.requests.map(request => `<article class="guest-request-card"><div class="guest-request-title"><span>Solicitud #${request.id}</span><b class="request-${request.status.toLowerCase()}">${escapeHtml(requestStatusLabel(request.status))}</b></div><div class="guest-request-lines">${request.items.map(item => `<span>${item.quantity} × ${escapeHtml(item.name)}${item.removedIngredients ? ` <small>· Sin ${escapeHtml(item.removedIngredients)}</small>` : ''}</span>`).join('')}</div><strong>${money(request.total)}</strong></article>`).join('')}</div>` : '<article class="guest-no-account"><span>◷</span><div><strong>Aún no has enviado pedidos desde este dispositivo</strong><small>Cuando envíes una solicitud, su estado aparecerá aquí.</small></div></article>'}
       </section>
-      <section class="guest-menu"><div class="guest-section-heading"><div><p class="guest-eyebrow">RECIÉN HECHO PARA TI</p><h2>La carta</h2></div><span class="guest-menu-count">${filteredProducts.length} opciones</span></div>
+      <section class="guest-menu"><div class="guest-section-heading guest-menu-heading"><div><p class="guest-eyebrow">RECIÉN HECHO PARA TI</p><h2>La carta</h2></div><div class="guest-menu-heading-actions"><div class="guest-menu-downloads" aria-label="Descargar carta"><button type="button" class="guest-menu-download" data-action="download-menu-pdf"><span aria-hidden="true">↓</span>PDF</button><button type="button" class="guest-menu-download" data-action="download-menu-xlsx"><span aria-hidden="true">↓</span>Excel</button></div><span class="guest-menu-count">${filteredProducts.length} opciones</span></div></div>
         <label class="guest-search"><span>⌕</span><input type="search" data-search placeholder="Buscar un plato, bebida…" value="${escapeHtml(state.search)}"></label>
         <div class="guest-filters" role="group" aria-label="Filtrar carta">${[['TODOS','Todo'],['PLATO','Platos'],['BEBIDA','Bebidas'],['OTRO','Otros']].map(([id,label]) => `<button type="button" data-filter="${id}" class="${state.filter === id ? 'active' : ''}">${label}</button>`).join('')}</div>
         <div class="guest-product-grid">${filteredProducts.length ? filteredProducts.map(product => {
@@ -118,6 +120,24 @@ export async function guestOrderingView(token, services) {
 
   async function handleAction(action, productId) {
     if (action === 'retry' || action === 'refresh') return refresh();
+    if (action === 'download-menu-pdf') {
+      try {
+        printMenuPdf(state.data.menu, state.data.tableNumber);
+      } catch (error) {
+        state.message = error.message;
+        render();
+      }
+      return;
+    }
+    if (action === 'download-menu-xlsx') {
+      try {
+        downloadMenuXlsx(state.data.menu, state.data.tableNumber);
+      } catch (error) {
+        state.message = error.message;
+        render();
+      }
+      return;
+    }
     if (action === 'plus' || action === 'minus') {
       const product = state.data.menu.find(item => item.id === Number(productId));
       if (!product) return;

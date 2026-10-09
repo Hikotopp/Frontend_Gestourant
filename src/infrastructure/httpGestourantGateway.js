@@ -81,6 +81,16 @@ export function createHttpGestourantGateway(apiPort) {
       listRequests: session => api.request('/api/kitchen/requests', session),
       advanceRequest: (session, id) => api.request(`/api/kitchen/requests/${id}/advance`, session, { method: 'PATCH' })
     },
+    backups: {
+      list: session => api.request('/api/admin/backups', session),
+      create: session => api.request('/api/admin/backups', session, { method: 'POST' }),
+      download: (session, id) => api.download(`/api/admin/backups/${encodeURIComponent(id)}/download`, session),
+      restore: (session, id) => api.request(
+        `/api/admin/backups/${encodeURIComponent(id)}/restore`,
+        session,
+        jsonRequest('POST', { confirmation: 'RESTAURAR' })
+      )
+    },
     reports: {
       getCashClose: session => api.request('/api/reports/cash-close', session),
       getHistory: (session, from, to, administrator) => {
