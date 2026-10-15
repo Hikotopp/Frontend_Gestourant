@@ -36,6 +36,21 @@ describe('PublicHome', () => {
     expect(element.querySelector('.demo-order-lines')?.textContent).toContain('Limonada natural');
   });
 
+  it('saves ingredient notes and removes sample items', async () => {
+    const fixture = await createHome();
+    const element = fixture.nativeElement as HTMLElement;
+    const note = element.querySelector<HTMLInputElement>('#demo-allergy-note')!;
+    note.value = 'Sin lácteos';
+    element.querySelector<HTMLButtonElement>('.demo-allergy-editor button')?.click();
+    fixture.detectChanges();
+
+    expect(element.querySelector('.demo-line-name')?.textContent).toContain('Indicación: Sin lácteos');
+
+    element.querySelector<HTMLButtonElement>('.demo-remove')?.click();
+    fixture.detectChanges();
+    expect(element.querySelector('.demo-order-lines')?.textContent).not.toContain('Hamburguesa de la casa');
+  });
+
   it('emits login and registration requests from the landing page', async () => {
     const fixture = await createHome();
     const requested: string[] = [];

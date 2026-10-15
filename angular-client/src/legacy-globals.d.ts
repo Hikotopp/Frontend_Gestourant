@@ -10,3 +10,9 @@ declare var __GESTOURANT_CONFIG__: {
   development?: boolean;
   production?: boolean;
 };
+
+declare var __GESTOURANT_OPEN_AUTH__:
+  | ((mode: 'login' | 'register') => Promise<void>)
+  | undefined;
+
+declare var __GESTOURANT_NOTICE_CHANGED__: ((notice: string) => void) | undefined;

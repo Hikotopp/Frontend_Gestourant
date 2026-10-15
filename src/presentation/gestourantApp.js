@@ -1353,6 +1353,7 @@ async function initializeApplication() {
     authNotice ||= 'No se pudo consultar la configuración de acceso. Revisa la conexión con el servidor.';
   }
 
+  globalThis.__GESTOURANT_NOTICE_CHANGED__?.(authNotice);
   const stored = sessionStorage.getItem('gestourant_session');
   if (stored) dashboardView(JSON.parse(stored));
   else if (oauthRegistrationCode) oauthRegistrationView(oauthRegistrationCode);
@@ -1364,5 +1365,12 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
   services = applicationServices;
   logger = applicationLogger;
   apiBase = apiBaseUrl;
-  initializeApplication();
+  const applicationReady = initializeApplication();
+  globalThis.__GESTOURANT_OPEN_AUTH__ = async mode => {
+    await applicationReady;
+    authNotice = '';
+    if (mode === 'register') registerView();
+    else loginView();
+    window.scrollTo(0, 0);
+  };
 }

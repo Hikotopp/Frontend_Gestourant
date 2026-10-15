@@ -1,10 +1,10 @@
 # Aplicación Angular de Gestourant
 
-Este workspace inicia la migración gradual del frontend de Gestourant a Angular 22. El cliente Vite original permanece disponible mientras se trasladan vistas y flujos. La migración debe conservar la apariencia, la lógica de negocio y las capacidades existentes; no se reemplaza una vista hasta verificar su paridad con Vite.
+Este workspace continúa la migración gradual del frontend de Gestourant a Angular 22. La página pública y su demostración interactiva ya son componentes Angular. El acceso, el registro, OAuth, la sesión y el espacio autenticado siguen usando el cliente Vite mientras se migran. La migración debe conservar la apariencia, la lógica de negocio y las capacidades existentes; no se reemplaza una vista hasta verificar su paridad con Vite.
 
 ## Estado actual
 
-Angular monta la aplicación Vite existente como puente temporal. Por eso, la interfaz y los flujos actuales siguen siendo los de Vite; todavía no se han migrado vistas a componentes Angular ni se considera completa la migración.
+La página pública Angular reutiliza los estilos originales de Vite. Sus acciones de acceso y registro abren los flujos existentes a través del puente temporal; el cliente Vite permanece disponible para esos flujos y para el espacio autenticado. La migración completa queda pendiente hasta trasladar esos flujos y verificar su paridad.
 
 Los recursos públicos necesarios para Angular se encuentran dentro de `public/` y corresponden a los originales de `Frontend_Gestourant/public/`.
 
