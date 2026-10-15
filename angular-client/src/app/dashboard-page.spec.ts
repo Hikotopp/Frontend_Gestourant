@@ -11,6 +11,7 @@ describe('DashboardPage', () => {
 
   afterEach(() => {
     globalThis.__GESTOURANT_LOAD_DASHBOARD_OVERVIEW__ = undefined;
+    globalThis.__GESTOURANT_REQUESTS__ = undefined;
   });
 
   async function createPage(role = session.role) {
@@ -61,5 +62,26 @@ describe('DashboardPage', () => {
     fixture.componentRef.setInput('session', { ...session, role: 'ADMINISTRADOR' });
     fixture.detectChanges();
     expect(element.textContent).toContain('Copias de seguridad');
+  });
+
+  it('shows the pending-request badge and refreshes the summary when returning to overview', async () => {
+    const loadOverview = vi.fn(async () => ({
+      occupiedTables: 1,
+      availableTables: 3,
+      lowStockProducts: 0,
+    }));
+    globalThis.__GESTOURANT_LOAD_DASHBOARD_OVERVIEW__ = loadOverview;
+    const fixture = await createPage();
+    fixture.componentRef.setInput('pendingRequestCount', 2);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.nav-pending-count')?.textContent).toBe('2');
+
+    fixture.componentRef.setInput('activeView', 'orders');
+    fixture.detectChanges();
+    fixture.componentRef.setInput('activeView', 'overview');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(loadOverview).toHaveBeenCalledTimes(2);
+    fixture.destroy();
   });
 });

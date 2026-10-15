@@ -1177,9 +1177,10 @@ async function loadGuestRequests(session) {
 
 async function updateGuestRequestBadge(session) {
   const badge = document.querySelector('#nav-pending-count');
-  if (!badge) return;
   try {
     const requests = await services.guest.listStaffRequests(session);
+    globalThis.__GESTOURANT_PENDING_REQUEST_COUNT_CHANGED__?.(requests.length);
+    if (!badge) return;
     badge.textContent = String(requests.length);
     badge.hidden = requests.length === 0;
   } catch (error) {
@@ -1386,6 +1387,13 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     create: (session, table) => services.tables.create(session, table),
     join: (session, tableIds) => services.tables.join(session, tableIds),
     updatePosition: (session, id, position) => services.tables.updatePosition(session, id, position)
+  };
+  globalThis.__GESTOURANT_REQUESTS__ = {
+    listOrders: session => services.guest.listStaffRequests(session),
+    approve: (session, id) => services.guest.approveStaffRequest(session, id),
+    reject: (session, id) => services.guest.rejectStaffRequest(session, id),
+    listKitchen: session => services.kitchen.listRequests(session),
+    advanceKitchen: (session, id) => services.kitchen.advanceRequest(session, id)
   };
   globalThis.__GESTOURANT_SHOW_TABLE_QR__ = table => showTableQr(table);
   globalThis.__GESTOURANT_OPEN_TABLE_DETAIL__ = async tableId => {

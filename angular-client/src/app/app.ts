@@ -16,9 +16,11 @@ import { DashboardPage } from './dashboard-page';
         <app-dashboard-page
           [session]="dashboardSession()"
           [notice]="legacyLoadError()"
+          [pendingRequestCount]="pendingRequestCount()"
           [activeView]="activeDashboardView()"
           (viewRequested)="openDashboardView($event)"
           (tableSelected)="openTableDetail($event)"
+          (requestCountChanged)="pendingRequestCount.set($event)"
           (logoutRequested)="logout()"
         />
       } @else if (authMode() !== 'dashboard') {
@@ -52,6 +54,7 @@ export class App implements AfterViewInit {
   showAngularHome = signal(this.shouldShowAngularHome());
   authMode = signal<'home' | 'login' | 'register' | 'oauth-register' | 'dashboard'>(this.initialAuthMode());
   dashboardSession = signal<GestourantSession | null>(null);
+  pendingRequestCount = signal(0);
   activeDashboardView = signal<GestourantDashboardView | 'overview'>('overview');
   cookieNoticeVisible = signal(!localStorage.getItem('gestourant_cookie_consent'));
   authConfig = signal<GestourantAuthConfig>({
@@ -77,6 +80,9 @@ export class App implements AfterViewInit {
     globalThis.__GESTOURANT_COOKIE_NOTICE_ACTIVE__ = true;
     globalThis.__GESTOURANT_NOTICE_CHANGED__ = (notice: string) => {
       this.homeNotice.set(notice);
+    };
+    globalThis.__GESTOURANT_PENDING_REQUEST_COUNT_CHANGED__ = (count: number) => {
+      this.pendingRequestCount.set(count);
     };
     globalThis.__GESTOURANT_SESSION_READY__ = (session: GestourantSession) => this.showAngularDashboard(session);
     globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__ = (session: GestourantSession) =>
@@ -144,7 +150,7 @@ export class App implements AfterViewInit {
   }
 
   async openDashboardView(view: GestourantDashboardView | 'overview'): Promise<void> {
-    if (view === 'overview' || view === 'tables') {
+    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen') {
       this.activeDashboardView.set(view);
       this.legacyLoadError.set('');
       return;

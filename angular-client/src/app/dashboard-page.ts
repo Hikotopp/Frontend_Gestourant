@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
+import { RequestsPage } from './requests-page';
 import { TablesPage } from './tables-page';
 
 type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
@@ -13,16 +14,18 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CommonModule, TablesPage],
+  imports: [CommonModule, RequestsPage, TablesPage],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {
   @Input() session: GestourantSession | null = null;
   @Input() notice = '';
   @Input() activeView: DashboardView | 'overview' = 'overview';
+  @Input() pendingRequestCount = 0;
   @Output() viewRequested = new EventEmitter<DashboardView | 'overview'>();
   @Output() logoutRequested = new EventEmitter<void>();
   @Output() tableSelected = new EventEmitter<number>();
+  @Output() requestCountChanged = new EventEmitter<number>();
 
   readonly summary = signal<GestourantDashboardSummary | null>(null);
   readonly loading = signal(false);
@@ -40,6 +43,9 @@ export class DashboardPage implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['session'] && this.session) void this.loadSummary(this.session);
+    else if (changes['activeView'] && this.activeView === 'overview' && this.session) {
+      void this.loadSummary(this.session);
+    }
   }
 
   get visibleNavigation(): NavigationItem[] {

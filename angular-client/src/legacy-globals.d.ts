@@ -57,6 +57,37 @@ interface GestourantTableBridge {
   updatePosition: (session: GestourantSession, id: number, position: { x: number; y: number }) => Promise<GestourantTable>;
 }
 
+interface GestourantRequestsBridge {
+  listOrders: (session: GestourantSession) => Promise<GestourantStaffRequest[]>;
+  approve: (session: GestourantSession, id: number) => Promise<void>;
+  reject: (session: GestourantSession, id: number) => Promise<void>;
+  listKitchen: (session: GestourantSession) => Promise<GestourantKitchenRequest[]>;
+  advanceKitchen: (session: GestourantSession, id: number) => Promise<void>;
+}
+
+interface GestourantRequestItem {
+  quantity: number;
+  name: string;
+  removedIngredients?: string | null;
+  subtotal?: number;
+}
+
+interface GestourantStaffRequest {
+  id: number;
+  tableNumber: number;
+  createdAt: string;
+  items: GestourantRequestItem[];
+  total: number;
+}
+
+interface GestourantKitchenRequest {
+  id: number;
+  tableNumber: number;
+  createdAt: string;
+  status: string;
+  items: GestourantRequestItem[];
+}
+
 type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
 
 interface GestourantAuthBridge {
@@ -78,8 +109,10 @@ declare var __GESTOURANT_LOAD_DASHBOARD_OVERVIEW__:
   | ((session: GestourantSession) => Promise<GestourantDashboardSummary>)
   | undefined;
 declare var __GESTOURANT_TABLES__: GestourantTableBridge | undefined;
+declare var __GESTOURANT_REQUESTS__: GestourantRequestsBridge | undefined;
 declare var __GESTOURANT_OPEN_TABLE_DETAIL__: ((tableId: number) => Promise<void>) | undefined;
 declare var __GESTOURANT_SHOW_TABLE_QR__: ((table: GestourantTable) => Promise<void>) | undefined;
+declare var __GESTOURANT_PENDING_REQUEST_COUNT_CHANGED__: ((count: number) => void) | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:
   | ((view: GestourantDashboardView) => Promise<void>)
   | undefined;
