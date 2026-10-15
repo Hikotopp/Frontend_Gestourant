@@ -58,6 +58,7 @@ describe('ProductsPage', () => {
     };
     const fixture = await createPage('ADMINISTRADOR');
     const component = fixture.componentInstance;
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[name="name"]')).toHaveLength(1);
     const form = { reportValidity: () => true, reset: vi.fn() } as unknown as HTMLFormElement;
     component.name = 'Nuevo';
     component.description = 'Prueba';

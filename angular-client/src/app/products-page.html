@@ -3,8 +3,8 @@
   <span class="menu-count">{{ products().filter(isActive).length }} productos disponibles</span>
 </header>
 
-@if (error()) { <p class="form-message" role="alert">{{ error() }}</p> }
-@if (notice()) { <p class="auth-notice" role="status">{{ notice() }}</p> }
+@if (error()) { <p class="form-message" role="alert">{{ error() | tr }}</p> }
+@if (notice()) { <p class="auth-notice" role="status">{{ notice() | tr }}</p> }
 
 @if (activeOrder(); as order) {
   <div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>Pedido en curso · Mesa {{ order.tableNumber }}</strong><small>Pedido #{{ order.id }} · Los productos se agregarán a esta cuenta</small></div></div>
@@ -16,11 +16,10 @@
   <details class="admin-tools menu-admin-tools">
     <summary><span><strong>{{ (editingId() === null ? 'Administrar menú' : 'Editar producto') | tr }}</strong><small>{{ 'Crear o actualizar platos, bebidas y precios' | tr }}</small></span><span class="tools-plus">＋</span></summary>
     <form class="product-form" #productForm (submit)="$event.preventDefault(); saveProduct(productForm)">
-      <label>Nombre del producto<input name="name" maxlength="120" placeholder="Ej. Trucha a la plancha" required [(ngModel)]="name"></label>
-      <label>{{ 'Nombre del producto' | tr }}<input name="name" maxlength="120" placeholder="Ej. Trucha a la plancha" required [(ngModel)]="name"></label>
+      <label>{{ 'Nombre del producto' | tr }}<input name="name" maxlength="120" [placeholder]="'Ej. Trucha a la plancha' | tr" required [(ngModel)]="name"></label>
       <label>{{ 'Categoría' | tr }}<select name="category" [(ngModel)]="category"><option value="PLATO">{{ 'Platos' | tr }}</option><option value="BEBIDA">{{ 'Bebidas' | tr }}</option><option value="OTRO">{{ 'Otros' | tr }}</option></select></label>
-      <label class="form-wide">{{ 'Descripción' | tr }}<textarea name="description" maxlength="500" placeholder="Descripción e ingredientes principales" required [(ngModel)]="description"></textarea></label>
-      <label class="form-wide">{{ 'Foto del producto' | tr }}<input name="imageUrl" type="url" maxlength="1000" placeholder="https://… (opcional)" [(ngModel)]="imageUrl"><small>{{ 'Usa una imagen propia o de tu proveedor, con permiso de uso.' | tr }}</small></label>
+      <label class="form-wide">{{ 'Descripción' | tr }}<textarea name="description" maxlength="500" [placeholder]="'Descripción e ingredientes principales' | tr" required [(ngModel)]="description"></textarea></label>
+      <label class="form-wide">{{ 'Foto del producto' | tr }}<input name="imageUrl" type="url" maxlength="1000" [placeholder]="'https://… (opcional)' | tr" [(ngModel)]="imageUrl"><small>{{ 'Usa una imagen propia o de tu proveedor, con permiso de uso.' | tr }}</small></label>
       <label>{{ 'Precio (COP)' | tr }}<input name="price" type="number" min="1" step="1" placeholder="28000" required [(ngModel)]="price"></label>
       <label>{{ 'Existencias' | tr }}<input name="stock" type="number" min="0" step="1" placeholder="20" required [(ngModel)]="stock"></label>
       <label class="product-active"><input name="active" type="checkbox" [(ngModel)]="active">{{ 'Disponible para pedidos' | tr }}</label>
@@ -39,7 +38,7 @@
     @else {
       @for (product of visibleProducts; track product.id) {
         <article class="product-card" [class.inactive]="!product.active">
-          <div class="product-photo-wrap"><img class="product-photo" [src]="photo(product)" [alt]="product.name" loading="lazy" (error)="fallbackPhoto($event, product)"><span class="product-category">{{ product.category || 'PLATO' }}</span>@if (!product.active) { <span class="menu-unavailable">Pausado</span> }</div>
+          <div class="product-photo-wrap"><img class="product-photo" [src]="photo(product)" [alt]="product.name" loading="lazy" (error)="fallbackPhoto($event, product)"><span class="product-category">{{ (product.category || 'PLATO') | tr }}</span>@if (!product.active) { <span class="menu-unavailable">{{ 'Pausado' | tr }}</span> }</div>
           <div class="product-card-body"><div class="product-card-title"><h3>{{ product.name }}</h3><strong>$ {{ product.price | number:'1.0-0':'es-CO' }}</strong></div>
             <p>{{ (product.description || 'Preparado al momento en nuestra cocina.') | tr }}</p>
             <div class="product-card-footer"><span class="stock" [class.low]="product.stock < 5">{{ product.stock > 0 ? product.stock + ' ' + ('disponibles' | tr) : ('Agotado' | tr) }}</span><div class="product-actions">

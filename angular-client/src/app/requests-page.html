@@ -11,7 +11,7 @@
 }
 
 @if (error()) {
-  <div class="staff-request-error" role="alert"><strong>{{ isKitchen ? 'No pudimos actualizar las comandas.' : 'No pudimos actualizar las solicitudes.' }}</strong><p>{{ error() }}</p><button class="outline" type="button" (click)="load()">Intentar de nuevo</button></div>
+  <div class="staff-request-error" role="alert"><strong>{{ (isKitchen ? 'No pudimos actualizar las comandas.' : 'No pudimos actualizar las solicitudes.') | tr }}</strong><p>{{ error() | tr }}</p><button class="outline" type="button" (click)="load()">{{ 'Intentar de nuevo' | tr }}</button></div>
 }
 
 <section class="guest-request-queue" [attr.aria-busy]="loading()">

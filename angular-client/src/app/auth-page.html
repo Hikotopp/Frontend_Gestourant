@@ -12,21 +12,21 @@
         <h1>{{ 'Tu restaurante, en perfecto ritmo.' | tr }}</h1>
         <p>{{ 'Organiza tu sala, atiende con claridad y toma decisiones desde un solo lugar.' | tr }}</p>
       </div>
-      <div class="login-proof"><span>✦</span><div><strong>Una operación más simple</strong><small>Mesas, pedidos y equipo en armonía.</small></div></div>
+      <div class="login-proof"><span>✦</span><div><strong>{{ 'Una operación más simple' | tr }}</strong><small>{{ 'Mesas, pedidos y equipo en armonía.' | tr }}</small></div></div>
     } @else if (mode === 'register') {
       <div class="hero-copy">
         <p class="eyebrow">{{ 'EMPIEZA HOY' | tr }}</p>
         <h1>{{ 'La operación clara comienza aquí.' | tr }}</h1>
         <p>{{ 'Crea tu acceso y conoce el espacio de trabajo de Gestourant.' | tr }}</p>
       </div>
-      <div class="login-proof"><span>✦</span><div><strong>Tu información, protegida</strong><small>Acceso seguro para cada miembro del equipo.</small></div></div>
+      <div class="login-proof"><span>✦</span><div><strong>{{ 'Tu información, protegida' | tr }}</strong><small>{{ 'Acceso seguro para cada miembro del equipo.' | tr }}</small></div></div>
     } @else {
       <div class="hero-copy">
         <p class="eyebrow">{{ 'UN ÚLTIMO PASO' | tr }}</p>
         <h1>{{ 'Tu cuenta, con tu permiso.' | tr }}</h1>
         <p>{{ 'Tu proveedor de acceso confirmó tu identidad. Antes de crear tu cuenta de Gestourant, revisa y autoriza el tratamiento de tus datos.' | tr }}</p>
       </div>
-      <div class="login-proof"><span>✓</span><div><strong>Tu decisión importa</strong><small>Solo crearemos tu cuenta si aceptas expresamente.</small></div></div>
+      <div class="login-proof"><span>✓</span><div><strong>{{ 'Tu decisión importa' | tr }}</strong><small>{{ 'Solo crearemos tu cuenta si aceptas expresamente.' | tr }}</small></div></div>
     }
   </section>
 
@@ -44,7 +44,7 @@
         <p class="eyebrow accent">{{ 'BIENVENIDO DE NUEVO' | tr }}</p>
         <h2>{{ 'Inicia sesión' | tr }}</h2>
         <p class="muted">{{ 'Tu espacio de trabajo te espera.' | tr }}</p>
-        @if (notice) { <p class="auth-notice" role="status">{{ notice }}</p> }
+        @if (notice) { <p class="auth-notice" role="status">{{ notice | tr }}</p> }
         <label>{{ 'Correo o usuario' | tr }}<input name="identifier" [(ngModel)]="identifier" autocomplete="username" [placeholder]="'ej. maria@restaurante.com' | tr" required></label>
         <label>{{ 'Contraseña' | tr }}
           <div class="password-wrap">
@@ -54,7 +54,7 @@
         </label>
         <div #captchaContainer class="captcha-slot"></div>
         <label class="honeypot" aria-hidden="true">No llenar<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
-        <p class="form-message" role="alert">{{ error() }}</p>
+        <p class="form-message" role="alert">{{ error() | tr }}</p>
         <button class="primary" type="submit" [disabled]="pending()">{{ 'Iniciar sesión' | tr }} <span>→</span></button>
         <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
         <p class="privacy-link">{{ 'Al continuar, consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
@@ -65,7 +65,7 @@
         <p class="eyebrow accent">{{ 'NUEVA CUENTA' | tr }}</p>
         <h2>{{ 'Crear cuenta' | tr }}</h2>
         <p class="muted">{{ 'Completa tus datos para comenzar.' | tr }}</p>
-        @if (notice) { <p class="auth-notice" role="status">{{ notice }}</p> }
+        @if (notice) { <p class="auth-notice" role="status">{{ notice | tr }}</p> }
         <label>{{ 'Nombre de usuario' | tr }}<input name="username" [(ngModel)]="username" autocomplete="username" [placeholder]="'ej. maria.lopez' | tr" required minlength="3"></label>
         <label>{{ 'Correo electrónico' | tr }}<input name="email" [(ngModel)]="email" type="email" autocomplete="email" [placeholder]="'maria@restaurante.com' | tr" required></label>
         <label>{{ 'Contraseña' | tr }}
@@ -79,7 +79,7 @@
         <input type="hidden" name="captchaToken" [(ngModel)]="captchaToken">
         <div #captchaContainer class="captcha-slot"></div>
         <p class="form-hint">{{ 'Los permisos administrativos los asigna el responsable del sistema.' | tr }}</p>
-        <p class="form-message" role="alert">{{ error() }}</p>
+        <p class="form-message" role="alert">{{ error() | tr }}</p>
         <button class="primary" type="submit" [disabled]="pending()">{{ 'Crear mi cuenta' | tr }} <span>→</span></button>
         <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
         <p class="privacy-link">{{ 'Al continuar, consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
@@ -90,10 +90,10 @@
         <p class="eyebrow accent">{{ 'CONFIRMA LA CREACIÓN' | tr }}</p>
         <h2>{{ 'Crear cuenta con tu proveedor' | tr }}</h2>
         <p class="muted">{{ 'Si ya tienes una cuenta de Gestourant vinculada, iniciarás sesión directamente y no verás este paso.' | tr }}</p>
-        @if (notice) { <p class="auth-notice" role="status">{{ notice }}</p> }
+        @if (notice) { <p class="auth-notice" role="status">{{ notice | tr }}</p> }
         <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>{{ 'He leído y autorizo el tratamiento de mis datos personales para crear mi cuenta de Gestourant.' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Leer política' | tr }}</a>.</span></label>
         <p class="form-hint">{{ 'Si no deseas crearla, puedes volver al inicio de sesión. No guardaremos una cuenta.' | tr }}</p>
-        <p class="form-message" role="alert">{{ error() }}</p>
+        <p class="form-message" role="alert">{{ error() | tr }}</p>
         <button class="primary" type="submit" [disabled]="pending()">{{ 'Autorizar y crear cuenta' | tr }} <span>→</span></button>
         <p class="demo-note">{{ '¿No quieres continuar?' | tr }} <button type="button" class="text-button" (click)="openMode('login')">{{ 'Volver al inicio de sesión' | tr }}</button></p>
         <p class="privacy-link">{{ 'Lee nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>

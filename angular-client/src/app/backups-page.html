@@ -3,8 +3,8 @@
   <div class="header-actions"><button type="button" class="primary" [disabled]="creating()" (click)="create()">{{ (creating() ? 'Creando copia…' : 'Crear copia ahora') | tr }}</button></div>
 </header>
 
-@if (error()) { <p class="report-message is-error" role="alert">{{ error() }}</p> }
-@if (message()) { <p class="report-message" role="status">{{ message() }}</p> }
+@if (error()) { <p class="report-message is-error" role="alert">{{ error() | tr }}</p> }
+@if (message()) { <p class="report-message" role="status">{{ message() | tr }}</p> }
 
 <section class="backup-warning"><strong>{{ 'Restaurar reemplaza los datos actuales de la base de datos.' | tr }}</strong><span>{{ 'La operación requiere confirmación y solo está disponible para el administrador. El servidor crea un respaldo de seguridad antes de restaurar.' | tr }}</span></section>
 

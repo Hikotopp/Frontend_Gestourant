@@ -9,8 +9,8 @@
   <article><span class="metric-icon total-icon"><span aria-hidden="true">⌂</span></span><div><small>{{ 'Total de mesas' | tr }}</small><strong>{{ tables().length }}</strong></div></article>
 </section>
 
-@if (error()) { <p class="form-message" role="alert">{{ error() }}</p> }
-@if (notice()) { <p class="auth-notice" role="status">{{ notice() }}</p> }
+@if (error()) { <p class="form-message" role="alert">{{ error() | tr }}</p> }
+@if (notice()) { <p class="auth-notice" role="status">{{ notice() | tr }}</p> }
 @if (session.role === 'ADMINISTRADOR') {
   <details class="admin-tools table-tools">
     <summary><span><strong>{{ 'Configurar sala' | tr }}</strong><small>{{ 'Agregar mesas o unir espacios' | tr }}</small></span><span class="tools-plus">＋</span></summary>
@@ -38,7 +38,7 @@
     </div>
   </div>
   <div class="floor-map-background">
-    <div class="floor-zone floor-zone-kitchen">COCINA</div><div class="floor-zone floor-zone-entry">ENTRADA</div><div class="floor-zone floor-zone-window">VENTANAL</div>
+    <div class="floor-zone floor-zone-kitchen">{{ 'COCINA' | tr }}</div><div class="floor-zone floor-zone-entry">{{ 'ENTRADA' | tr }}</div><div class="floor-zone floor-zone-window">{{ 'VENTANAL' | tr }}</div>
     <div class="floor-map" [class.is-arranging]="arranging()" [attr.aria-busy]="loading()">
       @if (loading() && !tables().length) {
         <div class="menu-empty"><span>…</span><h3>{{ 'Cargando mesas' | tr }}</h3><p>{{ 'Consultando la sala del restaurante.' | tr }}</p></div>

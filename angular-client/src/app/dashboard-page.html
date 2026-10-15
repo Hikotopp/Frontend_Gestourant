@@ -38,7 +38,7 @@
     </aside>
 
     <section class="workspace">
-      @if (notice) { <p class="auth-notice" role="alert">{{ notice }}</p> }
+      @if (notice) { <p class="auth-notice" role="alert">{{ notice | tr }}</p> }
       @if (activeView === 'tables' && session) {
         <app-tables-page [session]="session" (tableSelected)="tableSelected.emit($event)" />
       } @else if ((activeView === 'orders' || activeView === 'kitchen') && session) {
@@ -60,8 +60,8 @@
       </header>
 
       @if (error()) {
-        <p class="form-message" role="alert">{{ error() }}</p>
-        <button type="button" class="outline" (click)="loadSummary(session)">Reintentar</button>
+        <p class="form-message" role="alert">{{ error() | tr }}</p>
+        <button type="button" class="outline" (click)="loadSummary(session)">{{ 'Reintentar' | tr }}</button>
       }
       <section class="overview-grid" [attr.aria-busy]="loading()">
         <article class="overview-card overview-primary">

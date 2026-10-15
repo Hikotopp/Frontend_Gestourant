@@ -10,7 +10,7 @@
   <div class="report-actions"><button class="outline" type="button" [disabled]="loading()" (click)="search()">{{ 'Consultar' | tr }} {{ isAdmin ? ('historial' | tr) : ('fecha' | tr) }}</button><button class="primary report-download" type="button" [disabled]="!report() || downloading()" (click)="download()">{{ (downloading() ? 'Preparando…' : 'Descargar Excel (.xlsx)') | tr }}</button></div>
 </section>
 
-<p class="report-message" [class.is-error]="error()" role="status">{{ error() || message() }}</p>
+<p class="report-message" [class.is-error]="error()" role="status">{{ (error() || message()) | tr }}</p>
 
 <section class="metrics report-metrics">
   <article><span>{{ 'Facturas' | tr }}</span><strong>{{ report()?.facturas ?? '—' }}</strong></article>
