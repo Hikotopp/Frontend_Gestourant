@@ -5,7 +5,7 @@ function safeLogPath(path) {
 }
 
 export function createHttpApiAdapter(baseUrl = '') {
-  if (import.meta.env.PROD && baseUrl && new URL(baseUrl, window.location.origin).protocol !== 'https:') {
+  if (import.meta.env?.PROD && baseUrl && new URL(baseUrl, window.location.origin).protocol !== 'https:') {
     throw new Error('La API de Gestourant debe usar HTTPS en producción.');
   }
 
@@ -19,7 +19,13 @@ export function createHttpApiAdapter(baseUrl = '') {
       if (!response.ok) {
         logger.error('API request failed', { path: safeLogPath(path), status: response.status });
         const message = response.status === 401
-          ? (path === '/api/auth/login' ? 'El usuario o la contraseña son incorrectos.' : 'Tu sesión expiró o fue cerrada. Inicia sesión de nuevo.')
+          ? path === '/api/auth/login'
+            ? 'El usuario o la contraseña son incorrectos.'
+            : path === '/api/auth/unlock'
+              ? data.message || 'La sesión expiró o la contraseña no es correcta.'
+              : 'Tu sesión expiró o fue cerrada. Inicia sesión de nuevo.'
+          : response.status === 403 && path === '/api/auth/unlock'
+            ? data.message || 'La contraseña es incorrecta.'
           : response.status === 409 && path === '/api/auth/login'
             ? 'Esta cuenta ya tiene una sesión abierta en otro navegador. Cierra esa sesión o espera a que expire.'
           : data.message || 'No fue posible completar la operación.';

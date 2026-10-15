@@ -17,7 +17,10 @@ export function createHttpGestourantGateway(apiPort) {
       registerOAuthAccount: account => api.request('/api/auth/oauth/register', null, jsonRequest('POST', account)),
       login: credentials => api.request('/api/auth/login', null, jsonRequest('POST', credentials)),
       register: account => api.request('/api/auth/register', null, jsonRequest('POST', account)),
-      logout: session => api.request('/api/auth/logout', session, { method: 'POST' })
+      logout: session => api.request('/api/auth/logout', session, { method: 'POST' }),
+      sessionStatus: session => api.request('/api/auth/session', session),
+      recordActivity: session => api.request('/api/auth/activity', session, { method: 'POST' }),
+      unlock: (session, password, captchaToken) => api.request('/api/auth/unlock', session, jsonRequest('POST', { password, captchaToken }))
     },
     tables: {
       list: session => api.request('/api/tables', session),

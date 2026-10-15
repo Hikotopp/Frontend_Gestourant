@@ -38,7 +38,10 @@ let idleCountdownTimer;
 let idleLockDeadline = 0;
 let idleLogoutDeadline = 0;
 let idleLogoutStarted = false;
+let idleActivityReportWarningShown = false;
 let currentSession = null;
+let sessionValidationPoll;
+let sessionValidationInProgress = false;
 let authNotice = '';
 let guestRequestPoll;
 let guestRequestBadgePoll;
@@ -222,6 +225,7 @@ function clearIdleMonitoring() {
   clearTimeout(idleLogoutTimer);
   clearInterval(idleCountdownTimer);
   idleCountdownTimer = null;
+  idleActivityReportWarningShown = false;
   if (idleActivityHandler) {
     ['pointerdown', 'keydown', 'touchstart', 'mousemove'].forEach(type => document.removeEventListener(type, idleActivityHandler));
     idleActivityHandler = null;
@@ -236,6 +240,48 @@ function clearIdleMonitoring() {
   idleLogoutStarted = false;
 }
 
+function clearSessionValidation() {
+  if (sessionValidationPoll) window.clearInterval(sessionValidationPoll);
+  sessionValidationPoll = null;
+  sessionValidationInProgress = false;
+}
+
+function setupSessionValidation(session) {
+  clearSessionValidation();
+  const validate = async () => {
+    if (sessionValidationInProgress || !currentSession || currentSession.token !== session.token) return;
+    sessionValidationInProgress = true;
+    try {
+      const status = await services.auth.sessionStatus(session);
+      if (currentSession?.token === session.token) handleSessionStatus(session, status);
+    } catch (error) {
+      if (error.status !== 401 || currentSession?.token !== session.token) return;
+      authNotice = 'La sesión expiró o fue cerrada.';
+      await logout(session, false, false);
+    } finally {
+      sessionValidationInProgress = false;
+    }
+  };
+  sessionValidationPoll = window.setInterval(validate, 5_000);
+}
+
+function handleSessionStatus(session, status) {
+  if (currentSession?.token !== session.token) return;
+  if (!status.active) {
+    authNotice = status.reason === 'SESSION_REPLACED'
+      ? 'Esta sesión se cerró porque la cuenta se abrió en otro navegador.'
+      : status.reason === 'INACTIVITY_TIMEOUT'
+        ? 'La sesión se cerró por 5 minutos de inactividad.'
+        : 'La sesión expiró o fue cerrada.';
+    void logout(session, false, false);
+    return;
+  }
+  if (!status.locked) return;
+  idleLogoutDeadline = Date.now() + status.secondsUntilLogout * 1000;
+  if (!idleLocked) showSessionLock();
+  else updateIdleCountdown();
+}
+
 function setupIdleMonitoring(session) {
   clearIdleMonitoring();
   currentSession = session;
@@ -247,6 +293,36 @@ function setupIdleMonitoring(session) {
     idleLogoutStarted = true;
     authNotice = 'La sesión se cerró por 5 minutos de inactividad.';
     await logout(currentSession, true);
+  };
+  const reportActivity = async () => {
+    if (idleLocked || currentSession?.token !== session.token) return;
+    try {
+      const status = await services.auth.recordActivity(session);
+      idleActivityReportWarningShown = false;
+      handleSessionStatus(session, status);
+    } catch (error) {
+      if (currentSession?.token !== session.token) return;
+      if (error.status === 423) {
+        try {
+          const status = await services.auth.sessionStatus(session);
+          handleSessionStatus(session, status);
+        } catch (statusError) {
+          if (statusError.status === 401) {
+            authNotice = 'La sesión expiró o fue cerrada.';
+            await logout(session, false, false);
+          } else if (!idleActivityReportWarningShown) {
+            idleActivityReportWarningShown = true;
+            showToast('No se pudo consultar el estado de la sesión bloqueada.', true);
+          }
+        }
+      } else if (error.status === 401) {
+        authNotice = 'La sesión expiró o fue cerrada.';
+        await logout(session, false, false);
+      } else if (!idleActivityReportWarningShown) {
+        idleActivityReportWarningShown = true;
+        showToast('No se pudo sincronizar la actividad de la sesión con el servidor.', true);
+      }
+    }
   };
   const schedule = () => {
     if (idleLocked) return;
@@ -266,12 +342,14 @@ function setupIdleMonitoring(session) {
   };
   let lastMove = 0;
   idleActivityHandler = event => {
+    if (idleLocked) return;
     if (event.type === 'mousemove') {
       const now = Date.now();
       if (now - lastMove < 1000) return;
       lastMove = now;
     }
     schedule();
+    void reportActivity();
   };
   ['pointerdown', 'keydown', 'touchstart', 'mousemove'].forEach(type => document.addEventListener(type, idleActivityHandler, { passive: true }));
   document.addEventListener('visibilitychange', idleVisibilityHandler);
@@ -293,11 +371,10 @@ function showSessionLock() {
     return;
   }
   idleLocked = true;
-  const providers = socialLoginOptions();
   const overlay = document.createElement('div');
   overlay.className = 'session-lock';
   overlay.id = 'session-lock';
-  overlay.innerHTML = `<section class="session-lock-card" role="dialog" aria-modal="true" aria-labelledby="session-lock-title"><span class="lock-icon">◉</span><p class="eyebrow accent">SESIÓN PAUSADA</p><h2 id="session-lock-title">Confirma que eres tú</h2><p class="muted">La pantalla se bloqueó tras 2 minutos sin actividad. Verifica tu contraseña para seguir trabajando.</p><p class="muted" role="status">La sesión se cerrará en <strong id="idle-countdown" class="idle-countdown">03:00</strong> si no la desbloqueas.</p><form id="unlock-form" novalidate><label>Cuenta<input name="identifier" value="${escapeHtml(currentSession.email)}" readonly autocomplete="username"></label><label>Contraseña<div class="password-wrap"><input name="password" type="password" required autocomplete="current-password" autofocus></div></label><div id="unlock-captcha" class="captcha-slot"></div><input type="hidden" name="captchaToken"><p id="unlock-error" class="form-message" role="alert"></p><button class="primary" type="submit">Desbloquear sesión</button></form><div class="unlock-social">${providers}<button type="button" class="text-button" id="unlock-logout">Cerrar sesión</button></div></section>`;
+  overlay.innerHTML = `<section class="session-lock-card" role="dialog" aria-modal="true" aria-labelledby="session-lock-title"><span class="lock-icon">◉</span><p class="eyebrow accent">SESIÓN PAUSADA</p><h2 id="session-lock-title">Confirma que eres tú</h2><p class="muted">La pantalla se bloqueó tras 2 minutos y 30 segundos sin actividad. Verifica tu contraseña para seguir trabajando.</p><p class="muted" role="status">La sesión se cerrará en <strong id="idle-countdown" class="idle-countdown">02:30</strong> si no la desbloqueas.</p><form id="unlock-form" novalidate><label>Cuenta<input name="identifier" value="${escapeHtml(currentSession.email)}" readonly autocomplete="username"></label><label>Contraseña<div class="password-wrap"><input name="password" type="password" required autocomplete="current-password" autofocus></div></label><div id="unlock-captcha" class="captcha-slot"></div><input type="hidden" name="captchaToken"><p id="unlock-error" class="form-message" role="alert"></p><button class="primary" type="submit">Desbloquear sesión</button></form><div class="unlock-social"><button type="button" class="text-button" id="unlock-logout">Cerrar sesión</button></div></section>`;
   document.body.appendChild(overlay);
   updateIdleCountdown();
   idleCountdownTimer = window.setInterval(() => {
@@ -309,7 +386,6 @@ function showSessionLock() {
     updateIdleCountdown();
   }, 1000);
   document.querySelector('#unlock-form').addEventListener('submit', unlockSession);
-  bindSocialLogin(overlay);
   document.querySelector('#unlock-logout').addEventListener('click', () => logout(currentSession));
   initializeCaptcha('unlock-captcha');
   document.querySelector('#session-lock input[name="password"]').focus();
@@ -328,20 +404,23 @@ async function unlockSession(event) {
   if (authConfig.captchaEnabled && !captchaToken) { message.textContent = 'Completa la verificación de seguridad.'; return; }
   submitButton.disabled = true;
   try {
-    const data = await services.auth.login({
-      identifier: form.get('identifier'),
-      password: form.get('password'),
-      captchaToken,
-      website: ''
-    });
+    const session = currentSession;
+    const status = await services.auth.unlock(session, form.get('password'), captchaToken);
     if (!idleLocked || !currentSession) return;
-    sessionStorage.setItem('gestourant_session', JSON.stringify(data));
-    currentSession = data;
+    if (!status.active || status.locked) {
+      message.textContent = 'No fue posible reanudar la sesión. Inténtalo de nuevo.';
+      return;
+    }
     document.querySelector('#session-lock')?.remove();
-    setupIdleMonitoring(data);
+    setupIdleMonitoring(session);
     showToast('Sesión desbloqueada.');
   } catch (error) {
     if (idleLocked && currentSession) {
+      if (error.status === 401) {
+        authNotice = 'La sesión expiró o fue cerrada.';
+        await logout(currentSession, false, false);
+        return;
+      }
       message.textContent = error.message;
       resetCaptcha('unlock-captcha');
     }
@@ -351,6 +430,7 @@ async function unlockSession(event) {
 }
 
 function publicHomeView() {
+  clearSessionValidation();
   currentSession = null;
   app.innerHTML = `<main class="public-home">
     <header class="public-nav"><a href="#" class="public-brand" aria-label="Gestourant, inicio">${brandMark()}<span>Gestourant</span></a><nav aria-label="Navegación de la página"><a href="#funciones">Funciones</a><a href="#demo">Explorar demo</a></nav><div class="public-nav-actions"><button type="button" class="public-login" data-public-auth="login">Iniciar sesión</button><button type="button" class="public-signup" data-public-auth="register">Crear cuenta ${icon('arrow')}</button></div></header>
@@ -417,6 +497,7 @@ function renderDemo() {
 
 function loginView() {
   clearIdleMonitoring();
+  clearSessionValidation();
   currentSession = null;
   document.querySelector('#session-lock')?.remove();
   app.innerHTML = `
@@ -532,7 +613,13 @@ async function authenticate(event) {
     const data = await services.auth.login(credentials);
     logger.info('Login succeeded', { username: data.username, role: data.role });
     authNotice = '';
-    sessionStorage.setItem('gestourant_session', JSON.stringify(data)); dashboardView(data);
+    const previousSessionClosed = data.previousSessionClosed === true;
+    data.previousSessionClosed = false;
+    sessionStorage.setItem('gestourant_session', JSON.stringify(data));
+    dashboardView(data);
+    if (previousSessionClosed) {
+      showToast('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.');
+    }
   } catch (error) {
     message.textContent = error instanceof TypeError ? 'No se pudo conectar con el servidor. Confirma que el backend esté activo.' : error.message;
     resetCaptcha('login-captcha');
@@ -572,6 +659,7 @@ function dashboardView(session) {
   updateGuestRequestBadge(session);
   guestRequestBadgePoll = window.setInterval(() => updateGuestRequestBadge(session), 5000);
   setupIdleMonitoring(session);
+  setupSessionValidation(session);
   showCookieNotice();
 }
 
@@ -903,10 +991,11 @@ async function loadReport(session) {
   await showReport();
 }
 
-async function logout(session, inactivity = false) {
+async function logout(session, inactivity = false, notifyServer = true) {
   const sessionToClose = session || currentSession;
   if (!sessionToClose) return;
   clearIdleMonitoring();
+  clearSessionValidation();
   if (guestRequestPoll) window.clearInterval(guestRequestPoll);
   if (guestRequestBadgePoll) window.clearInterval(guestRequestBadgePoll);
   if (tableMapPoll) window.clearInterval(tableMapPoll);
@@ -918,6 +1007,7 @@ async function logout(session, inactivity = false) {
   currentSession = null;
   document.querySelector('#session-lock')?.remove();
   publicHomeView();
+  if (!notifyServer) return;
   try {
     await services.auth.logout(sessionToClose);
     logger.info('Logout completed', { username: sessionToClose.username });

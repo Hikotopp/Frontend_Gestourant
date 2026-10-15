@@ -1,5 +1,5 @@
-export const IDLE_LOCK_AFTER_MS = 2 * 60 * 1000;
-export const IDLE_LOCKED_COUNTDOWN_MS = 3 * 60 * 1000;
+export const IDLE_LOCK_AFTER_MS = 150 * 1000;
+export const IDLE_LOCKED_COUNTDOWN_MS = 150 * 1000;
 export const IDLE_LOGOUT_AFTER_MS = IDLE_LOCK_AFTER_MS + IDLE_LOCKED_COUNTDOWN_MS;
 
 export function formatIdleCountdown(deadline, now = Date.now()) {

@@ -1,5 +1,5 @@
 const requiredOperations = {
-  auth: ['getConfig', 'exchangeOAuthCode', 'registerOAuthAccount', 'login', 'register', 'logout'],
+  auth: ['getConfig', 'exchangeOAuthCode', 'registerOAuthAccount', 'login', 'register', 'logout', 'sessionStatus', 'recordActivity', 'unlock'],
   tables: ['list', 'create', 'update', 'remove', 'join', 'unjoin', 'updatePosition', 'openOrder', 'getOpenOrder'],
   products: ['list', 'save', 'remove'],
   orders: ['addProduct', 'removeItem', 'updateItem', 'close'],
