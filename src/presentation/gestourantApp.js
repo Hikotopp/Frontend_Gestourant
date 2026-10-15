@@ -205,6 +205,7 @@ function resetCaptcha(containerId) {
 }
 
 function showCookieNotice() {
+  if (globalThis.__GESTOURANT_COOKIE_NOTICE_ACTIVE__) return;
   if (localStorage.getItem('gestourant_cookie_consent')) return;
   let notice = document.querySelector('#cookie-notice');
   if (notice) return;
@@ -661,6 +662,7 @@ function dashboardView(session) {
   setupIdleMonitoring(session);
   setupSessionValidation(session);
   showCookieNotice();
+  globalThis.__GESTOURANT_SESSION_READY__?.();
 }
 
 async function loadTables(session) {
@@ -1007,6 +1009,7 @@ async function logout(session, inactivity = false, notifyServer = true) {
   currentSession = null;
   document.querySelector('#session-lock')?.remove();
   publicHomeView();
+  globalThis.__GESTOURANT_PUBLIC_HOME__?.(authNotice);
   if (!notifyServer) return;
   try {
     await services.auth.logout(sessionToClose);
@@ -1353,19 +1356,31 @@ async function initializeApplication() {
     authNotice ||= 'No se pudo consultar la configuración de acceso. Revisa la conexión con el servidor.';
   }
 
+  globalThis.__GESTOURANT_AUTH_CONFIG_CHANGED__?.(authConfig);
   globalThis.__GESTOURANT_NOTICE_CHANGED__?.(authNotice);
   const stored = sessionStorage.getItem('gestourant_session');
   if (stored) dashboardView(JSON.parse(stored));
-  else if (oauthRegistrationCode) oauthRegistrationView(oauthRegistrationCode);
-  else if (oauthCode || oauthError) loginView();
-  else publicHomeView();
+  else if (oauthRegistrationCode && !globalThis.__GESTOURANT_AUTH_ACTIVE__) oauthRegistrationView(oauthRegistrationCode);
+  else if ((oauthCode || oauthError) && !globalThis.__GESTOURANT_AUTH_ACTIVE__) loginView();
+  else if (!globalThis.__GESTOURANT_AUTH_ACTIVE__) publicHomeView();
 }
 
 export function startGestourantApp(applicationServices, applicationLogger, apiBaseUrl = '') {
   services = applicationServices;
   logger = applicationLogger;
   apiBase = apiBaseUrl;
-  const applicationReady = initializeApplication();
+  globalThis.__GESTOURANT_AUTH__ = services.auth;
+  globalThis.__GESTOURANT_AUTH_INITIALIZED__ = initializeApplication();
+  globalThis.__GESTOURANT_COMPLETE_AUTH__ = session => {
+    const previousSessionClosed = session.previousSessionClosed === true;
+    session.previousSessionClosed = false;
+    sessionStorage.setItem('gestourant_session', JSON.stringify(session));
+    dashboardView(session);
+    if (previousSessionClosed) {
+      showToast('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.');
+    }
+  };
+  const applicationReady = globalThis.__GESTOURANT_AUTH_INITIALIZED__;
   globalThis.__GESTOURANT_OPEN_AUTH__ = async mode => {
     await applicationReady;
     authNotice = '';
