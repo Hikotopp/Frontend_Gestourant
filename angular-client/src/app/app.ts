@@ -1,24 +1,34 @@
 import { AfterViewInit, Component, signal } from '@angular/core';
 import { PublicHome } from './public-home';
 import { AuthPage } from './auth-page';
+import { DashboardPage } from './dashboard-page';
 
 @Component({
   selector: 'app-root',
-  imports: [PublicHome, AuthPage],
+  imports: [PublicHome, AuthPage, DashboardPage],
   styleUrl: './app.css',
   template: `
     @if (showAngularHome() && authMode() === 'home') {
       <app-public-home [notice]="homeNotice() || legacyLoadError()" (authRequested)="openAuth($event)" />
     }
     @if (showAngularHome() && authMode() !== 'home') {
-      <app-auth-page
-        [mode]="authMode()"
-        [notice]="homeNotice() || legacyLoadError()"
-        [config]="authConfig()"
-        [oauthCode]="oauthRegistrationCode"
-        (modeChanged)="openAuth($event)"
-        (sessionReady)="showLegacyWorkspace()"
-      />
+      @if (authMode() === 'dashboard' && dashboardSession()) {
+        <app-dashboard-page
+          [session]="dashboardSession()"
+          [notice]="legacyLoadError()"
+          (viewRequested)="openLegacyView($event)"
+          (logoutRequested)="logout()"
+        />
+      } @else if (authMode() !== 'dashboard') {
+        <app-auth-page
+          [mode]="authPageMode()"
+          [notice]="homeNotice() || legacyLoadError()"
+          [config]="authConfig()"
+          [oauthCode]="oauthRegistrationCode"
+          (modeChanged)="openAuth($event)"
+          (sessionReady)="showAngularDashboard()"
+        />
+      }
     }
     @if (cookieNoticeVisible()) {
       <aside class="cookie-notice" aria-label="Preferencias de cookies">
@@ -38,7 +48,8 @@ import { AuthPage } from './auth-page';
 })
 export class App implements AfterViewInit {
   showAngularHome = signal(this.shouldShowAngularHome());
-  authMode = signal<'home' | 'login' | 'register' | 'oauth-register'>(this.initialAuthMode());
+  authMode = signal<'home' | 'login' | 'register' | 'oauth-register' | 'dashboard'>(this.initialAuthMode());
+  dashboardSession = signal<GestourantSession | null>(null);
   cookieNoticeVisible = signal(!localStorage.getItem('gestourant_cookie_consent'));
   authConfig = signal<GestourantAuthConfig>({
     captchaEnabled: false,
@@ -64,7 +75,9 @@ export class App implements AfterViewInit {
     globalThis.__GESTOURANT_NOTICE_CHANGED__ = (notice: string) => {
       this.homeNotice.set(notice);
     };
-    globalThis.__GESTOURANT_SESSION_READY__ = () => this.showLegacyWorkspace();
+    globalThis.__GESTOURANT_SESSION_READY__ = (session: GestourantSession) => this.showAngularDashboard(session);
+    globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__ = (session: GestourantSession) =>
+      this.showAngularDashboard(session);
     globalThis.__GESTOURANT_PUBLIC_HOME__ = (notice: string) => {
       this.homeNotice.set(notice);
       this.authMode.set('home');
@@ -106,8 +119,60 @@ export class App implements AfterViewInit {
     }
   }
 
-  showLegacyWorkspace(): void {
-    this.showAngularHome.set(false);
+  authPageMode(): 'login' | 'register' | 'oauth-register' {
+    const mode = this.authMode();
+    return mode === 'register' || mode === 'oauth-register' ? mode : 'login';
+  }
+
+  showAngularDashboard(session?: GestourantSession): void {
+    const activeSession = session ?? this.dashboardSession() ?? this.readStoredSession();
+    if (!activeSession) {
+      this.legacyLoadError.set('No se pudo recuperar la sesión activa. Inicia sesión nuevamente.');
+      this.authMode.set('login');
+      this.showAngularHome.set(true);
+      return;
+    }
+    this.dashboardSession.set(activeSession);
+    this.authMode.set('dashboard');
+    this.homeNotice.set('');
+    this.legacyLoadError.set('');
+    this.showAngularHome.set(true);
+  }
+
+  async openLegacyView(view: GestourantDashboardView): Promise<void> {
+    const openView = globalThis.__GESTOURANT_OPEN_LEGACY_VIEW__;
+    if (!openView) {
+      this.legacyLoadError.set('No se pudo abrir esta sección. Recarga la página e inténtalo de nuevo.');
+      return;
+    }
+    try {
+      const navigation = openView(view);
+      this.showAngularHome.set(false);
+      await navigation;
+    } catch (error) {
+      console.error('No se pudo abrir la sección heredada de Gestourant.', error);
+      this.legacyLoadError.set('No se pudo abrir esta sección. Inténtalo de nuevo.');
+      this.showAngularHome.set(true);
+    }
+  }
+
+  async logout(): Promise<void> {
+    const loaded = await this.legacyEntry;
+    if (!loaded || !globalThis.__GESTOURANT_LOGOUT__) {
+      this.legacyLoadError.set('No se pudo cerrar la sesión. Recarga la página e inténtalo de nuevo.');
+      return;
+    }
+    try {
+      await globalThis.__GESTOURANT_LOGOUT__();
+    } catch (error) {
+      console.error('No se pudo cerrar la sesión de Gestourant.', error);
+      this.legacyLoadError.set('No se pudo cerrar la sesión. Inténtalo de nuevo.');
+    }
+  }
+
+  private readStoredSession(): GestourantSession | null {
+    const stored = sessionStorage.getItem('gestourant_session');
+    return stored ? JSON.parse(stored) as GestourantSession : null;
   }
 
   chooseCookies(choice: 'necessary' | 'all'): void {
@@ -117,10 +182,11 @@ export class App implements AfterViewInit {
 
   private shouldShowAngularHome(): boolean {
     const isGuestOrder = new URLSearchParams(window.location.search).has('mesa');
-    return !sessionStorage.getItem('gestourant_session') && !isGuestOrder;
+    return !isGuestOrder;
   }
 
-  private initialAuthMode(): 'home' | 'login' | 'register' | 'oauth-register' {
+  private initialAuthMode(): 'home' | 'login' | 'register' | 'oauth-register' | 'dashboard' {
+    if (sessionStorage.getItem('gestourant_session')) return 'dashboard';
     const parameters = new URLSearchParams(window.location.hash.slice(1));
     if (parameters.has('oauth_registration')) return 'oauth-register';
     if (parameters.has('oauth_code') || parameters.has('oauth_error')) return 'login';

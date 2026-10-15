@@ -655,14 +655,21 @@ function dashboardView(session) {
   app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>Restaurante Central</strong><small>${role} · Turno activo</small></div></div><nav aria-label="Navegación principal"><a data-view="overview">${icon('overview')}<span>Resumen</span></a><a class="active" data-view="tables">${icon('tables')}<span>Mesas</span></a><a data-view="orders">${icon('orders')}<span>Pedidos</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>Cocina</span></a><a data-view="products">${icon('products')}<span>Menú e inventario</span></a><a data-view="reports">${icon('reports')}<span>Reportes</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('reports')}<span>Copias de seguridad</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}<button id="logout" class="logout">↪ Cerrar sesión</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>Tu sala está lista</h3><p>Selecciona una mesa para ver la cuenta y comenzar el servicio.</p></div></aside></main>`;
   bindThemeControls();
   document.querySelector('#logout').addEventListener('click', () => logout(session));
-  document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => navigate(link.dataset.view, session)));
-  navigate('overview', session);
+  document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => {
+    if (link.dataset.view === 'overview' && globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__) {
+      stopViewPolling();
+      globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__(session);
+      return;
+    }
+    navigate(link.dataset.view, session);
+  }));
+  if (!globalThis.__GESTOURANT_AUTH_ACTIVE__) navigate('overview', session);
   updateGuestRequestBadge(session);
   guestRequestBadgePoll = window.setInterval(() => updateGuestRequestBadge(session), 5000);
   setupIdleMonitoring(session);
   setupSessionValidation(session);
   showCookieNotice();
-  globalThis.__GESTOURANT_SESSION_READY__?.();
+  globalThis.__GESTOURANT_SESSION_READY__?.(session);
 }
 
 async function loadTables(session) {
@@ -673,18 +680,7 @@ async function loadTables(session) {
 }
 
 async function navigate(view, session) {
-  if (tableMapPoll) {
-    window.clearInterval(tableMapPoll);
-    tableMapPoll = null;
-  }
-  if (guestRequestPoll) {
-    window.clearInterval(guestRequestPoll);
-    guestRequestPoll = null;
-  }
-  if (kitchenPoll) {
-    window.clearInterval(kitchenPoll);
-    kitchenPoll = null;
-  }
+  stopViewPolling();
   document.querySelectorAll('[data-view]').forEach(link => link.classList.toggle('active', link.dataset.view === view));
   document.querySelector('#detail')?.classList.remove('open');
   const content = document.querySelector('#content');
@@ -708,6 +704,21 @@ async function navigate(view, session) {
     return;
   }
   content.innerHTML = reportsView(session); await loadReport(session);
+}
+
+function stopViewPolling() {
+  if (tableMapPoll) {
+    window.clearInterval(tableMapPoll);
+    tableMapPoll = null;
+  }
+  if (guestRequestPoll) {
+    window.clearInterval(guestRequestPoll);
+    guestRequestPoll = null;
+  }
+  if (kitchenPoll) {
+    window.clearInterval(kitchenPoll);
+    kitchenPoll = null;
+  }
 }
 
 function overviewView(session) {
@@ -1370,6 +1381,24 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
   logger = applicationLogger;
   apiBase = apiBaseUrl;
   globalThis.__GESTOURANT_AUTH__ = services.auth;
+  globalThis.__GESTOURANT_LOAD_DASHBOARD_OVERVIEW__ = async session => {
+    const [loadedTables, loadedProducts] = await Promise.all([
+      services.tables.list(session),
+      services.products.list(session)
+    ]);
+    tables = loadedTables;
+    products = loadedProducts;
+    return {
+      occupiedTables: tables.filter(table => table.status === 'OCUPADA').length,
+      availableTables: tables.filter(table => table.status === 'LIBRE').length,
+      lowStockProducts: products.filter(product => product.active && product.stock <= 5).length
+    };
+  };
+  globalThis.__GESTOURANT_OPEN_LEGACY_VIEW__ = view => {
+    if (!currentSession) throw new Error('No hay una sesión activa para abrir esta sección.');
+    return navigate(view, currentSession);
+  };
+  globalThis.__GESTOURANT_LOGOUT__ = () => logout(currentSession);
   globalThis.__GESTOURANT_AUTH_INITIALIZED__ = initializeApplication();
   globalThis.__GESTOURANT_COMPLETE_AUTH__ = session => {
     const previousSessionClosed = session.previousSessionClosed === true;
