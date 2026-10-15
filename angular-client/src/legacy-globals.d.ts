@@ -79,6 +79,52 @@ interface GestourantActiveOrder {
   tableNumber: number;
 }
 
+interface GestourantInvoice {
+  invoiceNumber: string;
+  issuedAt: string;
+  tableNumber: number;
+  paymentMethod: string;
+  total: number;
+  employee?: string;
+}
+
+interface GestourantHistoryReport {
+  from: string;
+  to: string;
+  facturas: number;
+  efectivo: number;
+  digital: number;
+  total: number;
+  invoices: GestourantInvoice[];
+}
+
+interface GestourantReportsBridge {
+  getHistory: (
+    session: GestourantSession,
+    from: string,
+    to: string,
+    administrator: boolean,
+  ) => Promise<GestourantHistoryReport>;
+}
+
+interface GestourantBackup {
+  id: string;
+  fileName: string;
+  createdAt: string;
+  sizeBytes: number;
+}
+
+interface GestourantBackupRestoreResult {
+  safetyBackupFileName: string;
+}
+
+interface GestourantBackupsBridge {
+  list: (session: GestourantSession) => Promise<GestourantBackup[]>;
+  create: (session: GestourantSession) => Promise<GestourantBackup>;
+  download: (session: GestourantSession, id: string) => Promise<void>;
+  restore: (session: GestourantSession, id: string) => Promise<GestourantBackupRestoreResult>;
+}
+
 interface GestourantRequestsBridge {
   listOrders: (session: GestourantSession) => Promise<GestourantStaffRequest[]>;
   approve: (session: GestourantSession, id: number) => Promise<void>;
@@ -139,6 +185,11 @@ declare var __GESTOURANT_PENDING_REQUEST_COUNT_CHANGED__: ((count: number) => vo
 declare var __GESTOURANT_PRODUCT_PHOTO__: ((product: GestourantProduct) => string) | undefined;
 declare var __GESTOURANT_ADD_ORDER_PRODUCT__: ((productId: number) => Promise<void>) | undefined;
 declare var __GESTOURANT_GET_ACTIVE_ORDER__: (() => Promise<GestourantActiveOrder | null>) | undefined;
+declare var __GESTOURANT_REPORTS__: GestourantReportsBridge | undefined;
+declare var __GESTOURANT_DOWNLOAD_REPORT__:
+  | ((report: GestourantHistoryReport, includeEmployee: boolean) => Promise<void>)
+  | undefined;
+declare var __GESTOURANT_BACKUPS__: GestourantBackupsBridge | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:
   | ((view: GestourantDashboardView) => Promise<void>)
   | undefined;

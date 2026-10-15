@@ -1400,6 +1400,10 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     save: (session, product, id) => services.products.save(session, product, id),
     remove: (session, id) => services.products.remove(session, id)
   };
+  globalThis.__GESTOURANT_REPORTS__ = {
+    getHistory: (session, from, to, administrator) => services.reports.getHistory(session, from, to, administrator)
+  };
+  globalThis.__GESTOURANT_DOWNLOAD_REPORT__ = async (report, includeEmployee) => downloadCashCloseXlsx(report, includeEmployee);
   globalThis.__GESTOURANT_PRODUCT_PHOTO__ = product => productPhoto(product);
   globalThis.__GESTOURANT_ADD_ORDER_PRODUCT__ = productId => addProduct(productId);
   globalThis.__GESTOURANT_GET_ACTIVE_ORDER__ = async () => activeOrder

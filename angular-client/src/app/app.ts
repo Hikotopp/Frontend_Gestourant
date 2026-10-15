@@ -151,7 +151,7 @@ export class App implements AfterViewInit {
   }
 
   async openDashboardView(view: GestourantDashboardView | 'overview'): Promise<void> {
-    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products') {
+    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products' || view === 'reports') {
       this.activeDashboardView.set(view);
       this.legacyLoadError.set('');
       return;

@@ -1,0 +1,33 @@
+<header class="page-heading">
+  <div><p class="eyebrow">CONTROL · CIERRE E HISTORIAL</p><h1>Reportes</h1><p class="muted">{{ isAdmin ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.' }}</p></div>
+</header>
+
+<section class="report-filter-card">
+  <div class="report-date-fields">
+    <label for="report-from">{{ isAdmin ? 'Desde' : 'Fecha del turno' }}<input id="report-from" type="date" required [(ngModel)]="from" (ngModelChange)="datesChanged()"></label>
+    @if (isAdmin) { <label for="report-to">Hasta<input id="report-to" type="date" required [(ngModel)]="to" (ngModelChange)="datesChanged()"></label> }
+  </div>
+  <div class="report-actions"><button class="outline" type="button" [disabled]="loading()" (click)="search()">Consultar {{ isAdmin ? 'historial' : 'fecha' }}</button><button class="primary report-download" type="button" [disabled]="!report() || downloading()" (click)="download()">{{ downloading() ? 'Preparando…' : 'Descargar Excel (.xlsx)' }}</button></div>
+</section>
+
+<p class="report-message" [class.is-error]="error()" role="status">{{ error() || message() }}</p>
+
+<section class="metrics report-metrics">
+  <article><span>Facturas</span><strong>{{ report()?.facturas ?? '—' }}</strong></article>
+  <article><span>Efectivo</span><strong>{{ report() ? '$ ' + (report()!.efectivo | number:'1.0-0':'es-CO') : '—' }}</strong></article>
+  <article><span>Pagos digitales</span><strong>{{ report() ? '$ ' + (report()!.digital | number:'1.0-0':'es-CO') : '—' }}</strong></article>
+  <article><span>Total vendido</span><strong>{{ report() ? '$ ' + (report()!.total | number:'1.0-0':'es-CO') : '—' }}</strong></article>
+</section>
+
+<section class="report-history-card">
+  <div class="report-history-heading"><div><p class="eyebrow">DETALLE</p><h2>Facturas del periodo</h2></div>@if (report()) { <span>{{ from() === (isAdmin ? to() : from()) ? from() : from() + ' — ' + to() }}</span> }</div>
+  <div class="report-table-wrap">
+    @if (loading() && !report()) { <p class="muted">Cargando facturas…</p> }
+    @else if (report()?.invoices?.length) {
+      <table class="report-table"><thead><tr><th>Factura</th><th>Fecha y hora</th><th>Mesa</th><th>Pago</th><th>Total</th>@if (isAdmin) { <th>Pedido abierto por</th> }</tr></thead>
+        <tbody>@for (invoice of report()!.invoices; track invoice.invoiceNumber) { <tr><td>{{ invoice.invoiceNumber }}</td><td>{{ invoice.issuedAt.replace('T', ' ') }}</td><td>Mesa {{ invoice.tableNumber }}</td><td>{{ invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital' }}</td><td>$ {{ invoice.total | number:'1.0-0':'es-CO' }}</td>@if (isAdmin) { <td>{{ invoice.employee }}</td> }</tr> }</tbody>
+      </table>
+    } @else if (report()) { <p class="report-empty">No hay facturas para el periodo seleccionado.</p> }
+    @else { <p class="report-empty">Consulta un periodo para ver las facturas.</p> }
+  </div>
+</section>
