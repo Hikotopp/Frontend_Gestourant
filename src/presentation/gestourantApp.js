@@ -1411,7 +1411,14 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     restore: (session, id) => services.backups.restore(session, id)
   };
   globalThis.__GESTOURANT_PRODUCT_PHOTO__ = product => productPhoto(product);
-  globalThis.__GESTOURANT_ADD_ORDER_PRODUCT__ = productId => addProduct(productId);
+  globalThis.__GESTOURANT_ADD_ORDER_PRODUCT__ = async productId => {
+    if (!currentSession || !activeOrder) throw new Error('Abre una cuenta antes de agregar productos.');
+    const updatedOrder = await services.orders.addProduct(currentSession, activeOrder.id, productId);
+    if (!await refreshOrderDetail(updatedOrder, currentSession)) {
+      throw new Error('No se pudo actualizar el detalle del pedido.');
+    }
+    showToast('Producto agregado al pedido y guardado.');
+  };
   globalThis.__GESTOURANT_GET_ACTIVE_ORDER__ = async () => activeOrder
     ? { id: activeOrder.id, tableNumber: activeOrder.table.tableNumber }
     : null;
