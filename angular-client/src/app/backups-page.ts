@@ -1,12 +1,13 @@
 import { CommonModule, registerLocaleData } from '@angular/common';
 import { Component, Input, OnInit, signal } from '@angular/core';
 import localeEsCo from '@angular/common/locales/es-CO';
+import { TranslatePipe } from './locale';
 
 registerLocaleData(localeEsCo);
 
 @Component({
   selector: 'app-backups-page',
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './backups-page.html',
 })
 export class BackupsPage implements OnInit {

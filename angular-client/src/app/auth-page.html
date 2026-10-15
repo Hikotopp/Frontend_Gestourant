@@ -4,26 +4,27 @@
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span>
       Gestourant
     </div>
-    <button type="button" class="auth-home-link" (click)="backToHome()">← Página principal</button>
+    <app-language-picker />
+    <button type="button" class="auth-home-link" (click)="backToHome()">← {{ 'Página principal' | tr }}</button>
     @if (mode === 'login') {
       <div class="hero-copy">
-        <p class="eyebrow">OPERACIÓN INTELIGENTE</p>
-        <h1>Tu restaurante, en perfecto ritmo.</h1>
-        <p>Organiza tu sala, atiende con claridad y toma decisiones desde un solo lugar.</p>
+        <p class="eyebrow">{{ 'OPERACIÓN INTELIGENTE' | tr }}</p>
+        <h1>{{ 'Tu restaurante, en perfecto ritmo.' | tr }}</h1>
+        <p>{{ 'Organiza tu sala, atiende con claridad y toma decisiones desde un solo lugar.' | tr }}</p>
       </div>
       <div class="login-proof"><span>✦</span><div><strong>Una operación más simple</strong><small>Mesas, pedidos y equipo en armonía.</small></div></div>
     } @else if (mode === 'register') {
       <div class="hero-copy">
-        <p class="eyebrow">EMPIEZA HOY</p>
-        <h1>La operación clara comienza aquí.</h1>
-        <p>Crea tu acceso y conoce el espacio de trabajo de Gestourant.</p>
+        <p class="eyebrow">{{ 'EMPIEZA HOY' | tr }}</p>
+        <h1>{{ 'La operación clara comienza aquí.' | tr }}</h1>
+        <p>{{ 'Crea tu acceso y conoce el espacio de trabajo de Gestourant.' | tr }}</p>
       </div>
       <div class="login-proof"><span>✦</span><div><strong>Tu información, protegida</strong><small>Acceso seguro para cada miembro del equipo.</small></div></div>
     } @else {
       <div class="hero-copy">
-        <p class="eyebrow">UN ÚLTIMO PASO</p>
-        <h1>Tu cuenta, con tu permiso.</h1>
-        <p>Tu proveedor de acceso confirmó tu identidad. Antes de crear tu cuenta de Gestourant, revisa y autoriza el tratamiento de tus datos.</p>
+        <p class="eyebrow">{{ 'UN ÚLTIMO PASO' | tr }}</p>
+        <h1>{{ 'Tu cuenta, con tu permiso.' | tr }}</h1>
+        <p>{{ 'Tu proveedor de acceso confirmó tu identidad. Antes de crear tu cuenta de Gestourant, revisa y autoriza el tratamiento de tus datos.' | tr }}</p>
       </div>
       <div class="login-proof"><span>✓</span><div><strong>Tu decisión importa</strong><small>Solo crearemos tu cuenta si aceptas expresamente.</small></div></div>
     }
@@ -31,71 +32,71 @@
 
   <section class="login-panel">
     <div class="login-theme">
-      <div class="theme-switcher" role="group" aria-label="Tema visual">
-        <button type="button" class="theme-button" [class.active]="selectedTheme() === 'light'" [attr.aria-pressed]="selectedTheme() === 'light'" title="Tema Claro" (click)="applyTheme('light')"><span>☼</span><small>Claro</small></button>
-        <button type="button" class="theme-button" [class.active]="selectedTheme() === 'dark'" [attr.aria-pressed]="selectedTheme() === 'dark'" title="Tema Oscuro" (click)="applyTheme('dark')"><span>◐</span><small>Oscuro</small></button>
-        <button type="button" class="theme-button" [class.active]="selectedTheme() === 'bistro'" [attr.aria-pressed]="selectedTheme() === 'bistro'" title="Tema Bistró" (click)="applyTheme('bistro')"><span>✦</span><small>Bistró</small></button>
+      <div class="theme-switcher" role="group" [attr.aria-label]="'Tema visual' | tr">
+        <button type="button" class="theme-button" [class.active]="selectedTheme() === 'light'" [attr.aria-pressed]="selectedTheme() === 'light'" [title]="'Tema Claro' | tr" (click)="applyTheme('light')"><span>☼</span><small>{{ 'Claro' | tr }}</small></button>
+        <button type="button" class="theme-button" [class.active]="selectedTheme() === 'dark'" [attr.aria-pressed]="selectedTheme() === 'dark'" [title]="'Tema Oscuro' | tr" (click)="applyTheme('dark')"><span>◐</span><small>{{ 'Oscuro' | tr }}</small></button>
+        <button type="button" class="theme-button" [class.active]="selectedTheme() === 'bistro'" [attr.aria-pressed]="selectedTheme() === 'bistro'" [title]="'Tema Bistró' | tr" (click)="applyTheme('bistro')"><span>✦</span><small>{{ 'Bistró' | tr }}</small></button>
       </div>
     </div>
 
     @if (mode === 'login') {
       <form #loginForm class="login-card" novalidate (submit)="$event.preventDefault(); submitLogin(loginForm)">
-        <p class="eyebrow accent">BIENVENIDO DE NUEVO</p>
-        <h2>Inicia sesión</h2>
-        <p class="muted">Tu espacio de trabajo te espera.</p>
+        <p class="eyebrow accent">{{ 'BIENVENIDO DE NUEVO' | tr }}</p>
+        <h2>{{ 'Inicia sesión' | tr }}</h2>
+        <p class="muted">{{ 'Tu espacio de trabajo te espera.' | tr }}</p>
         @if (notice) { <p class="auth-notice" role="status">{{ notice }}</p> }
-        <label>Correo o usuario<input name="identifier" [(ngModel)]="identifier" autocomplete="username" placeholder="ej. maria@restaurante.com" required></label>
-        <label>Contraseña
+        <label>{{ 'Correo o usuario' | tr }}<input name="identifier" [(ngModel)]="identifier" autocomplete="username" [placeholder]="'ej. maria@restaurante.com' | tr" required></label>
+        <label>{{ 'Contraseña' | tr }}
           <div class="password-wrap">
-            <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="current-password" placeholder="Tu contraseña" required>
-            <button type="button" aria-label="Mostrar contraseña" (click)="togglePassword()">◉</button>
+            <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="current-password" [placeholder]="'Tu contraseña' | tr" required>
+            <button type="button" [attr.aria-label]="'Mostrar contraseña' | tr" (click)="togglePassword()">◉</button>
           </div>
         </label>
         <div #captchaContainer class="captcha-slot"></div>
         <label class="honeypot" aria-hidden="true">No llenar<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
         <p class="form-message" role="alert">{{ error() }}</p>
-        <button class="primary" type="submit" [disabled]="pending()">Iniciar sesión <span>→</span></button>
+        <button class="primary" type="submit" [disabled]="pending()">{{ 'Iniciar sesión' | tr }} <span>→</span></button>
         <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
-        <p class="privacy-link">Al continuar, consulta nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos personales</a>.</p>
-        <p class="demo-note">¿Aún no tienes cuenta? <button type="button" class="text-button" (click)="openMode('register')">Crear cuenta</button></p>
+        <p class="privacy-link">{{ 'Al continuar, consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
+        <p class="demo-note">{{ '¿Aún no tienes cuenta?' | tr }} <button type="button" class="text-button" (click)="openMode('register')">{{ 'Crear cuenta' | tr }}</button></p>
       </form>
     } @else if (mode === 'register') {
       <form #registerForm class="login-card" novalidate (submit)="$event.preventDefault(); submitRegistration(registerForm)">
-        <p class="eyebrow accent">NUEVA CUENTA</p>
-        <h2>Crear cuenta</h2>
-        <p class="muted">Completa tus datos para comenzar.</p>
+        <p class="eyebrow accent">{{ 'NUEVA CUENTA' | tr }}</p>
+        <h2>{{ 'Crear cuenta' | tr }}</h2>
+        <p class="muted">{{ 'Completa tus datos para comenzar.' | tr }}</p>
         @if (notice) { <p class="auth-notice" role="status">{{ notice }}</p> }
-        <label>Nombre de usuario<input name="username" [(ngModel)]="username" autocomplete="username" placeholder="ej. maria.lopez" required minlength="3"></label>
-        <label>Correo electrónico<input name="email" [(ngModel)]="email" type="email" autocomplete="email" placeholder="maria@restaurante.com" required></label>
-        <label>Contraseña
+        <label>{{ 'Nombre de usuario' | tr }}<input name="username" [(ngModel)]="username" autocomplete="username" [placeholder]="'ej. maria.lopez' | tr" required minlength="3"></label>
+        <label>{{ 'Correo electrónico' | tr }}<input name="email" [(ngModel)]="email" type="email" autocomplete="email" [placeholder]="'maria@restaurante.com' | tr" required></label>
+        <label>{{ 'Contraseña' | tr }}
           <div class="password-wrap">
-            <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="new-password" placeholder="Mínimo 10 caracteres y un número" required minlength="10">
+            <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="new-password" [placeholder]="'Mínimo 10 caracteres y un número' | tr" required minlength="10">
             <button type="button" aria-label="Mostrar contraseña" (click)="togglePassword()">◉</button>
           </div>
         </label>
-        <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>Autorizo el tratamiento de mis datos para crear mi cuenta. <a href="/politica-tratamiento.html" target="_blank" rel="noopener">Leer política</a>.</span></label>
+        <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>{{ 'Autorizo el tratamiento de mis datos para crear mi cuenta.' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Leer política' | tr }}</a>.</span></label>
         <label class="honeypot" aria-hidden="true">No llenar<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
         <input type="hidden" name="captchaToken" [(ngModel)]="captchaToken">
         <div #captchaContainer class="captcha-slot"></div>
-        <p class="form-hint">Los permisos administrativos los asigna el responsable del sistema.</p>
+        <p class="form-hint">{{ 'Los permisos administrativos los asigna el responsable del sistema.' | tr }}</p>
         <p class="form-message" role="alert">{{ error() }}</p>
-        <button class="primary" type="submit" [disabled]="pending()">Crear mi cuenta <span>→</span></button>
+        <button class="primary" type="submit" [disabled]="pending()">{{ 'Crear mi cuenta' | tr }} <span>→</span></button>
         <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
-        <p class="privacy-link">Al continuar, consulta nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos personales</a>.</p>
-        <p class="demo-note">¿Ya tienes cuenta? <button type="button" class="text-button" (click)="openMode('login')">Iniciar sesión</button></p>
+        <p class="privacy-link">{{ 'Al continuar, consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
+        <p class="demo-note">{{ '¿Ya tienes cuenta?' | tr }} <button type="button" class="text-button" (click)="openMode('login')">{{ 'Iniciar sesión' | tr }}</button></p>
       </form>
     } @else {
       <form #oauthForm class="login-card" novalidate (submit)="$event.preventDefault(); submitOAuthRegistration(oauthForm)">
-        <p class="eyebrow accent">CONFIRMA LA CREACIÓN</p>
-        <h2>Crear cuenta con tu proveedor</h2>
-        <p class="muted">Si ya tienes una cuenta de Gestourant vinculada, iniciarás sesión directamente y no verás este paso.</p>
+        <p class="eyebrow accent">{{ 'CONFIRMA LA CREACIÓN' | tr }}</p>
+        <h2>{{ 'Crear cuenta con tu proveedor' | tr }}</h2>
+        <p class="muted">{{ 'Si ya tienes una cuenta de Gestourant vinculada, iniciarás sesión directamente y no verás este paso.' | tr }}</p>
         @if (notice) { <p class="auth-notice" role="status">{{ notice }}</p> }
-        <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>He leído y autorizo el tratamiento de mis datos personales para crear mi cuenta de Gestourant. <a href="/politica-tratamiento.html" target="_blank" rel="noopener">Leer política</a>.</span></label>
-        <p class="form-hint">Si no deseas crearla, puedes volver al inicio de sesión. No guardaremos una cuenta.</p>
+        <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>{{ 'He leído y autorizo el tratamiento de mis datos personales para crear mi cuenta de Gestourant.' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Leer política' | tr }}</a>.</span></label>
+        <p class="form-hint">{{ 'Si no deseas crearla, puedes volver al inicio de sesión. No guardaremos una cuenta.' | tr }}</p>
         <p class="form-message" role="alert">{{ error() }}</p>
-        <button class="primary" type="submit" [disabled]="pending()">Autorizar y crear cuenta <span>→</span></button>
-        <p class="demo-note">¿No quieres continuar? <button type="button" class="text-button" (click)="openMode('login')">Volver al inicio de sesión</button></p>
-        <p class="privacy-link">Lee nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos personales</a>.</p>
+        <button class="primary" type="submit" [disabled]="pending()">{{ 'Autorizar y crear cuenta' | tr }} <span>→</span></button>
+        <p class="demo-note">{{ '¿No quieres continuar?' | tr }} <button type="button" class="text-button" (click)="openMode('login')">{{ 'Volver al inicio de sesión' | tr }}</button></p>
+        <p class="privacy-link">{{ 'Lee nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
       </form>
     }
   </section>
@@ -103,21 +104,21 @@
 
 <ng-template #socialLogin>
   <div class="social-login">
-    <div class="social-divider"><span>o continúa con</span></div>
+    <div class="social-divider"><span>{{ 'o continúa con' | tr }}</span></div>
     <div class="social-buttons">
       @if (config.googleEnabled) {
-        <a class="social-button" href="{{ apiRoot }}/oauth2/authorization/google"><span class="social-mark google">G</span>Continuar con Google</a>
+        <a class="social-button" href="{{ apiRoot }}/oauth2/authorization/google"><span class="social-mark google">G</span>{{ 'Continuar con Google' | tr }}</a>
       } @else {
-        <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark google">G</span>Continuar con Google<small>No configurado</small></button>
+        <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark google">G</span>{{ 'Continuar con Google' | tr }}<small>{{ 'No configurado' | tr }}</small></button>
       }
       @if (config.microsoftEnabled) {
-        <a class="social-button" href="{{ apiRoot }}/oauth2/authorization/microsoft"><span class="social-mark microsoft">M</span>Continuar con Microsoft</a>
+        <a class="social-button" href="{{ apiRoot }}/oauth2/authorization/microsoft"><span class="social-mark microsoft">M</span>{{ 'Continuar con Microsoft' | tr }}</a>
       } @else {
-        <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark microsoft">M</span>Continuar con Microsoft<small>No configurado</small></button>
+        <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark microsoft">M</span>{{ 'Continuar con Microsoft' | tr }}<small>{{ 'No configurado' | tr }}</small></button>
       }
     </div>
     @if (!config.googleEnabled || !config.microsoftEnabled) {
-      <p id="provider-setup-note" class="provider-setup-note">Algunos proveedores de acceso todavía no están configurados.</p>
+      <p id="provider-setup-note" class="provider-setup-note">{{ 'Algunos proveedores de acceso todavía no están configurados.' | tr }}</p>
     }
   </div>
 </ng-template>

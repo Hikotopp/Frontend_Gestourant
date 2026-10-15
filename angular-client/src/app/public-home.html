@@ -4,13 +4,14 @@
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span>
       <span>Gestourant</span>
     </a>
-    <nav aria-label="Navegación de la página">
-      <a href="#funciones">Funciones</a>
-      <a href="#demo">Explorar demo</a>
+    <nav [attr.aria-label]="'Navegación de la página' | tr">
+      <a href="#funciones">{{ 'Funciones' | tr }}</a>
+      <a href="#demo">{{ 'Explorar demo' | tr }}</a>
     </nav>
     <div class="public-nav-actions">
-      <button type="button" class="public-login" (click)="requestAuth('login')">Iniciar sesión</button>
-      <button type="button" class="public-signup" (click)="requestAuth('register')">Crear cuenta
+      <app-language-picker />
+      <button type="button" class="public-login" (click)="requestAuth('login')">{{ 'Iniciar sesión' | tr }}</button>
+      <button type="button" class="public-signup" (click)="requestAuth('register')">{{ 'Crear cuenta' | tr }}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
       </button>
     </div>
@@ -22,139 +23,139 @@
 
   <section class="public-hero">
     <div class="public-hero-copy">
-      <p class="eyebrow">EL SERVICIO, BAJO CONTROL</p>
-      <h1>Un restaurante que fluye, <em>mesa a mesa.</em></h1>
-      <p class="public-lead">Coordina sala, pedidos y menú desde un solo lugar. Menos vueltas entre el salón y la cocina; más atención para tus clientes.</p>
+      <p class="eyebrow">{{ 'EL SERVICIO, BAJO CONTROL' | tr }}</p>
+      <h1>{{ 'Un restaurante que fluye,' | tr }} <em>{{ 'mesa a mesa.' | tr }}</em></h1>
+      <p class="public-lead">{{ 'Coordina sala, pedidos y menú desde un solo lugar. Menos vueltas entre el salón y la cocina; más atención para tus clientes.' | tr }}</p>
       <div class="public-hero-actions">
-        <button type="button" class="public-signup" (click)="requestAuth('register')">Conoce Gestourant
+        <button type="button" class="public-signup" (click)="requestAuth('register')">{{ 'Conoce Gestourant' | tr }}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
-        <a class="public-text-link" href="#demo">Explorar demo interactiva <span>↓</span></a>
+        <a class="public-text-link" href="#demo">{{ 'Explorar demo interactiva' | tr }} <span>↓</span></a>
       </div>
       <div class="public-trust">
-        <span>✓ Pedidos por mesa</span>
-        <span>✓ Cambios al instante</span>
-        <span>✓ Control de inventario</span>
+        <span>✓ {{ 'Pedidos por mesa' | tr }}</span>
+        <span>✓ {{ 'Cambios al instante' | tr }}</span>
+        <span>✓ {{ 'Control de inventario' | tr }}</span>
       </div>
     </div>
     <div class="public-hero-visual">
-      <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&amp;fit=crop&amp;w=1200&amp;q=85" alt="Platos servidos en un restaurante" loading="eager">
+      <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&amp;fit=crop&amp;w=1200&amp;q=85" [attr.alt]="'Platos servidos en un restaurante' | tr" loading="eager">
       <div class="hero-photo-caption">
         <span class="live-dot"></span>
-        <span><strong>El servicio conectado</strong><small>Sala, carta y pedidos en sincronía</small></span>
+        <span><strong>{{ 'El servicio conectado' | tr }}</strong><small>{{ 'Sala, carta y pedidos en sincronía' | tr }}</small></span>
       </div>
       <div class="hero-floating-card">
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="3"/><path d="M4 9v6m16-6v6M9 4h6m-6 16h6"/></svg></span>
-        <div><strong>La sala está en marcha</strong><small>Mesas y cuentas a la vista</small></div>
+        <div><strong>{{ 'La sala está en marcha' | tr }}</strong><small>{{ 'Mesas y cuentas a la vista' | tr }}</small></div>
       </div>
     </div>
   </section>
 
-  <section class="public-proof-bar" aria-label="Funciones principales">
-    <span>DISEÑADO PARA EL DÍA A DÍA</span>
-    <strong>Atiende con claridad</strong><i></i>
-    <strong>Organiza tu operación</strong><i></i>
-    <strong>Cuida cada pedido</strong>
+  <section class="public-proof-bar" [attr.aria-label]="'Funciones principales' | tr">
+    <span>{{ 'DISEÑADO PARA EL DÍA A DÍA' | tr }}</span>
+    <strong>{{ 'Atiende con claridad' | tr }}</strong><i></i>
+    <strong>{{ 'Organiza tu operación' | tr }}</strong><i></i>
+    <strong>{{ 'Cuida cada pedido' | tr }}</strong>
   </section>
 
   <section id="funciones" class="public-features">
     <div class="public-section-heading">
-      <p class="eyebrow">UNA OPERACIÓN MÁS SIMPLE</p>
-      <h2>Todo el servicio, en su lugar.</h2>
-      <p>Herramientas prácticas para que el equipo sepa qué está pasando y qué sigue.</p>
+      <p class="eyebrow">{{ 'UNA OPERACIÓN MÁS SIMPLE' | tr }}</p>
+      <h2>{{ 'Todo el servicio, en su lugar.' | tr }}</h2>
+      <p>{{ 'Herramientas prácticas para que el equipo sepa qué está pasando y qué sigue.' | tr }}</p>
     </div>
     <div class="public-feature-grid">
       <article class="public-feature-card">
         <span class="public-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="3"/><path d="M4 9v6m16-6v6M9 4h6m-6 16h6"/></svg></span>
-        <p class="eyebrow">01 · SALÓN</p><h3>Un mapa vivo de mesas</h3>
-        <p>Consulta cuáles están libres o en servicio. Abre la cuenta desde la mesa y mantén el contexto mientras atiendes.</p>
+        <p class="eyebrow">{{ '01 · SALÓN' | tr }}</p><h3>{{ 'Un mapa vivo de mesas' | tr }}</h3>
+        <p>{{ 'Consulta cuáles están libres o en servicio. Abre la cuenta desde la mesa y mantén el contexto mientras atiendes.' | tr }}</p>
       </article>
       <article class="public-feature-card">
         <span class="public-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 12h6m-6 4h6"/></svg></span>
-        <p class="eyebrow">02 · PEDIDOS</p><h3>La cuenta al día</h3>
-        <p>Agrega productos, retira lo que cambió y deja indicaciones de ingredientes para que el equipo las confirme con cocina.</p>
+        <p class="eyebrow">{{ '02 · PEDIDOS' | tr }}</p><h3>{{ 'La cuenta al día' | tr }}</h3>
+        <p>{{ 'Agrega productos, retira lo que cambió y deja indicaciones de ingredientes para que el equipo las confirme con cocina.' | tr }}</p>
       </article>
       <article class="public-feature-card">
         <span class="public-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v13H4zM7 7l1-4h8l1 4M8 11h8m-8 4h5"/></svg></span>
-        <p class="eyebrow">03 · CARTA</p><h3>Menú e inventario conectados</h3>
-        <p>Presenta platos con fotos, precios y disponibilidad. El stock acompaña la operación para ayudar a evitar pedidos agotados.</p>
+        <p class="eyebrow">{{ '03 · CARTA' | tr }}</p><h3>{{ 'Menú e inventario conectados' | tr }}</h3>
+        <p>{{ 'Presenta platos con fotos, precios y disponibilidad. El stock acompaña la operación para ayudar a evitar pedidos agotados.' | tr }}</p>
       </article>
     </div>
   </section>
 
   <section id="demo" class="public-demo-section">
     <div class="public-section-heading">
-      <p class="eyebrow">PRUÉBALO SIN RIESGO</p>
-      <h2>Explora un turno de ejemplo.</h2>
-      <p>Selecciona una mesa, simula un cambio y mira cómo se actualiza la cuenta. Esta demostración no guarda ni envía datos.</p>
+      <p class="eyebrow">{{ 'PRUÉBALO SIN RIESGO' | tr }}</p>
+      <h2>{{ 'Explora un turno de ejemplo.' | tr }}</h2>
+      <p>{{ 'Selecciona una mesa, simula un cambio y mira cómo se actualiza la cuenta. Esta demostración no guarda ni envía datos.' | tr }}</p>
     </div>
     <div class="public-demo">
       <div class="demo-floor">
         <div class="demo-panel-heading">
-          <span><small>VISTA DE SALA</small><strong>Salón principal</strong></span>
-          <span class="demo-tag"><i></i>Demo interactiva</span>
+          <span><small>{{ 'VISTA DE SALA' | tr }}</small><strong>{{ 'Salón principal' | tr }}</strong></span>
+          <span class="demo-tag"><i></i>{{ 'Demo interactiva' | tr }}</span>
         </div>
         <div class="demo-table-list">
           @for (table of tables; track table.id) {
             <button type="button" class="demo-table" [class.is-busy]="table.status === 'OCUPADA'" [class.is-free]="table.status === 'LIBRE'" [class.selected]="table.id === selectedTableId" [attr.aria-pressed]="table.id === selectedTableId" (click)="selectTable(table.id)">
               <span class="demo-table-icon"><svg class="dining-table-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="18" y="18" width="28" height="28" rx="9" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-width="2"/><rect x="25" y="25" width="14" height="14" rx="7" stroke="currentColor" stroke-width="1.6"/><path d="M24 7v6m16-6v6M24 51v6m16-6v6M7 24h6m-6 16h6m38-16h6m-6 16h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="32" r="2" fill="currentColor"/></svg></span>
-              <span><strong>Mesa {{ table.id }}</strong><small>{{ table.seats }} puestos</small></span>
-              <span class="demo-table-state"><i></i>{{ table.status === 'LIBRE' ? 'Libre' : 'En servicio' }}</span>
+              <span><strong>{{ 'Mesa' | tr }} {{ table.id }}</strong><small>{{ table.seats }} {{ 'puestos' | tr }}</small></span>
+              <span class="demo-table-state"><i></i>{{ (table.status === 'LIBRE' ? 'Libre' : 'En servicio') | tr }}</span>
             </button>
           }
         </div>
-        <div class="demo-floor-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="3"/><path d="M4 9v6m16-6v6M9 4h6m-6 16h6"/></svg><span>Prueba una mesa ocupada o abre una cuenta de muestra en una mesa libre.</span></div>
+        <div class="demo-floor-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="3"/><path d="M4 9v6m16-6v6M9 4h6m-6 16h6"/></svg><span>{{ 'Prueba una mesa ocupada o abre una cuenta de muestra en una mesa libre.' | tr }}</span></div>
       </div>
       <div class="demo-order-panel" aria-live="polite">
         <div class="demo-order-heading">
-          <div><span class="demo-order-kicker">CUENTA DE MUESTRA</span><h3>Mesa {{ selectedTable.id }}</h3></div>
-          <span class="demo-order-status" [class.is-free]="selectedTable.status === 'LIBRE'" [class.is-busy]="selectedTable.status === 'OCUPADA'"><i></i>{{ selectedTable.status === 'LIBRE' ? 'Disponible' : 'En servicio' }}</span>
+          <div><span class="demo-order-kicker">{{ 'CUENTA DE MUESTRA' | tr }}</span><h3>{{ 'Mesa' | tr }} {{ selectedTable.id }}</h3></div>
+          <span class="demo-order-status" [class.is-free]="selectedTable.status === 'LIBRE'" [class.is-busy]="selectedTable.status === 'OCUPADA'"><i></i>{{ (selectedTable.status === 'LIBRE' ? 'Disponible' : 'En servicio') | tr }}</span>
         </div>
         @if (selectedTable.status === 'LIBRE') {
           <div class="demo-empty-order">
             <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 12h6m-6 4h6"/></svg></span>
-            <strong>Lista para recibir</strong><small>Abre una cuenta de prueba y agrega algo del menú.</small>
-            <button type="button" class="demo-open-button" (click)="openDemoOrder()">Abrir cuenta de prueba <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+            <strong>{{ 'Lista para recibir' | tr }}</strong><small>{{ 'Abre una cuenta de prueba y agrega algo del menú.' | tr }}</small>
+            <button type="button" class="demo-open-button" (click)="openDemoOrder()">{{ 'Abrir cuenta de prueba' | tr }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
           </div>
         } @else {
           <div class="demo-order-lines">
             @for (item of selectedOrder; track item.id) {
               <article class="demo-order-line">
                 <span class="demo-line-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v13H4zM7 7l1-4h8l1 4M8 11h8m-8 4h5"/></svg></span>
-                <span class="demo-line-name"><strong>{{ item.name }}</strong>@if (item.note) { <small>Indicación: {{ item.note }}</small> } @else { <small>Preparado al momento</small> }</span>
+                <span class="demo-line-name"><strong>{{ item.name }}</strong>@if (item.note) { <small>{{ 'Indicación:' | tr }} {{ item.note }}</small> } @else { <small>{{ 'Preparado al momento' | tr }}</small> }</span>
                 <strong class="demo-line-price">$ {{ formatMoney(item.price) }}</strong>
-                <button type="button" class="demo-remove" [attr.aria-label]="'Quitar ' + item.name" (click)="removeItem(item.id)">×</button>
+                <button type="button" class="demo-remove" [attr.aria-label]="('Quitar' | tr) + ' ' + item.name" (click)="removeItem(item.id)">×</button>
               </article>
             } @empty {
-              <p class="demo-no-items">Aún no hay productos en la cuenta de prueba.</p>
+              <p class="demo-no-items">{{ 'Aún no hay productos en la cuenta de prueba.' | tr }}</p>
             }
           </div>
           @if (selectedOrder.length) {
             <div class="demo-allergy-editor">
-              <label for="demo-allergy-note">Indicación de ingrediente <small>Ej. sin maní</small></label>
-              <div><input #ingredientNote id="demo-allergy-note" maxlength="90" placeholder="Escribe una indicación" [value]="selectedOrder[0].note"><button type="button" (click)="saveIngredientNote(ingredientNote.value)">Guardar</button></div>
+              <label for="demo-allergy-note">{{ 'Indicación de ingrediente' | tr }} <small>{{ 'Ej. sin maní' | tr }}</small></label>
+              <div><input #ingredientNote id="demo-allergy-note" maxlength="90" [placeholder]="'Escribe una indicación' | tr" [value]="selectedOrder[0].note"><button type="button" (click)="saveIngredientNote(ingredientNote.value)">{{ 'Guardar' | tr }}</button></div>
             </div>
           }
-          <div class="demo-total"><span>Total de ejemplo</span><strong>$ {{ formatMoney(orderTotal) }} COP</strong></div>
+          <div class="demo-total"><span>{{ 'Total de ejemplo' | tr }}</span><strong>$ {{ formatMoney(orderTotal) }} COP</strong></div>
           <div class="demo-add-area">
-            <span>Agregar a la cuenta</span>
+            <span>{{ 'Agregar a la cuenta' | tr }}</span>
             <div><button type="button" (click)="addItem('Limonada natural', 7000)">＋ Limonada <strong>$ 7.000</strong></button><button type="button" (click)="addItem('Postre de la casa', 9000)">＋ Postre <strong>$ 9.000</strong></button></div>
           </div>
         }
-        <p class="demo-confirm-note">Las indicaciones de alergias siempre deben confirmarse con cocina.</p>
+        <p class="demo-confirm-note">{{ 'Las indicaciones de alergias siempre deben confirmarse con cocina.' | tr }}</p>
       </div>
     </div>
-    <div class="demo-disclaimer">Todo lo que hagas aquí es una simulación en tu navegador. No se conecta a cuentas, mesas ni inventario reales.</div>
+    <div class="demo-disclaimer">{{ 'Todo lo que hagas aquí es una simulación en tu navegador. No se conecta a cuentas, mesas ni inventario reales.' | tr }}</div>
   </section>
 
   <section class="public-cta">
-    <div><p class="eyebrow">LISTO PARA TU PRÓXIMO TURNO</p><h2>Haz que el servicio avance con más calma.</h2><p>Entra a tu espacio de trabajo o crea una cuenta para comenzar.</p></div>
-    <div class="public-cta-actions"><button type="button" class="public-signup" (click)="requestAuth('register')">Crear una cuenta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button type="button" class="public-login" (click)="requestAuth('login')">Ya tengo cuenta</button></div>
+    <div><p class="eyebrow">{{ 'LISTO PARA TU PRÓXIMO TURNO' | tr }}</p><h2>{{ 'Haz que el servicio avance con más calma.' | tr }}</h2><p>{{ 'Entra a tu espacio de trabajo o crea una cuenta para comenzar.' | tr }}</p></div>
+    <div class="public-cta-actions"><button type="button" class="public-signup" (click)="requestAuth('register')">{{ 'Crear una cuenta' | tr }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button type="button" class="public-login" (click)="requestAuth('login')">{{ 'Ya tengo cuenta' | tr }}</button></div>
   </section>
 
   <footer class="public-footer">
     <a href="#" class="public-brand" (click)="scrollToTop($event)"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span><span>Gestourant</span></a>
-    <span>Herramientas para que cada servicio fluya mejor.</span>
-    <a href="/politica-tratamiento.html" target="_blank" rel="noopener">Privacidad y tratamiento de datos</a>
+    <span>{{ 'Herramientas para que cada servicio fluya mejor.' | tr }}</span>
+    <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Privacidad y tratamiento de datos' | tr }}</a>
   </footer>
 </main>

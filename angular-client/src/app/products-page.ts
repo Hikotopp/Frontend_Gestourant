@@ -2,6 +2,7 @@ import { CommonModule, registerLocaleData } from '@angular/common';
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import localeEsCo from '@angular/common/locales/es-CO';
+import { TranslatePipe } from './locale';
 
 type ProductCategoryFilter = 'TODOS' | 'PLATO' | 'BEBIDA' | 'OTRO';
 
@@ -9,7 +10,7 @@ registerLocaleData(localeEsCo);
 
 @Component({
   selector: 'app-products-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './products-page.html',
 })
 export class ProductsPage implements OnInit {

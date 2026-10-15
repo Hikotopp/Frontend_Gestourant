@@ -2,6 +2,7 @@ import { AfterViewInit, Component, signal } from '@angular/core';
 import { PublicHome } from './public-home';
 import { AuthPage } from './auth-page';
 import { DashboardPage } from './dashboard-page';
+import { activeLocale } from './locale';
 
 @Component({
   selector: 'app-root',
@@ -72,6 +73,7 @@ export class App implements AfterViewInit {
   async ngAfterViewInit(): Promise<void> {
     const hostname = window.location.hostname;
     document.documentElement.dataset['theme'] = localStorage.getItem('gestourant_theme') || 'light';
+    document.documentElement.lang = activeLocale();
     globalThis.__GESTOURANT_CONFIG__ = {
       development: hostname === 'localhost' || hostname === '127.0.0.1',
       production: hostname !== 'localhost' && hostname !== '127.0.0.1',

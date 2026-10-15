@@ -1,4 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { LanguagePicker } from './language-picker';
+import { TranslatePipe } from './locale';
 
 type DemoTableStatus = 'LIBRE' | 'OCUPADA';
 
@@ -17,6 +19,7 @@ interface DemoItem {
 
 @Component({
   selector: 'app-public-home',
+  imports: [LanguagePicker, TranslatePipe],
   templateUrl: './public-home.html',
 })
 export class PublicHome {

@@ -1,12 +1,14 @@
 import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, Output, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { LanguagePicker } from './language-picker';
+import { TranslatePipe } from './locale';
 
 type AuthMode = 'home' | 'login' | 'register' | 'oauth-register';
 
 @Component({
   selector: 'app-auth-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LanguagePicker, TranslatePipe],
   templateUrl: './auth-page.html',
 })
 export class AuthPage implements AfterViewChecked {

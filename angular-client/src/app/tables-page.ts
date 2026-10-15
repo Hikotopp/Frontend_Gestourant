@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from './locale';
 
 @Component({
   selector: 'app-tables-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './tables-page.html',
 })
 export class TablesPage implements OnInit, OnDestroy {

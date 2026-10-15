@@ -2,12 +2,13 @@ import { CommonModule, registerLocaleData } from '@angular/common';
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import localeEsCo from '@angular/common/locales/es-CO';
+import { TranslatePipe } from './locale';
 
 registerLocaleData(localeEsCo);
 
 @Component({
   selector: 'app-reports-page',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './reports-page.html',
 })
 export class ReportsPage implements OnInit {

@@ -21,18 +21,19 @@
             (click)="$event.preventDefault(); openView(item.id)"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.path" /></svg>
-            <span>{{ item.label }}</span>
+            <span>{{ item.label | tr }}</span>
             @if (item.id === 'orders' && pendingRequestCount > 0) { <span class="nav-pending-count">{{ pendingRequestCount }}</span> }
           </a>
         }
       </nav>
       <div class="sidebar-footer">
-        <div class="theme-switcher" role="group" aria-label="Tema visual">
-          <button type="button" class="theme-button" [class.active]="documentTheme() === 'light'" [attr.aria-pressed]="documentTheme() === 'light'" title="Tema Claro" (click)="applyTheme('light')"><span>☼</span><small>Claro</small></button>
-          <button type="button" class="theme-button" [class.active]="documentTheme() === 'dark'" [attr.aria-pressed]="documentTheme() === 'dark'" title="Tema Oscuro" (click)="applyTheme('dark')"><span>◐</span><small>Oscuro</small></button>
-          <button type="button" class="theme-button" [class.active]="documentTheme() === 'bistro'" [attr.aria-pressed]="documentTheme() === 'bistro'" title="Tema Bistró" (click)="applyTheme('bistro')"><span>✦</span><small>Bistró</small></button>
+        <app-language-picker />
+        <div class="theme-switcher" role="group" [attr.aria-label]="'Tema visual' | tr">
+          <button type="button" class="theme-button" [class.active]="documentTheme() === 'light'" [attr.aria-pressed]="documentTheme() === 'light'" [title]="'Tema Claro' | tr" (click)="applyTheme('light')"><span>☼</span><small>{{ 'Claro' | tr }}</small></button>
+          <button type="button" class="theme-button" [class.active]="documentTheme() === 'dark'" [attr.aria-pressed]="documentTheme() === 'dark'" [title]="'Tema Oscuro' | tr" (click)="applyTheme('dark')"><span>◐</span><small>{{ 'Oscuro' | tr }}</small></button>
+          <button type="button" class="theme-button" [class.active]="documentTheme() === 'bistro'" [attr.aria-pressed]="documentTheme() === 'bistro'" [title]="'Tema Bistró' | tr" (click)="applyTheme('bistro')"><span>✦</span><small>{{ 'Bistró' | tr }}</small></button>
         </div>
-        <button type="button" class="logout" (click)="logoutRequested.emit()">↪ Cerrar sesión</button>
+        <button type="button" class="logout" (click)="logoutRequested.emit()">↪ {{ 'Cerrar sesión' | tr }}</button>
       </div>
     </aside>
 
@@ -51,11 +52,11 @@
       } @else {
       <header class="overview-header">
         <div>
-          <p class="eyebrow">CENTRO DE OPERACIÓN</p>
-          <h1>Hola, {{ session.username || 'Equipo' }}</h1>
-          <p class="muted">Este es el pulso de tu restaurante para comenzar la jornada.</p>
+          <p class="eyebrow">{{ 'CENTRO DE OPERACIÓN' | tr }}</p>
+          <h1>{{ 'Hola' | tr }}, {{ session.username || ('Equipo' | tr) }}</h1>
+          <p class="muted">{{ 'Este es el pulso de tu restaurante para comenzar la jornada.' | tr }}</p>
         </div>
-        <div class="header-actions"><span class="date">● Sistema listo</span></div>
+        <div class="header-actions"><span class="date">● {{ 'Sistema listo' | tr }}</span></div>
       </header>
 
       @if (error()) {
@@ -65,38 +66,38 @@
       <section class="overview-grid" [attr.aria-busy]="loading()">
         <article class="overview-card overview-primary">
           <span class="overview-icon">⌂</span>
-          <div><small>Mesas ocupadas</small><strong>{{ summary()?.occupiedTables ?? '…' }}</strong><p>Controla el ritmo de la sala</p></div>
-          <button type="button" class="overview-link" (click)="openView('tables')">Ver sala →</button>
+          <div><small>{{ 'Mesas ocupadas' | tr }}</small><strong>{{ summary()?.occupiedTables ?? '…' }}</strong><p>{{ 'Controla el ritmo de la sala' | tr }}</p></div>
+          <button type="button" class="overview-link" (click)="openView('tables')">{{ 'Ver sala →' | tr }}</button>
         </article>
         <article class="overview-card">
           <span class="overview-icon">◇</span>
-          <div><small>Mesas disponibles</small><strong>{{ summary()?.availableTables ?? '…' }}</strong><p>Listas para recibir clientes</p></div>
-          <button type="button" class="overview-link" (click)="openView('tables')">Abrir mapa →</button>
+          <div><small>{{ 'Mesas disponibles' | tr }}</small><strong>{{ summary()?.availableTables ?? '…' }}</strong><p>{{ 'Listas para recibir clientes' | tr }}</p></div>
+          <button type="button" class="overview-link" (click)="openView('tables')">{{ 'Abrir mapa →' | tr }}</button>
         </article>
         <article class="overview-card">
           <span class="overview-icon">✦</span>
-          <div><small>Stock por revisar</small><strong>{{ summary()?.lowStockProducts ?? '…' }}</strong><p>Productos con cinco unidades o menos</p></div>
-          <button type="button" class="overview-link" (click)="openView('products')">Ver inventario →</button>
+          <div><small>{{ 'Stock por revisar' | tr }}</small><strong>{{ summary()?.lowStockProducts ?? '…' }}</strong><p>{{ 'Productos con cinco unidades o menos' | tr }}</p></div>
+          <button type="button" class="overview-link" (click)="openView('products')">{{ 'Ver inventario →' | tr }}</button>
         </article>
       </section>
 
       <section class="overview-actions">
         <div>
-          <p class="eyebrow">ACCESOS RÁPIDOS</p>
-          <h2>Continúa tu operación</h2>
-          <p class="muted">Elige el siguiente paso según el momento de tu servicio.</p>
+          <p class="eyebrow">{{ 'ACCESOS RÁPIDOS' | tr }}</p>
+          <h2>{{ 'Continúa tu operación' | tr }}</h2>
+          <p class="muted">{{ 'Elige el siguiente paso según el momento de tu servicio.' | tr }}</p>
         </div>
         <div class="quick-actions">
-          <button type="button" class="quick-action" (click)="openView('tables')"><span>⌘</span><strong>Gestionar mesas</strong><small>Abre mesas y revisa pedidos</small></button>
-          <button type="button" class="quick-action" (click)="openView('orders')"><span>▤</span><strong>Revisar pedidos</strong><small>Consulta las cuentas abiertas</small></button>
-          <button type="button" class="quick-action" (click)="openView('products')"><span>◫</span><strong>Ver inventario</strong><small>Consulta disponibilidad del menú</small></button>
+          <button type="button" class="quick-action" (click)="openView('tables')"><span>⌘</span><strong>{{ 'Gestionar mesas' | tr }}</strong><small>{{ 'Abre mesas y revisa pedidos' | tr }}</small></button>
+          <button type="button" class="quick-action" (click)="openView('orders')"><span>▤</span><strong>{{ 'Revisar pedidos' | tr }}</strong><small>{{ 'Consulta las cuentas abiertas' | tr }}</small></button>
+          <button type="button" class="quick-action" (click)="openView('products')"><span>◫</span><strong>{{ 'Ver inventario' | tr }}</strong><small>{{ 'Consulta disponibilidad del menú' | tr }}</small></button>
         </div>
       </section>
       }
     </section>
 
     <aside class="detail">
-      <div class="detail-empty"><span>⌁</span><h3>Tu sala está lista</h3><p>Selecciona una mesa para ver el resumen de la atención.</p></div>
+      <div class="detail-empty"><span>⌁</span><h3>{{ 'Tu sala está lista' | tr }}</h3><p>{{ 'Selecciona una mesa para ver el resumen de la atención.' | tr }}</p></div>
     </aside>
   </main>
 }

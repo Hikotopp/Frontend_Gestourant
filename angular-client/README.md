@@ -8,6 +8,8 @@ La página pública, las pantallas de autenticación Angular, el resumen, el map
 
 Los recursos públicos necesarios para Angular se encuentran dentro de `public/` y corresponden a los originales de `Frontend_Gestourant/public/`.
 
+El selector de idioma está disponible en la página pública, autenticación y panel, y conserva la elección entre visitas. Incluye inglés, francés, alemán, español de España, español latinoamericano y chino mandarín. La traducción cubre de forma parcial la navegación, el resumen y varias secciones migradas; todavía no es integral para textos dinámicos, mensajes de error, autenticación, página pública ni las pantallas Vite que siguen activas (incluido el detalle de cuentas).
+
 ## Requisitos y comandos
 
 Se requiere Node.js 24.15.0 o posterior, compatible con Angular 22.

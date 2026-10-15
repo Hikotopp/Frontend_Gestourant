@@ -1,12 +1,12 @@
 @if (isKitchen) {
   <header class="page-heading">
-    <div><p class="eyebrow">SERVICIO · PREPARACIÓN</p><h1>Comandas de cocina</h1><p class="muted">Pedidos confirmados por el equipo. Actualiza el estado para que el cliente sepa cómo va.</p></div>
-    <div class="service-status"><span class="live-dot"></span>Actualización automática</div>
+    <div><p class="eyebrow">{{ 'SERVICIO · PREPARACIÓN' | tr }}</p><h1>{{ 'Comandas de cocina' | tr }}</h1><p class="muted">{{ 'Pedidos confirmados por el equipo. Actualiza el estado para que el cliente sepa cómo va.' | tr }}</p></div>
+    <div class="service-status"><span class="live-dot"></span>{{ 'Actualización automática' | tr }}</div>
   </header>
 } @else {
   <header class="page-heading">
-    <div><p class="eyebrow">OPERACIÓN · PEDIDOS QR</p><h1>Solicitudes de clientes</h1><p class="muted">Revisa cada solicitud; solo al confirmarla pasa a la cuenta y se descuenta del inventario.</p></div>
-    <div class="service-status"><span class="live-dot"></span>Actualización automática</div>
+    <div><p class="eyebrow">{{ 'OPERACIÓN · PEDIDOS QR' | tr }}</p><h1>{{ 'Solicitudes de clientes' | tr }}</h1><p class="muted">{{ 'Revisa cada solicitud; solo al confirmarla pasa a la cuenta y se descuenta del inventario.' | tr }}</p></div>
+    <div class="service-status"><span class="live-dot"></span>{{ 'Actualización automática' | tr }}</div>
   </header>
 }
 
@@ -16,41 +16,41 @@
 
 <section class="guest-request-queue" [attr.aria-busy]="loading()">
   @if (loading() && (isKitchen ? !kitchenOrders().length : !orders().length)) {
-    <p class="muted">{{ isKitchen ? 'Cargando comandas…' : 'Cargando solicitudes…' }}</p>
+    <p class="muted">{{ (isKitchen ? 'Cargando comandas…' : 'Cargando solicitudes…') | tr }}</p>
   } @else if (isKitchen) {
     @for (request of kitchenOrders(); track request.id) {
       @let preparing = request.status === 'PREPARANDO';
       <article class="staff-request-card kitchen-ticket" [class.is-preparing]="preparing">
         <div class="staff-request-header">
-          <div><span class="staff-request-table">MESA {{ request.tableNumber }} · COMANDA #{{ request.id }}</span><h2>{{ preparing ? 'En preparación' : 'Nueva comanda' }}</h2></div>
+          <div><span class="staff-request-table">{{ 'MESA' | tr }} {{ request.tableNumber }} · {{ 'COMANDA' | tr }} #{{ request.id }}</span><h2>{{ (preparing ? 'En preparación' : 'Nueva comanda') | tr }}</h2></div>
           <time>{{ request.createdAt | date:'shortTime':'':'es-CO' }}</time>
         </div>
         <div class="staff-request-items">
           @for (item of request.items; track $index) {
-            <div><span><strong>{{ item.quantity }} × {{ item.name }}</strong>@if (item.removedIngredients) { <small class="kitchen-modification">⚠ PREPARAR SIN: {{ item.removedIngredients }} · CONFIRMAR CON COCINA</small> }</span></div>
+            <div><span><strong>{{ item.quantity }} × {{ item.name }}</strong>@if (item.removedIngredients) { <small class="kitchen-modification">⚠ {{ 'PREPARAR SIN' | tr }}: {{ item.removedIngredients }} · {{ 'CONFIRMAR CON COCINA' | tr }}</small> }</span></div>
           }
         </div>
-        <div class="staff-request-footer"><strong>{{ preparing ? 'La preparación está en curso' : 'Confirmado · agregado a la cuenta' }}</strong><div><button type="button" class="primary" [disabled]="pendingIds().has(request.id)" (click)="advanceKitchenOrder(request.id)">{{ pendingIds().has(request.id) ? 'Actualizando…' : preparing ? 'Marcar listo para servir' : 'Iniciar preparación' }}</button></div></div>
+        <div class="staff-request-footer"><strong>{{ (preparing ? 'La preparación está en curso' : 'Confirmado · agregado a la cuenta') | tr }}</strong><div><button type="button" class="primary" [disabled]="pendingIds().has(request.id)" (click)="advanceKitchenOrder(request.id)">{{ (pendingIds().has(request.id) ? 'Actualizando…' : preparing ? 'Marcar listo para servir' : 'Iniciar preparación') | tr }}</button></div></div>
       </article>
     } @empty {
-      @if (!loading()) { <div class="staff-request-empty"><span>✓</span><h2>Cocina al día</h2><p>Las solicitudes aparecerán aquí después de que el equipo las confirme.</p></div> }
+      @if (!loading()) { <div class="staff-request-empty"><span>✓</span><h2>{{ 'Cocina al día' | tr }}</h2><p>{{ 'Las solicitudes aparecerán aquí después de que el equipo las confirme.' | tr }}</p></div> }
     }
   } @else {
     @for (request of orders(); track request.id) {
       <article class="staff-request-card" [attr.data-request-id]="request.id">
         <div class="staff-request-header">
-          <div><span class="staff-request-table">MESA {{ request.tableNumber }}</span><h2>Solicitud #{{ request.id }}</h2></div>
+          <div><span class="staff-request-table">{{ 'MESA' | tr }} {{ request.tableNumber }}</span><h2>{{ 'Solicitud' | tr }} #{{ request.id }}</h2></div>
           <time>{{ request.createdAt | date:'shortTime':'':'es-CO' }}</time>
         </div>
         <div class="staff-request-items">
           @for (item of request.items; track $index) {
-            <div><span><strong>{{ item.quantity }} × {{ item.name }}</strong>@if (item.removedIngredients) { <small>⚠ Sin {{ item.removedIngredients }}</small> }</span><strong>$ {{ item.subtotal | number:'1.0-0':'es-CO' }}</strong></div>
+            <div><span><strong>{{ item.quantity }} × {{ item.name }}</strong>@if (item.removedIngredients) { <small>⚠ {{ 'Sin' | tr }} {{ item.removedIngredients }}</small> }</span><strong>$ {{ item.subtotal | number:'1.0-0':'es-CO' }}</strong></div>
           }
         </div>
-        <div class="staff-request-footer"><strong>Total estimado · $ {{ request.total | number:'1.0-0':'es-CO' }} COP</strong><div><button class="outline" type="button" [disabled]="pendingIds().has(request.id)" (click)="resolveOrder(request.id, 'reject')">Rechazar</button><button class="primary" type="button" [disabled]="pendingIds().has(request.id)" (click)="resolveOrder(request.id, 'approve')">{{ pendingIds().has(request.id) ? 'Procesando…' : 'Confirmar y enviar a cocina' }}</button></div></div>
+        <div class="staff-request-footer"><strong>{{ 'Total estimado' | tr }} · $ {{ request.total | number:'1.0-0':'es-CO' }} COP</strong><div><button class="outline" type="button" [disabled]="pendingIds().has(request.id)" (click)="resolveOrder(request.id, 'reject')">{{ 'Rechazar' | tr }}</button><button class="primary" type="button" [disabled]="pendingIds().has(request.id)" (click)="resolveOrder(request.id, 'approve')">{{ (pendingIds().has(request.id) ? 'Procesando…' : 'Confirmar y enviar a cocina') | tr }}</button></div></div>
       </article>
     } @empty {
-      @if (!loading()) { <div class="staff-request-empty"><span>✓</span><h2>Todo al día</h2><p>No hay solicitudes pendientes. Las nuevas solicitudes aparecerán aquí automáticamente.</p></div> }
+      @if (!loading()) { <div class="staff-request-empty"><span>✓</span><h2>{{ 'Todo al día' | tr }}</h2><p>{{ 'No hay solicitudes pendientes. Las nuevas solicitudes aparecerán aquí automáticamente.' | tr }}</p></div> }
     }
   }
 </section>

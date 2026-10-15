@@ -5,6 +5,8 @@ import { ProductsPage } from './products-page';
 import { ReportsPage } from './reports-page';
 import { RequestsPage } from './requests-page';
 import { TablesPage } from './tables-page';
+import { TranslatePipe } from './locale';
+import { LanguagePicker } from './language-picker';
 
 type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
 
@@ -17,7 +19,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [BackupsPage, CommonModule, ProductsPage, ReportsPage, RequestsPage, TablesPage],
+  imports: [BackupsPage, CommonModule, LanguagePicker, ProductsPage, ReportsPage, RequestsPage, TablesPage, TranslatePipe],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {
@@ -87,4 +89,5 @@ export class DashboardPage implements OnChanges {
     document.documentElement.dataset['theme'] = theme;
     localStorage.setItem('gestourant_theme', theme);
   }
+
 }

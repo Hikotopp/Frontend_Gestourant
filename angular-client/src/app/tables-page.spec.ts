@@ -44,7 +44,7 @@ describe('TablesPage', () => {
     expect(element.querySelectorAll('.service-metrics strong')[0]?.textContent).toBe('1');
     expect(element.querySelectorAll('.service-metrics strong')[1]?.textContent).toBe('1');
     expect(element.querySelector('.table-tools')).toBeNull();
-    expect(element.querySelector('.floor-table-button.busy')?.getAttribute('aria-label')).toContain('pidió la cuenta');
+    expect(element.querySelector('.floor-table-button.busy')?.getAttribute('aria-label')).toContain('Pide la cuenta');
 
     employee.componentRef.setInput('session', { ...session, role: 'ADMINISTRADOR' });
     employee.detectChanges();
