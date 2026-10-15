@@ -1,0 +1,89 @@
+@if (session) {
+  <main class="dashboard">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span>
+        Gestourant
+      </div>
+      <div class="restaurant">
+        <span class="avatar">{{ (session.username || 'Equipo').charAt(0).toUpperCase() }}</span>
+        <div>
+          <strong>Restaurante Central</strong>
+          <small>{{ session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado' }} · Turno activo</small>
+        </div>
+      </div>
+      <nav aria-label="Navegación principal">
+        @for (item of visibleNavigation; track item.id) {
+          <a
+            [class.active]="item.id === 'overview'"
+            [attr.aria-current]="item.id === 'overview' ? 'page' : null"
+            [attr.href]="item.id === 'overview' ? null : '#'"
+            (click)="$event.preventDefault(); openView(item.id)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.path" /></svg>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+      <div class="sidebar-footer">
+        <div class="theme-switcher" role="group" aria-label="Tema visual">
+          <button type="button" class="theme-button" [class.active]="documentTheme() === 'light'" [attr.aria-pressed]="documentTheme() === 'light'" title="Tema Claro" (click)="applyTheme('light')"><span>☼</span><small>Claro</small></button>
+          <button type="button" class="theme-button" [class.active]="documentTheme() === 'dark'" [attr.aria-pressed]="documentTheme() === 'dark'" title="Tema Oscuro" (click)="applyTheme('dark')"><span>◐</span><small>Oscuro</small></button>
+          <button type="button" class="theme-button" [class.active]="documentTheme() === 'bistro'" [attr.aria-pressed]="documentTheme() === 'bistro'" title="Tema Bistró" (click)="applyTheme('bistro')"><span>✦</span><small>Bistró</small></button>
+        </div>
+        <button type="button" class="logout" (click)="logoutRequested.emit()">↪ Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      @if (notice) { <p class="auth-notice" role="alert">{{ notice }}</p> }
+      <header class="overview-header">
+        <div>
+          <p class="eyebrow">CENTRO DE OPERACIÓN</p>
+          <h1>Hola, {{ session.username || 'Equipo' }}</h1>
+          <p class="muted">Este es el pulso de tu restaurante para comenzar la jornada.</p>
+        </div>
+        <div class="header-actions"><span class="date">● Sistema listo</span></div>
+      </header>
+
+      @if (error()) {
+        <p class="form-message" role="alert">{{ error() }}</p>
+        <button type="button" class="outline" (click)="loadSummary(session)">Reintentar</button>
+      }
+      <section class="overview-grid" [attr.aria-busy]="loading()">
+        <article class="overview-card overview-primary">
+          <span class="overview-icon">⌂</span>
+          <div><small>Mesas ocupadas</small><strong>{{ summary()?.occupiedTables ?? '…' }}</strong><p>Controla el ritmo de la sala</p></div>
+          <button type="button" class="overview-link" (click)="openView('tables')">Ver sala →</button>
+        </article>
+        <article class="overview-card">
+          <span class="overview-icon">◇</span>
+          <div><small>Mesas disponibles</small><strong>{{ summary()?.availableTables ?? '…' }}</strong><p>Listas para recibir clientes</p></div>
+          <button type="button" class="overview-link" (click)="openView('tables')">Abrir mapa →</button>
+        </article>
+        <article class="overview-card">
+          <span class="overview-icon">✦</span>
+          <div><small>Stock por revisar</small><strong>{{ summary()?.lowStockProducts ?? '…' }}</strong><p>Productos con cinco unidades o menos</p></div>
+          <button type="button" class="overview-link" (click)="openView('products')">Ver inventario →</button>
+        </article>
+      </section>
+
+      <section class="overview-actions">
+        <div>
+          <p class="eyebrow">ACCESOS RÁPIDOS</p>
+          <h2>Continúa tu operación</h2>
+          <p class="muted">Elige el siguiente paso según el momento de tu servicio.</p>
+        </div>
+        <div class="quick-actions">
+          <button type="button" class="quick-action" (click)="openView('tables')"><span>⌘</span><strong>Gestionar mesas</strong><small>Abre mesas y revisa pedidos</small></button>
+          <button type="button" class="quick-action" (click)="openView('orders')"><span>▤</span><strong>Revisar pedidos</strong><small>Consulta las cuentas abiertas</small></button>
+          <button type="button" class="quick-action" (click)="openView('products')"><span>◫</span><strong>Ver inventario</strong><small>Consulta disponibilidad del menú</small></button>
+        </div>
+      </section>
+    </section>
+
+    <aside class="detail">
+      <div class="detail-empty"><span>⌁</span><h3>Tu sala está lista</h3><p>Selecciona una mesa para ver el resumen de la atención.</p></div>
+    </aside>
+  </main>
+}
