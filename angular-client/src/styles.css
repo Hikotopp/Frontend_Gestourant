@@ -1,1 +1,10 @@
-/* You can add global styles to this file, and also import other style files */
+@import '../../src/style.css';
+@import '../../src/order-editor.css';
+@import '../../src/auth-experience.css';
+@import '../../src/service-ui.css';
+@import '../../src/public-home.css';
+@import '../../src/floor-layout.css';
+@import '../../src/floor-polish.css';
+@import '../../src/kitchen-board.css';
+@import '../../src/qr-network.css';
+@import '../../src/presentation/reports.css';
