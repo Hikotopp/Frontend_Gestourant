@@ -1395,6 +1395,16 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     listKitchen: session => services.kitchen.listRequests(session),
     advanceKitchen: (session, id) => services.kitchen.advanceRequest(session, id)
   };
+  globalThis.__GESTOURANT_PRODUCTS__ = {
+    list: session => services.products.list(session),
+    save: (session, product, id) => services.products.save(session, product, id),
+    remove: (session, id) => services.products.remove(session, id)
+  };
+  globalThis.__GESTOURANT_PRODUCT_PHOTO__ = product => productPhoto(product);
+  globalThis.__GESTOURANT_ADD_ORDER_PRODUCT__ = productId => addProduct(productId);
+  globalThis.__GESTOURANT_GET_ACTIVE_ORDER__ = async () => activeOrder
+    ? { id: activeOrder.id, tableNumber: activeOrder.table.tableNumber }
+    : null;
   globalThis.__GESTOURANT_SHOW_TABLE_QR__ = table => showTableQr(table);
   globalThis.__GESTOURANT_OPEN_TABLE_DETAIL__ = async tableId => {
     if (!currentSession) throw new Error('No hay una sesión activa para abrir el detalle de la mesa.');

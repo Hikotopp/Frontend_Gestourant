@@ -42,6 +42,8 @@
         <app-tables-page [session]="session" (tableSelected)="tableSelected.emit($event)" />
       } @else if ((activeView === 'orders' || activeView === 'kitchen') && session) {
         <app-requests-page [session]="session" [queue]="activeView === 'orders' ? 'orders' : 'kitchen'" (pendingCountChanged)="requestCountChanged.emit($event)" />
+      } @else if (activeView === 'products' && session) {
+        <app-products-page [session]="session" (chooseTable)="chooseTable.emit()" />
       } @else {
       <header class="overview-header">
         <div>

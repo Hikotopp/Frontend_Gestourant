@@ -1,0 +1,53 @@
+<header class="page-heading">
+  <div><p class="eyebrow">CARTA · COCINA Y BAR</p><h1>Menú del restaurante</h1><p class="muted">Platos y bebidas disponibles durante el servicio.</p></div>
+  <span class="menu-count">{{ products().filter(isActive).length }} productos disponibles</span>
+</header>
+
+@if (error()) { <p class="form-message" role="alert">{{ error() }}</p> }
+@if (notice()) { <p class="auth-notice" role="status">{{ notice() }}</p> }
+
+@if (activeOrder(); as order) {
+  <div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>Pedido en curso · Mesa {{ order.tableNumber }}</strong><small>Pedido #{{ order.id }} · Los productos se agregarán a esta cuenta</small></div></div>
+} @else {
+  <div class="active-order-banner no-active-order"><div><span><strong>Para tomar un pedido</strong><small>Selecciona una mesa libre o en servicio.</small></span></div><button class="outline" type="button" (click)="chooseTable.emit()">Elegir mesa →</button></div>
+}
+
+@if (isAdmin) {
+  <details class="admin-tools menu-admin-tools">
+    <summary><span><strong>{{ editingId() === null ? 'Administrar menú' : 'Editar producto' }}</strong><small>Crear o actualizar platos, bebidas y precios</small></span><span class="tools-plus">＋</span></summary>
+    <form class="product-form" #productForm (submit)="$event.preventDefault(); saveProduct(productForm)">
+      <label>Nombre del producto<input name="name" maxlength="120" placeholder="Ej. Trucha a la plancha" required [(ngModel)]="name"></label>
+      <label>Categoría<select name="category" [(ngModel)]="category"><option value="PLATO">Plato</option><option value="BEBIDA">Bebida</option><option value="OTRO">Otro</option></select></label>
+      <label class="form-wide">Descripción<textarea name="description" maxlength="500" placeholder="Descripción e ingredientes principales" required [(ngModel)]="description"></textarea></label>
+      <label class="form-wide">Foto del producto<input name="imageUrl" type="url" maxlength="1000" placeholder="https://… (opcional)" [(ngModel)]="imageUrl"><small>Usa una imagen propia o de tu proveedor, con permiso de uso.</small></label>
+      <label>Precio (COP)<input name="price" type="number" min="1" step="1" placeholder="28000" required [(ngModel)]="price"></label>
+      <label>Existencias<input name="stock" type="number" min="0" step="1" placeholder="20" required [(ngModel)]="stock"></label>
+      <label class="product-active"><input name="active" type="checkbox" [(ngModel)]="active"> Disponible para pedidos</label>
+      <div class="product-form-actions"><button class="primary" type="submit" [disabled]="saving()">{{ editingId() === null ? '＋ Guardar producto' : 'Guardar cambios' }}</button>@if (editingId() !== null) { <button class="outline" type="button" (click)="resetForm(productForm)">Cancelar</button> }</div>
+    </form>
+  </details>
+}
+
+<section class="menu-section">
+  <div class="menu-toolbar"><div><p class="eyebrow">LA CARTA</p><h2>Elige algo delicioso</h2></div><label class="menu-search"><span>⌕</span><input type="search" placeholder="Buscar en el menú…" aria-label="Buscar productos" [value]="search()" (input)="search.set($any($event.target).value)"></label></div>
+  <div class="catalog-filters menu-filters">
+    @for (filter of filters; track filter.value) { <button class="filter-button" [class.active]="categoryFilter() === filter.value" type="button" (click)="categoryFilter.set(filter.value)">{{ filter.label }}</button> }
+  </div>
+  <div class="product-list menu-grid" [attr.aria-busy]="loading()">
+    @if (loading() && !products().length) { <p class="muted">Cargando menú…</p> }
+    @else {
+      @for (product of visibleProducts; track product.id) {
+        <article class="product-card" [class.inactive]="!product.active">
+          <div class="product-photo-wrap"><img class="product-photo" [src]="photo(product)" [alt]="product.name" loading="lazy" (error)="fallbackPhoto($event, product)"><span class="product-category">{{ product.category || 'PLATO' }}</span>@if (!product.active) { <span class="menu-unavailable">Pausado</span> }</div>
+          <div class="product-card-body"><div class="product-card-title"><h3>{{ product.name }}</h3><strong>$ {{ product.price | number:'1.0-0':'es-CO' }}</strong></div>
+            <p>{{ product.description || 'Preparado al momento en nuestra cocina.' }}</p>
+            <div class="product-card-footer"><span class="stock" [class.low]="product.stock < 5">{{ product.stock > 0 ? product.stock + ' disponibles' : 'Agotado' }}</span><div class="product-actions">
+              @if (product.active && product.stock > 0) { <button [class.primary]="activeOrder()" [class.outline]="!activeOrder()" type="button" (click)="addToOrder(product)">{{ activeOrder() ? '＋ Agregar' : 'Elegir mesa' }}</button> } @else { <span class="unavailable">No disponible</span> }
+              @if (isAdmin) { <button class="outline" type="button" aria-label="Editar producto" (click)="editProduct(product)">Editar</button><button class="danger" type="button" aria-label="Eliminar producto" (click)="deleteProduct(product)">Eliminar</button> }
+            </div></div>
+          </div>
+        </article>
+      } @empty { @if (!loading()) { <div class="menu-empty"><span>⌕</span><h3>No encontramos productos</h3><p>Ajusta la búsqueda o elige otra categoría.</p></div> } }
+    }
+  </div>
+</section>

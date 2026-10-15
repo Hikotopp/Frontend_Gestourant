@@ -57,6 +57,28 @@ interface GestourantTableBridge {
   updatePosition: (session: GestourantSession, id: number, position: { x: number; y: number }) => Promise<GestourantTable>;
 }
 
+interface GestourantProduct {
+  id: number;
+  name: string;
+  category: string;
+  description: string;
+  imageUrl?: string | null;
+  price: number;
+  stock: number;
+  active: boolean;
+}
+
+interface GestourantProductsBridge {
+  list: (session: GestourantSession) => Promise<GestourantProduct[]>;
+  save: (session: GestourantSession, product: Omit<GestourantProduct, 'id'>, id: number | null) => Promise<GestourantProduct>;
+  remove: (session: GestourantSession, id: number) => Promise<void>;
+}
+
+interface GestourantActiveOrder {
+  id: number;
+  tableNumber: number;
+}
+
 interface GestourantRequestsBridge {
   listOrders: (session: GestourantSession) => Promise<GestourantStaffRequest[]>;
   approve: (session: GestourantSession, id: number) => Promise<void>;
@@ -110,9 +132,13 @@ declare var __GESTOURANT_LOAD_DASHBOARD_OVERVIEW__:
   | undefined;
 declare var __GESTOURANT_TABLES__: GestourantTableBridge | undefined;
 declare var __GESTOURANT_REQUESTS__: GestourantRequestsBridge | undefined;
+declare var __GESTOURANT_PRODUCTS__: GestourantProductsBridge | undefined;
 declare var __GESTOURANT_OPEN_TABLE_DETAIL__: ((tableId: number) => Promise<void>) | undefined;
 declare var __GESTOURANT_SHOW_TABLE_QR__: ((table: GestourantTable) => Promise<void>) | undefined;
 declare var __GESTOURANT_PENDING_REQUEST_COUNT_CHANGED__: ((count: number) => void) | undefined;
+declare var __GESTOURANT_PRODUCT_PHOTO__: ((product: GestourantProduct) => string) | undefined;
+declare var __GESTOURANT_ADD_ORDER_PRODUCT__: ((productId: number) => Promise<void>) | undefined;
+declare var __GESTOURANT_GET_ACTIVE_ORDER__: (() => Promise<GestourantActiveOrder | null>) | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:
   | ((view: GestourantDashboardView) => Promise<void>)
   | undefined;

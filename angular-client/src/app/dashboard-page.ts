@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
+import { ProductsPage } from './products-page';
 import { RequestsPage } from './requests-page';
 import { TablesPage } from './tables-page';
 
@@ -14,7 +15,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CommonModule, RequestsPage, TablesPage],
+  imports: [CommonModule, ProductsPage, RequestsPage, TablesPage],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {
@@ -26,6 +27,7 @@ export class DashboardPage implements OnChanges {
   @Output() logoutRequested = new EventEmitter<void>();
   @Output() tableSelected = new EventEmitter<number>();
   @Output() requestCountChanged = new EventEmitter<number>();
+  @Output() chooseTable = new EventEmitter<void>();
 
   readonly summary = signal<GestourantDashboardSummary | null>(null);
   readonly loading = signal(false);

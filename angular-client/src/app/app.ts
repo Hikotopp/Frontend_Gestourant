@@ -21,6 +21,7 @@ import { DashboardPage } from './dashboard-page';
           (viewRequested)="openDashboardView($event)"
           (tableSelected)="openTableDetail($event)"
           (requestCountChanged)="pendingRequestCount.set($event)"
+          (chooseTable)="openDashboardView('tables')"
           (logoutRequested)="logout()"
         />
       } @else if (authMode() !== 'dashboard') {
@@ -150,7 +151,7 @@ export class App implements AfterViewInit {
   }
 
   async openDashboardView(view: GestourantDashboardView | 'overview'): Promise<void> {
-    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen') {
+    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products') {
       this.activeDashboardView.set(view);
       this.legacyLoadError.set('');
       return;
