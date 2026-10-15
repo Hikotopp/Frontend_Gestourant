@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { BackupsPage } from './backups-page';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
 import { ProductsPage } from './products-page';
 import { ReportsPage } from './reports-page';
@@ -16,7 +17,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CommonModule, ProductsPage, ReportsPage, RequestsPage, TablesPage],
+  imports: [BackupsPage, CommonModule, ProductsPage, ReportsPage, RequestsPage, TablesPage],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {

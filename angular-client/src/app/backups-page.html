@@ -1,0 +1,24 @@
+<header class="overview-header">
+  <div><p class="eyebrow">ADMINISTRACIÓN</p><h1>Copias de seguridad</h1><p class="muted">Crea respaldos completos de MySQL, descarga una copia o restaura un punto anterior.</p></div>
+  <div class="header-actions"><button type="button" class="primary" [disabled]="creating()" (click)="create()">{{ creating() ? 'Creando copia…' : 'Crear copia ahora' }}</button></div>
+</header>
+
+@if (error()) { <p class="report-message is-error" role="alert">{{ error() }}</p> }
+@if (message()) { <p class="report-message" role="status">{{ message() }}</p> }
+
+<section class="backup-warning"><strong>Restaurar reemplaza los datos actuales de la base de datos.</strong><span>La operación requiere confirmación y solo está disponible para el administrador. El servidor crea un respaldo de seguridad antes de restaurar.</span></section>
+
+<section class="report-history-card">
+  <div class="report-history-heading"><div><p class="eyebrow">ALMACENAMIENTO SEGURO</p><h2>Historial de respaldos</h2></div><span>{{ loading() ? 'Cargando…' : backups().length + ' copia' + (backups().length === 1 ? '' : 's') }}</span></div>
+  <div class="report-table-wrap" [attr.aria-busy]="loading()">
+    @if (loading() && !backups().length) { <p class="report-empty">Consultando las copias de seguridad…</p> }
+    @else if (backups().length) {
+      <table class="report-table"><thead><tr><th>Archivo</th><th>Fecha y hora (UTC)</th><th>Tamaño</th><th>Acciones</th></tr></thead><tbody>
+        @for (backup of backups(); track backup.id) {
+          <tr><td>{{ backup.fileName }}</td><td>{{ backup.createdAt | date:'medium':'UTC':'es-CO' }}</td><td>{{ formatSize(backup.sizeBytes) }}</td><td><div class="backup-actions"><button type="button" class="outline" [disabled]="busyIds().has(backup.id)" (click)="download(backup)">Descargar</button><button type="button" class="outline" [disabled]="busyIds().has(backup.id)" (click)="restore(backup)">Restaurar</button></div></td></tr>
+        }
+      </tbody></table>
+    } @else if (!error()) { <p class="report-empty">Todavía no hay copias. Crea la primera para que aparezca aquí.</p> }
+    @else { <p class="report-empty">No se pudo cargar el historial. Revisa el estado del almacenamiento S3.</p> }
+  </div>
+</section>

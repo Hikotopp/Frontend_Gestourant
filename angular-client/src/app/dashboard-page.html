@@ -46,6 +46,8 @@
         <app-products-page [session]="session" (chooseTable)="chooseTable.emit()" />
       } @else if (activeView === 'reports' && session) {
         <app-reports-page [session]="session" />
+      } @else if (activeView === 'backups' && session && session.role === 'ADMINISTRADOR') {
+        <app-backups-page [session]="session" />
       } @else {
       <header class="overview-header">
         <div>

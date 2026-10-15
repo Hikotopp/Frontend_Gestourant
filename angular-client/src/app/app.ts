@@ -151,7 +151,16 @@ export class App implements AfterViewInit {
   }
 
   async openDashboardView(view: GestourantDashboardView | 'overview'): Promise<void> {
+    if (view === 'backups' && this.dashboardSession()?.role !== 'ADMINISTRADOR') {
+      this.legacyLoadError.set('Solo el administrador puede gestionar copias de seguridad.');
+      return;
+    }
     if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products' || view === 'reports') {
+      this.activeDashboardView.set(view);
+      this.legacyLoadError.set('');
+      return;
+    }
+    if (view === 'backups') {
       this.activeDashboardView.set(view);
       this.legacyLoadError.set('');
       return;
