@@ -849,9 +849,9 @@ async function loadBackups(session) {
       if (!accepted || window.prompt('Escribe RESTAURAR para confirmar:') !== 'RESTAURAR') return;
       button.disabled = true;
       try {
-        await services.backups.restore(session, button.dataset.backupId);
-        showToast('La base de datos se restauró correctamente.');
-        message.textContent = 'Restauración completada.';
+        const result = await services.backups.restore(session, button.dataset.backupId);
+        showToast(`La base se restauró. Respaldo de seguridad: ${result.safetyBackupFileName}.`);
+        message.textContent = `Restauración completada. Se creó el respaldo de seguridad ${result.safetyBackupFileName}.`;
         await refresh();
       } catch (error) {
         showToast(`No se pudo restaurar la base de datos: ${error.message}`, true);
