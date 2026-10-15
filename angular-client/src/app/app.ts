@@ -16,7 +16,9 @@ import { DashboardPage } from './dashboard-page';
         <app-dashboard-page
           [session]="dashboardSession()"
           [notice]="legacyLoadError()"
-          (viewRequested)="openLegacyView($event)"
+          [activeView]="activeDashboardView()"
+          (viewRequested)="openDashboardView($event)"
+          (tableSelected)="openTableDetail($event)"
           (logoutRequested)="logout()"
         />
       } @else if (authMode() !== 'dashboard') {
@@ -50,6 +52,7 @@ export class App implements AfterViewInit {
   showAngularHome = signal(this.shouldShowAngularHome());
   authMode = signal<'home' | 'login' | 'register' | 'oauth-register' | 'dashboard'>(this.initialAuthMode());
   dashboardSession = signal<GestourantSession | null>(null);
+  activeDashboardView = signal<GestourantDashboardView | 'overview'>('overview');
   cookieNoticeVisible = signal(!localStorage.getItem('gestourant_cookie_consent'));
   authConfig = signal<GestourantAuthConfig>({
     captchaEnabled: false,
@@ -133,10 +136,37 @@ export class App implements AfterViewInit {
       return;
     }
     this.dashboardSession.set(activeSession);
+    this.activeDashboardView.set('overview');
     this.authMode.set('dashboard');
     this.homeNotice.set('');
     this.legacyLoadError.set('');
     this.showAngularHome.set(true);
+  }
+
+  async openDashboardView(view: GestourantDashboardView | 'overview'): Promise<void> {
+    if (view === 'overview' || view === 'tables') {
+      this.activeDashboardView.set(view);
+      this.legacyLoadError.set('');
+      return;
+    }
+    await this.openLegacyView(view);
+  }
+
+  async openTableDetail(tableId: number): Promise<void> {
+    const openDetail = globalThis.__GESTOURANT_OPEN_TABLE_DETAIL__;
+    if (!openDetail) {
+      this.legacyLoadError.set('No se pudo abrir la cuenta de esta mesa. Recarga la página e inténtalo de nuevo.');
+      return;
+    }
+    try {
+      const navigation = openDetail(tableId);
+      this.showAngularHome.set(false);
+      await navigation;
+    } catch (error) {
+      console.error('No se pudo abrir el detalle de la mesa.', error);
+      this.legacyLoadError.set('No se pudo abrir la cuenta de esta mesa. Inténtalo de nuevo.');
+      this.showAngularHome.set(true);
+    }
   }
 
   async openLegacyView(view: GestourantDashboardView): Promise<void> {

@@ -1,0 +1,74 @@
+<header class="page-heading">
+  <div><p class="eyebrow">SERVICIO · SALA PRINCIPAL</p><h1>Mapa de mesas</h1><p class="muted">Elige una mesa para abrir su cuenta y atender el pedido.</p></div>
+  <div class="service-status"><span class="live-dot"></span>Servicio en curso</div>
+</header>
+
+<section class="service-metrics">
+  <article><span class="metric-icon occupied-icon"><span aria-hidden="true">⌂</span></span><div><small>En servicio</small><strong>{{ occupiedCount }}</strong></div></article>
+  <article><span class="metric-icon available-icon"><span aria-hidden="true">⌂</span></span><div><small>Disponibles</small><strong>{{ availableCount }}</strong></div></article>
+  <article><span class="metric-icon total-icon"><span aria-hidden="true">⌂</span></span><div><small>Total de mesas</small><strong>{{ tables().length }}</strong></div></article>
+</section>
+
+@if (error()) { <p class="form-message" role="alert">{{ error() }}</p> }
+@if (notice()) { <p class="auth-notice" role="status">{{ notice() }}</p> }
+@if (session.role === 'ADMINISTRADOR') {
+  <details class="admin-tools table-tools">
+    <summary><span><strong>Configurar sala</strong><small>Agregar mesas o unir espacios</small></span><span class="tools-plus">＋</span></summary>
+    <div class="table-tools-content">
+      <form class="inline-form" #createForm (submit)="$event.preventDefault(); createTable(createForm)">
+        <input name="tableNumber" type="number" min="1" placeholder="N.º mesa" required [(ngModel)]="tableNumber">
+        <input name="seats" type="number" min="1" placeholder="Puestos" required [(ngModel)]="seats">
+        <button class="primary" type="submit" [disabled]="createPending()">＋ Agregar mesa</button>
+      </form>
+      <form class="inline-form" #joinForm (submit)="$event.preventDefault(); joinTables(joinForm)">
+        <select name="firstTableId" required [(ngModel)]="firstTableId"><option value="">Primera mesa</option>@for (table of joinableTables; track table.id) { <option [value]="table.id">Mesa {{ table.tableNumber }}</option> }</select>
+        <select name="secondTableId" required [(ngModel)]="secondTableId"><option value="">Segunda mesa</option>@for (table of joinableTables; track table.id) { <option [value]="table.id">Mesa {{ table.tableNumber }}</option> }</select>
+        <button class="outline" type="submit" [disabled]="joinPending()">Unir mesas</button>
+      </form>
+    </div>
+  </details>
+}
+
+<section class="floor-panel">
+  <div class="floor-head">
+    <div><p class="eyebrow">PLANTA DEL RESTAURANTE</p><h2>Salón principal</h2><p>Elige una mesa; puedes moverla en el croquis y abrir su cuenta.</p></div>
+    <div class="floor-tools">
+      @if (session.role === 'ADMINISTRADOR') { <label class="floor-arrange-toggle"><input type="checkbox" [checked]="arranging()" (change)="arranging.set($any($event.target).checked)"> Acomodar mesas</label> }
+      <div class="floor-legend"><span><i class="legend-dot free-dot"></i>Disponible</span><span><i class="legend-dot busy-dot"></i>En servicio</span></div>
+    </div>
+  </div>
+  <div class="floor-map-background">
+    <div class="floor-zone floor-zone-kitchen">COCINA</div><div class="floor-zone floor-zone-entry">ENTRADA</div><div class="floor-zone floor-zone-window">VENTANAL</div>
+    <div class="floor-map" [class.is-arranging]="arranging()" [attr.aria-busy]="loading()">
+      @if (loading() && !tables().length) {
+        <div class="menu-empty"><span>…</span><h3>Cargando mesas</h3><p>Consultando la sala del restaurante.</p></div>
+      } @else if (!tables().length) {
+        <div class="menu-empty"><span>＋</span><h3>Aún no hay mesas</h3><p>Configura la sala para comenzar a recibir pedidos.</p></div>
+      } @else {
+        @for (table of tables(); track table.id; let index = $index) {
+          <div class="floor-table-wrap" [style.left.%]="tableX(table, index)" [style.top.%]="tableY(table, index)">
+            <button
+              type="button"
+              class="floor-table-button"
+              [class.busy]="table.status === 'OCUPADA'"
+              [class.bill-requested]="table.billRequested"
+              [attr.aria-label]="'Mesa ' + table.tableNumber + ', ' + (table.status === 'LIBRE' ? 'disponible' : 'en servicio') + ', ' + table.seats + ' puestos' + (table.billRequested ? ', pidió la cuenta' : '')"
+              (click)="selectTable(table.id)"
+              (pointerdown)="beginDrag($event, table)"
+              (pointermove)="moveDrag($event)"
+              (pointerup)="endDrag()"
+              (pointercancel)="endDrag()"
+            >
+              <span class="table-graphic"><svg class="dining-table-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="18" y="18" width="28" height="28" rx="9" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-width="2"/><rect x="25" y="25" width="14" height="14" rx="7" stroke="currentColor" stroke-width="1.6"/><path d="M24 7v6m16-6v6M24 51v6m16-6v6M7 24h6m-6 16h6m38-16h6m-6 16h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="32" r="2" fill="currentColor"/></svg></span>
+              <span class="table-card-number">{{ table.tableNumber.toString().padStart(2, '0') }}</span>
+              <span class="table-card-info"><strong>Mesa {{ table.tableNumber }}</strong><small>{{ table.seats }} puestos{{ table.joinedTableId ? ' · Salón unido' : '' }}</small></span>
+              <span class="table-card-status"><i></i>{{ table.billRequested ? 'Pide la cuenta' : table.status === 'LIBRE' ? 'Disponible' : 'En servicio' }}</span>
+            </button>
+            <button type="button" class="floor-qr-button" [attr.aria-label]="'Ver QR de Mesa ' + table.tableNumber" (click)="showQr(table.id)">QR</button>
+          </div>
+        }
+      }
+    </div>
+  </div>
+  <footer class="floor-footer"><span>Las cuentas abiertas se guardan automáticamente.</span><span>{{ availableCount }} mesa{{ availableCount === 1 ? '' : 's' }} lista{{ availableCount === 1 ? '' : 's' }} para recibir clientes</span></footer>
+</section>

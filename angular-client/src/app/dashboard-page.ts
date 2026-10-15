@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
+import { TablesPage } from './tables-page';
 
 type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
 
@@ -12,14 +13,16 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CommonModule],
+  imports: [CommonModule, TablesPage],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {
   @Input() session: GestourantSession | null = null;
   @Input() notice = '';
-  @Output() viewRequested = new EventEmitter<DashboardView>();
+  @Input() activeView: DashboardView | 'overview' = 'overview';
+  @Output() viewRequested = new EventEmitter<DashboardView | 'overview'>();
   @Output() logoutRequested = new EventEmitter<void>();
+  @Output() tableSelected = new EventEmitter<number>();
 
   readonly summary = signal<GestourantDashboardSummary | null>(null);
   readonly loading = signal(false);
@@ -48,7 +51,7 @@ export class DashboardPage implements OnChanges {
   }
 
   openView(view: DashboardView | 'overview'): void {
-    if (view !== 'overview') this.viewRequested.emit(view);
+    this.viewRequested.emit(view);
   }
 
   async loadSummary(session: GestourantSession): Promise<void> {

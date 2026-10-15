@@ -1381,6 +1381,19 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
   logger = applicationLogger;
   apiBase = apiBaseUrl;
   globalThis.__GESTOURANT_AUTH__ = services.auth;
+  globalThis.__GESTOURANT_TABLES__ = {
+    list: session => services.tables.list(session),
+    create: (session, table) => services.tables.create(session, table),
+    join: (session, tableIds) => services.tables.join(session, tableIds),
+    updatePosition: (session, id, position) => services.tables.updatePosition(session, id, position)
+  };
+  globalThis.__GESTOURANT_SHOW_TABLE_QR__ = table => showTableQr(table);
+  globalThis.__GESTOURANT_OPEN_TABLE_DETAIL__ = async tableId => {
+    if (!currentSession) throw new Error('No hay una sesión activa para abrir el detalle de la mesa.');
+    await navigate('tables', currentSession);
+    if (!tables.some(table => table.id === tableId)) throw new Error('La mesa seleccionada ya no está disponible.');
+    await selectTable(tableId);
+  };
   globalThis.__GESTOURANT_LOAD_DASHBOARD_OVERVIEW__ = async session => {
     const [loadedTables, loadedProducts] = await Promise.all([
       services.tables.list(session),

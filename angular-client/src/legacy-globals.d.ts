@@ -38,6 +38,25 @@ interface GestourantDashboardSummary {
   lowStockProducts: number;
 }
 
+interface GestourantTable {
+  id: number;
+  tableNumber: number;
+  seats: number;
+  status: 'LIBRE' | 'OCUPADA';
+  floorX?: number | null;
+  floorY?: number | null;
+  joinedTableId?: number | null;
+  billRequested?: boolean;
+  qrToken: string;
+}
+
+interface GestourantTableBridge {
+  list: (session: GestourantSession) => Promise<GestourantTable[]>;
+  create: (session: GestourantSession, table: { tableNumber: number; seats: number }) => Promise<GestourantTable>;
+  join: (session: GestourantSession, tableIds: { firstTableId: number; secondTableId: number }) => Promise<void>;
+  updatePosition: (session: GestourantSession, id: number, position: { x: number; y: number }) => Promise<GestourantTable>;
+}
+
 type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
 
 interface GestourantAuthBridge {
@@ -58,6 +77,9 @@ declare var __GESTOURANT_PUBLIC_HOME__: ((notice: string) => void) | undefined;
 declare var __GESTOURANT_LOAD_DASHBOARD_OVERVIEW__:
   | ((session: GestourantSession) => Promise<GestourantDashboardSummary>)
   | undefined;
+declare var __GESTOURANT_TABLES__: GestourantTableBridge | undefined;
+declare var __GESTOURANT_OPEN_TABLE_DETAIL__: ((tableId: number) => Promise<void>) | undefined;
+declare var __GESTOURANT_SHOW_TABLE_QR__: ((table: GestourantTable) => Promise<void>) | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:
   | ((view: GestourantDashboardView) => Promise<void>)
   | undefined;

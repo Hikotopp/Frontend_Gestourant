@@ -15,9 +15,9 @@
       <nav aria-label="Navegación principal">
         @for (item of visibleNavigation; track item.id) {
           <a
-            [class.active]="item.id === 'overview'"
-            [attr.aria-current]="item.id === 'overview' ? 'page' : null"
-            [attr.href]="item.id === 'overview' ? null : '#'"
+            [class.active]="item.id === activeView"
+            [attr.aria-current]="item.id === activeView ? 'page' : null"
+            [attr.href]="item.id === activeView ? null : '#'"
             (click)="$event.preventDefault(); openView(item.id)"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.path" /></svg>
@@ -37,6 +37,9 @@
 
     <section class="workspace">
       @if (notice) { <p class="auth-notice" role="alert">{{ notice }}</p> }
+      @if (activeView === 'tables' && session) {
+        <app-tables-page [session]="session" (tableSelected)="tableSelected.emit($event)" />
+      } @else {
       <header class="overview-header">
         <div>
           <p class="eyebrow">CENTRO DE OPERACIÓN</p>
@@ -80,6 +83,7 @@
           <button type="button" class="quick-action" (click)="openView('products')"><span>◫</span><strong>Ver inventario</strong><small>Consulta disponibilidad del menú</small></button>
         </div>
       </section>
+      }
     </section>
 
     <aside class="detail">
