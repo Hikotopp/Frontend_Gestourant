@@ -1,4 +1,4 @@
-const isDevelopment = import.meta.env.DEV;
+const isDevelopment = import.meta.env?.DEV ?? globalThis.__GESTOURANT_CONFIG__?.development ?? false;
 
 function write(level, message, context = {}) {
   const payload = { scope: 'gestourant.frontend', message, ...context };

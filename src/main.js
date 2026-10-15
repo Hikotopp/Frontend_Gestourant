@@ -6,7 +6,7 @@ import { startGestourantApp } from './presentation/gestourantApp';
 import { initializePwa } from './presentation/pwa';
 
 if (initializePwa(logger)) {
-  const apiBase = import.meta.env.VITE_API_URL || '';
+  const apiBase = import.meta.env?.VITE_API_URL || globalThis.__GESTOURANT_CONFIG__?.apiBase || '';
   const apiPort = createHttpApiAdapter(apiBase);
   const gateway = createHttpGestourantGateway(apiPort);
   const services = createGestourantServices(gateway);

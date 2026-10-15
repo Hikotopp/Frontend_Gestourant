@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=20" },
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview", "start": "node server.mjs", "test": "node --test" },
+  "engines": { "node": ">=24.15.0" },
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview", "start": "node server.mjs", "test": "node --test", "dev:angular": "npm --prefix angular-client start", "build:angular": "npm --prefix angular-client run build", "test:angular": "npm --prefix angular-client test" },
   "dependencies": { "qrcode": "^1.5.4" },
   "devDependencies": { "vite": "^6.1.0" }
 }

@@ -22,7 +22,8 @@ function updateNetworkStatus() {
 }
 
 export function initializePwa(logger) {
-  if (import.meta.env.PROD && window.location.protocol === 'http:' && !isLocalhost(window.location.hostname)) {
+  const isProduction = import.meta.env?.PROD ?? globalThis.__GESTOURANT_CONFIG__?.production ?? false;
+  if (isProduction && window.location.protocol === 'http:' && !isLocalhost(window.location.hostname)) {
     window.location.replace(`https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`);
     return false;
   }
