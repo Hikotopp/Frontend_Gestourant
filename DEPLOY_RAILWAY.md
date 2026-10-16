@@ -2,6 +2,8 @@
 
 Railway despliega los proyectos mediante buildpacks; no necesitas crear ni administrar Dockerfiles. El frontend y el backend deben estar en repositorios GitHub conectados a Railway, y MySQL se crea como servicio de base de datos. Railway proporciona dominios HTTPS para los dos servicios.
 
+Para la alternativa Docker en una VM Oracle Cloud, consulta [DEPLOY_DOCKER_ORACLE.md](./DEPLOY_DOCKER_ORACLE.md). Esta guía sigue describiendo el despliegue específico de Railway.
+
 ## 1. Preparar los repositorios
 
 Sube a GitHub los cambios de `Frontend_Gestourant` y `Backend_Gestourant` en sus repositorios correspondientes. Cada carpeta incluye su propio `railway.toml`. Si ambos proyectos están en un único repositorio, al crear cada servicio configura su directorio raíz (`Frontend_Gestourant` o `Backend_Gestourant`).

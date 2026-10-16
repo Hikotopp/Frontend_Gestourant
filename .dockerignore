@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+dist
+angular-client/node_modules
+angular-client/dist
+coverage
+npm-debug.log*
