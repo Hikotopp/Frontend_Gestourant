@@ -1,13 +1,10 @@
-import { CommonModule, registerLocaleData } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit, signal } from '@angular/core';
-import localeEsCo from '@angular/common/locales/es-CO';
-import { TranslatePipe } from './locale';
-
-registerLocaleData(localeEsCo);
+import { formatLocalizedNumber, LocalizedDatePipe, TranslatePipe, translate } from './locale';
 
 @Component({
   selector: 'app-backups-page',
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, LocalizedDatePipe, TranslatePipe],
   templateUrl: './backups-page.html',
 })
 export class BackupsPage implements OnInit {
@@ -63,7 +60,7 @@ export class BackupsPage implements OnInit {
     try {
       const backup = await create(this.session);
       await this.refresh();
-      this.message.set(`Copia creada: ${backup.fileName}`);
+      this.message.set(translate('Copia creada: {fileName}', { fileName: backup.fileName }));
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No se pudo crear la copia de seguridad.');
       this.message.set('');
@@ -84,15 +81,17 @@ export class BackupsPage implements OnInit {
       await download(this.session, backup.id);
       this.message.set('Descarga del respaldo iniciada.');
     } catch (error) {
-      this.error.set(error instanceof Error ? `No se pudo descargar el respaldo: ${error.message}` : 'No se pudo descargar el respaldo.');
+      this.error.set(error instanceof Error
+        ? translate('No se pudo descargar el respaldo: {detail}', { detail: error.message })
+        : 'No se pudo descargar el respaldo.');
     } finally {
       this.setBusy(backup.id, false);
     }
   }
 
   async restore(backup: GestourantBackup): Promise<void> {
-    if (!globalThis.confirm('Esta acción reemplazará la base de datos actual. Se recomienda descargar un respaldo reciente antes de continuar.')) return;
-    if (globalThis.prompt('Escribe RESTAURAR para confirmar:') !== 'RESTAURAR') return;
+    if (!globalThis.confirm(translate('Esta acción reemplazará la base de datos actual. Se recomienda descargar un respaldo reciente antes de continuar.'))) return;
+    if (globalThis.prompt(translate('Escribe RESTAURAR para confirmar:')) !== 'RESTAURAR') return;
     const restore = globalThis.__GESTOURANT_BACKUPS__?.restore;
     if (!restore) {
       this.error.set('No está disponible la restauración de copias.');
@@ -103,11 +102,13 @@ export class BackupsPage implements OnInit {
     this.message.set('Restaurando la base de datos y creando una copia de seguridad previa…');
     try {
       const result = await restore(this.session, backup.id);
-      this.message.set(`Restauración completada. Se creó el respaldo de seguridad ${result.safetyBackupFileName}.`);
+      this.message.set(translate('Restauración completada. Se creó el respaldo de seguridad {fileName}.', { fileName: result.safetyBackupFileName }));
       await this.refresh();
-      this.message.set(`Restauración completada. Se creó el respaldo de seguridad ${result.safetyBackupFileName}.`);
+      this.message.set(translate('Restauración completada. Se creó el respaldo de seguridad {fileName}.', { fileName: result.safetyBackupFileName }));
     } catch (error) {
-      this.error.set(error instanceof Error ? `No se pudo restaurar la base de datos: ${error.message}` : 'No se pudo restaurar la base de datos.');
+      this.error.set(error instanceof Error
+        ? translate('No se pudo restaurar la base de datos: {detail}', { detail: error.message })
+        : 'No se pudo restaurar la base de datos.');
       this.message.set('');
     } finally {
       this.setBusy(backup.id, false);
@@ -124,7 +125,7 @@ export class BackupsPage implements OnInit {
       value /= 1024;
       unit++;
     }
-    return `${value.toLocaleString('es-CO', { maximumFractionDigits: 1 })} ${units[unit]}`;
+    return `${formatLocalizedNumber(value, 1)} ${units[unit]}`;
   }
 
   private setBusy(id: string, busy: boolean): void {

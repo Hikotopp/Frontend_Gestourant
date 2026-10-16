@@ -1,14 +1,11 @@
-import { CommonModule, registerLocaleData } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import localeEsCo from '@angular/common/locales/es-CO';
-import { TranslatePipe } from './locale';
-
-registerLocaleData(localeEsCo);
+import { LocalizedDatePipe, LocalizedNumberPipe, TranslatePipe, translate } from './locale';
 
 @Component({
   selector: 'app-reports-page',
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, LocalizedDatePipe, LocalizedNumberPipe, TranslatePipe],
   templateUrl: './reports-page.html',
 })
 export class ReportsPage implements OnInit {
@@ -62,7 +59,9 @@ export class ReportsPage implements OnInit {
       if (requestId !== this.requestSequence) return;
       this.report.set(report);
       const count = report.invoices?.length ?? 0;
-      this.message.set(`${count} factura${count === 1 ? '' : 's'} encontrada${count === 1 ? '' : 's'}.`);
+      this.message.set(count === 1
+        ? translate('1 factura encontrada.')
+        : translate('{count} facturas encontradas.', { count }));
     } catch (error) {
       if (requestId !== this.requestSequence) return;
       this.report.set(null);

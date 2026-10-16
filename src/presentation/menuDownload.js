@@ -1,4 +1,5 @@
-import { downloadMenuXlsx } from './cashCloseXlsx';
+import { downloadMenuXlsx } from './cashCloseXlsx.js';
+import { getLocale, translate } from '../shared/locale.js';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
   '&': '&amp;',
@@ -15,30 +16,30 @@ const categories = [
 ];
 
 function money(value) {
-  return `$ ${Number(value || 0).toLocaleString('es-CO')} COP`;
+  return `$ ${Number(value || 0).toLocaleString(getLocale())} COP`;
 }
 
 function printMenuHtml(products, tableNumber) {
   const categorySections = categories.map(category => {
     const items = products.filter(product => product.category === category.id);
     if (!items.length) return '';
-    return `<section class="category"><h2>${category.label}</h2><div class="items">${items.map(product =>
-      `<article class="item"><div class="item-copy"><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.description || 'Preparado al momento en nuestra cocina.')}</p></div><strong>${money(product.price)}</strong></article>`
+    return `<section class="category"><h2>${escapeHtml(translate(category.label))}</h2><div class="items">${items.map(product =>
+      `<article class="item"><div class="item-copy"><h3>${escapeHtml(translate(product.name))}</h3><p>${escapeHtml(product.description ? translate(product.description) : translate('Preparado al momento en nuestra cocina.'))}</p></div><strong>${money(product.price)}</strong></article>`
     ).join('')}</div></section>`;
   }).join('');
   const otherItems = products.filter(product => !categories.some(category => category.id === product.category));
   const additionalSections = otherItems.length
-    ? `<section class="category"><h2>Especialidades</h2><div class="items">${otherItems.map(product =>
-      `<article class="item"><div class="item-copy"><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.description || 'Preparado al momento en nuestra cocina.')}</p></div><strong>${money(product.price)}</strong></article>`
+    ? `<section class="category"><h2>${escapeHtml(translate('Especialidades'))}</h2><div class="items">${otherItems.map(product =>
+      `<article class="item"><div class="item-copy"><h3>${escapeHtml(translate(product.name))}</h3><p>${escapeHtml(product.description ? translate(product.description) : translate('Preparado al momento en nuestra cocina.'))}</p></div><strong>${money(product.price)}</strong></article>`
     ).join('')}</div></section>`
     : '';
 
   return `<!doctype html>
-<html lang="es">
+<html lang="${getLocale()}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>La carta · Gestourant</title>
+  <title>${escapeHtml(translate('La carta · Gestourant'))}</title>
   <style>
     :root{color-scheme:light;--forest:#153f35;--leaf:#276552;--gold:#d6a84d;--ink:#263b32;--muted:#718078;--paper:#fbf8f0;--line:#e6dfd0}
     *{box-sizing:border-box}
@@ -68,24 +69,24 @@ function printMenuHtml(products, tableNumber) {
   </style>
 </head>
 <body>
-  <nav class="toolbar" aria-label="Opciones de descarga"><button type="button" onclick="window.print()">Guardar o imprimir PDF</button><span>En el diálogo, elige «Guardar como PDF».</span></nav>
+  <nav class="toolbar" aria-label="${escapeHtml(translate('Opciones de descarga'))}"><button type="button" onclick="window.print()">${escapeHtml(translate('Guardar o imprimir PDF'))}</button><span>${escapeHtml(translate('En el diálogo, elige «Guardar como PDF».'))}</span></nav>
   <main class="page">
     <div class="brand"><span class="brand-mark">✳</span><span>Gestourant</span></div>
-    <header class="intro"><p class="eyebrow">Cocina hecha con cariño</p><h1>Nuestra carta</h1><p class="subtitle">Sabores frescos para disfrutar a tu ritmo.<br>Precios expresados en pesos colombianos.</p>${tableNumber ? `<span class="table-tag">Menú de mesa ${escapeHtml(tableNumber)}</span>` : ''}</header>
-    ${products.length ? `${categorySections}${additionalSections}` : '<p class="empty">La carta no tiene productos disponibles en este momento.</p>'}
-    <footer>Gracias por compartir la mesa con nosotros.<br>Gestourant · Servicio atento, a tu ritmo.</footer>
+    <header class="intro"><p class="eyebrow">${escapeHtml(translate('Cocina hecha con cariño'))}</p><h1>${escapeHtml(translate('Nuestra carta'))}</h1><p class="subtitle">${escapeHtml(translate('Sabores frescos para disfrutar a tu ritmo.'))}<br>${escapeHtml(translate('Precios expresados en pesos colombianos.'))}</p>${tableNumber ? `<span class="table-tag">${escapeHtml(translate('Menú de mesa {table}', { table: tableNumber }))}</span>` : ''}</header>
+    ${products.length ? `${categorySections}${additionalSections}` : `<p class="empty">${escapeHtml(translate('La carta no tiene productos disponibles en este momento.'))}</p>`}
+    <footer>${escapeHtml(translate('Gracias por compartir la mesa con nosotros.'))}<br>Gestourant · ${escapeHtml(translate('Servicio atento, a tu ritmo.'))}</footer>
   </main>
 </body>
 </html>`;
 }
 
 export function printMenuPdf(products, tableNumber) {
-  if (!Array.isArray(products)) throw new TypeError('No fue posible preparar la carta para descargar.');
+  if (!Array.isArray(products)) throw new TypeError(translate('No fue posible preparar la carta para descargar.'));
   const html = printMenuHtml(products, tableNumber);
   const printWindow = window.open('', '_blank');
 
   if (!printWindow) {
-    throw new Error('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes para guardar el PDF.');
+    throw new Error(translate('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes para guardar el PDF.'));
   }
 
   printWindow.document.open();

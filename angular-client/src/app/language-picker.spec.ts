@@ -16,8 +16,12 @@ describe('LanguagePicker', () => {
     expect(element.textContent).toContain('Español (España)');
     expect(element.textContent).toContain('Español (Latinoamérica)');
     expect(element.textContent).toContain('中文（普通话）');
+    expect(element.querySelector('.language-code')?.textContent).toBe('ES');
+    expect(element.querySelector('summary svg')).not.toBeNull();
     element.querySelector<HTMLButtonElement>('button[aria-pressed="false"]')?.click();
     expect(activeLocale()).toBe('en');
+    fixture.detectChanges();
+    expect(element.querySelector('.language-code')?.textContent).toBe('EN');
     fixture.destroy();
   });
 });

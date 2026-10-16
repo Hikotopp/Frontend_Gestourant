@@ -1,16 +1,13 @@
-import { CommonModule, registerLocaleData } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import localeEsCo from '@angular/common/locales/es-CO';
-import { TranslatePipe } from './locale';
+import { LocalizedNumberPipe, TranslatePipe, translate } from './locale';
 
 type ProductCategoryFilter = 'TODOS' | 'PLATO' | 'BEBIDA' | 'OTRO';
 
-registerLocaleData(localeEsCo);
-
 @Component({
   selector: 'app-products-page',
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, LocalizedNumberPipe, TranslatePipe],
   templateUrl: './products-page.html',
 })
 export class ProductsPage implements OnInit {
@@ -65,7 +62,7 @@ export class ProductsPage implements OnInit {
     const query = this.search().trim().toLocaleLowerCase('es');
     return this.products().filter((product) => {
       const categoryMatches = this.categoryFilter() === 'TODOS' || product.category === this.categoryFilter();
-      const searchMatches = !query || `${product.name} ${product.description} ${product.category}`.toLocaleLowerCase('es').includes(query);
+      const searchMatches = !query || `${product.name} ${translate(product.name)} ${product.description} ${translate(product.description)} ${product.category}`.toLocaleLowerCase('es').includes(query);
       return categoryMatches && searchMatches && (this.isAdmin || product.active);
     });
   }
@@ -157,7 +154,7 @@ export class ProductsPage implements OnInit {
   }
 
   async deleteProduct(product: GestourantProduct): Promise<void> {
-    if (!globalThis.confirm(`¿Eliminar ${product.name} del menú?`)) return;
+    if (!globalThis.confirm(translate('¿Eliminar {name} del menú?', { name: product.name }))) return;
     const remove = globalThis.__GESTOURANT_PRODUCTS__?.remove;
     if (!remove) {
       this.error.set('No está disponible la eliminación de productos.');

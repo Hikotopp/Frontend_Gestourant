@@ -1,4 +1,5 @@
-import { logger } from './logger';
+import { logger } from './logger.js';
+import { translateBackendMessage } from '../shared/locale.js';
 
 function safeLogPath(path) {
   return path.replace(/^\/api\/guest\/[^/]+/, '/api/guest/:token');
@@ -29,7 +30,10 @@ export function createHttpApiAdapter(baseUrl = '') {
           : response.status === 409 && path === '/api/auth/login'
             ? 'Esta cuenta ya tiene una sesión abierta en otro navegador. Cierra esa sesión o espera a que expire.'
           : data.message || 'No fue posible completar la operación.';
-        throw Object.assign(new Error(message), { status: response.status });
+        throw Object.assign(new Error(translateBackendMessage(message)), {
+          status: response.status,
+          sourceMessage: message,
+        });
       }
       logger.info('API request completed', { path: safeLogPath(path), status: response.status });
       return data;
@@ -42,7 +46,11 @@ export function createHttpApiAdapter(baseUrl = '') {
         let data = {};
         try { data = await response.json(); } catch { /* The response may not contain JSON. */ }
         logger.error('API download failed', { path: safeLogPath(path), status: response.status });
-        throw Object.assign(new Error(data.message || 'No fue posible descargar el archivo.'), { status: response.status });
+        const message = data.message || 'No fue posible descargar el archivo.';
+        throw Object.assign(new Error(translateBackendMessage(message)), {
+          status: response.status,
+          sourceMessage: message,
+        });
       }
       const blob = await response.blob();
       const disposition = response.headers.get('Content-Disposition') || '';

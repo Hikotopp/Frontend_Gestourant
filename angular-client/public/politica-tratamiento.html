@@ -22,43 +22,54 @@
   </head>
   <body>
     <main>
-      <p><a href="/">← Volver a Gestourant</a></p>
-      <p>AVISO INFORMATIVO · COLOMBIA</p>
-      <h1>Tratamiento de datos personales y cookies</h1>
-      <p><strong>Versión:</strong> 25 de septiembre de 2026.</p>
-      <p class="notice"><strong>Borrador para revisión antes de producción.</strong> El responsable del tratamiento debe completar su razón social, NIT, dirección y canales de contacto. Este texto orientativo no reemplaza la revisión jurídica ni la inscripción de bases de datos que corresponda.</p>
+      <p><a href="/" data-i18n="back">← Volver a Gestourant</a></p>
+      <label><span data-i18n="language">Idioma</span>
+        <select id="policy-language" aria-label="Idioma">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es-ES">Español (España)</option>
+          <option value="es-419">Español (Latinoamérica)</option>
+          <option value="zh-CN">中文（普通话）</option>
+        </select>
+      </label>
+      <p data-i18n="noticeLabel">AVISO INFORMATIVO · COLOMBIA</p>
+      <h1 data-i18n="title">Tratamiento de datos personales y cookies</h1>
+      <p><strong data-i18n="versionLabel">Versión:</strong> <span data-i18n="versionDate">25 de septiembre de 2026.</span></p>
+      <p class="notice"><strong data-i18n="draftTitle">Aviso informativo.</strong> <span data-i18n="draftText">Complete los datos y canales de contacto del responsable. El responsable debe verificar el contenido y su aplicación antes de publicarlo.</span></p>
 
-      <h2>1. Responsable del tratamiento</h2>
-      <p><strong>Responsable:</strong> [Razón social del restaurante o titular del software].<br>
-        <strong>NIT:</strong> [Completar].<br>
-        <strong>Domicilio:</strong> [Ciudad y dirección en Colombia].<br>
-        <strong>Canal para consultas y reclamos:</strong> [Correo electrónico de privacidad y teléfono].</p>
+      <h2 data-i18n="responsibleTitle">1. Responsable del tratamiento</h2>
+      <p><strong data-i18n="responsibleLabel">Responsable:</strong> <span data-i18n="responsiblePlaceholder">[Razón social del restaurante o titular del software].</span><br>
+        <strong>NIT:</strong> <span data-i18n="nitPlaceholder">[Completar].</span><br>
+        <strong data-i18n="addressLabel">Domicilio:</strong> <span data-i18n="addressPlaceholder">[Ciudad y dirección en Colombia].</span><br>
+        <strong data-i18n="contactLabel">Canal para consultas y reclamos:</strong> <span data-i18n="contactPlaceholder">[Correo electrónico de privacidad y teléfono].</span></p>
 
-      <h2>2. Datos que podemos tratar</h2>
-      <p>Según las funciones que se utilicen, Gestourant puede tratar nombres de usuario, correo electrónico, credenciales protegidas mediante hash, rol, registros de acceso, actividad administrativa, información operativa de mesas, pedidos, inventario y facturación. No se deben ingresar datos sensibles de clientes en notas de pedidos salvo que exista una finalidad y autorización válidas.</p>
+      <h2 data-i18n="dataTitle">2. Datos que podemos tratar</h2>
+      <p data-i18n="dataText">Según las funciones que se utilicen, Gestourant puede tratar nombres de usuario, correo electrónico, credenciales protegidas mediante hash, rol, registros de acceso, actividad administrativa, información operativa de mesas, pedidos, inventario y facturación. No se deben ingresar datos sensibles de clientes en notas de pedidos salvo que exista una finalidad y autorización válidas.</p>
 
-      <h2>3. Finalidades</h2>
+      <h2 data-i18n="purposesTitle">3. Finalidades</h2>
       <ul>
-        <li>Crear y administrar cuentas, autenticar usuarios y aplicar permisos.</li>
-        <li>Operar mesas, pedidos, productos, inventario, caja y auditoría del restaurante.</li>
-        <li>Proteger el servicio, prevenir abuso y atender incidentes de seguridad.</li>
-        <li>Atender solicitudes de titulares y cumplir obligaciones legales aplicables.</li>
+        <li data-i18n="purpose1">Crear y administrar cuentas, autenticar usuarios y aplicar permisos.</li>
+        <li data-i18n="purpose2">Operar mesas, pedidos, productos, inventario, caja y auditoría del restaurante.</li>
+        <li data-i18n="purpose3">Proteger el servicio, prevenir abuso y atender incidentes de seguridad.</li>
+        <li data-i18n="purpose4">Atender solicitudes de titulares y cumplir obligaciones legales aplicables.</li>
       </ul>
 
-      <h2>4. Derechos y solicitudes</h2>
-      <p>El titular puede conocer, actualizar y rectificar sus datos; solicitar prueba de autorización, información sobre su uso, revocar la autorización o pedir la supresión cuando sea procedente; y presentar quejas ante la Superintendencia de Industria y Comercio, conforme a la Ley 1581 de 2012 y sus normas reglamentarias. Las consultas y reclamos deben dirigirse al canal de privacidad indicado por el responsable. Se responderán dentro de los términos legales aplicables.</p>
+      <h2 data-i18n="rightsTitle">4. Derechos y solicitudes</h2>
+      <p data-i18n="rightsText">El titular puede conocer, actualizar y rectificar sus datos; solicitar prueba de autorización, información sobre su uso, revocar la autorización o pedir la supresión cuando sea procedente; y presentar quejas ante la Superintendencia de Industria y Comercio, conforme a la Ley 1581 de 2012 y sus normas reglamentarias. Las consultas y reclamos deben dirigirse al canal de privacidad indicado por el responsable. Se responderán dentro de los términos legales aplicables.</p>
 
-      <h2>5. Seguridad, proveedores y conservación</h2>
-      <p>Las contraseñas se almacenan como hashes y el acceso se controla por roles. Los datos se conservan durante el tiempo necesario para prestar el servicio y atender obligaciones legales, contables y de seguridad. El inicio de sesión federado puede comunicar datos al proveedor elegido (Google o Microsoft); Cloudflare Turnstile puede procesar datos técnicos del dispositivo y de la solicitud para detectar automatización. La interfaz también puede solicitar tipografías a Google Fonts. Estos proveedores aplican sus propias políticas y pueden tratar datos fuera de Colombia, sujeto a las garantías legales correspondientes.</p>
+      <h2 data-i18n="securityTitle">5. Seguridad, proveedores y conservación</h2>
+      <p data-i18n="securityText">Las contraseñas se almacenan como hashes y el acceso se controla por roles. Los datos se conservan durante el tiempo necesario para prestar el servicio y atender obligaciones legales, contables y de seguridad. El inicio de sesión federado puede comunicar datos al proveedor elegido (Google o Microsoft); Cloudflare Turnstile puede procesar datos técnicos del dispositivo y de la solicitud para detectar automatización. La interfaz también puede solicitar tipografías a Google Fonts. Estos proveedores aplican sus propias políticas y pueden tratar datos fuera de Colombia, sujeto a las garantías legales correspondientes.</p>
 
-      <h2>6. Cookies y almacenamiento local</h2>
-      <p>La aplicación utiliza almacenamiento local del navegador para recordar el tema visual y la elección de este aviso, y almacenamiento de sesión para mantener la sesión autenticada. El flujo OAuth puede usar una cookie técnica temporal del backend para proteger el estado del inicio de sesión. Si se habilita Turnstile, Cloudflare puede utilizar tecnologías técnicas necesarias para prestar la verificación anti-bots. En la versión actual no se activan cookies publicitarias ni analítica opcional.</p>
-      <p>El aviso de privacidad permite elegir «Solo necesarias» o aceptar. Esa elección se guarda localmente en el navegador y se puede reiniciar borrando el almacenamiento del sitio. Bloquear tecnologías necesarias puede impedir iniciar sesión o completar la verificación de seguridad.</p>
+      <h2 data-i18n="cookiesTitle">6. Cookies y almacenamiento local</h2>
+      <p data-i18n="cookiesText1">La aplicación utiliza almacenamiento local del navegador para recordar el tema visual y la elección de este aviso, y almacenamiento de sesión para mantener la sesión autenticada. El flujo OAuth puede usar una cookie técnica temporal del backend para proteger el estado del inicio de sesión. Si se habilita Turnstile, Cloudflare puede utilizar tecnologías técnicas necesarias para prestar la verificación anti-bots. En la versión actual no se activan cookies publicitarias ni analítica opcional.</p>
+      <p data-i18n="cookiesText2">El aviso de privacidad permite elegir «Solo necesarias» o aceptar. Esa elección se guarda localmente en el navegador y se puede reiniciar borrando el almacenamiento del sitio. Bloquear tecnologías necesarias puede impedir iniciar sesión o completar la verificación de seguridad.</p>
 
-      <h2>7. Autorización y cambios</h2>
-      <p>La creación de una cuenta exige una autorización afirmativa para tratar los datos con las finalidades descritas; Gestourant conserva la fecha y hora de esa autorización asociada a la cuenta. El responsable debe definir y documentar la base legal/autorización aplicable, informar a los titulares sobre sus finalidades y publicar la versión aprobada de esta política. Cualquier cambio material debe comunicarse por los medios adecuados y conservar la versión vigente.</p>
+      <h2 data-i18n="authorizationTitle">7. Autorización y cambios</h2>
+      <p data-i18n="authorizationText">La creación de una cuenta exige una autorización afirmativa para tratar los datos con las finalidades descritas; Gestourant conserva la fecha y hora de esa autorización asociada a la cuenta. El responsable debe definir y documentar la base legal/autorización aplicable, informar a los titulares sobre sus finalidades y publicar la versión aprobada de esta política. Cualquier cambio material debe comunicarse por los medios adecuados y conservar la versión vigente.</p>
 
-      <footer>Normativa de referencia: Ley 1581 de 2012 y Decreto 1074 de 2015, sin perjuicio de las demás normas aplicables en Colombia.</footer>
+      <footer data-i18n="footer">Normativa de referencia: Ley 1581 de 2012 y Decreto 1074 de 2015, sin perjuicio de las demás normas aplicables en Colombia.</footer>
     </main>
+    <script src="/policy-locale.js" defer></script>
   </body>
 </html>

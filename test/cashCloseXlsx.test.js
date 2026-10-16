@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCashCloseXlsx, createMenuXlsx } from '../src/presentation/cashCloseXlsx.js';
+import { printMenuPdf } from '../src/presentation/menuDownload.js';
 
 async function readStoredZip(blob) {
   const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -154,6 +155,111 @@ test('creates a one-sheet downloadable menu with warm styling, prices, and escap
   assert.match(xml, /<autoFilter ref="A5:D7"\/>/);
 });
 
+test('translates known menu item names and descriptions in downloadable workbooks', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: { getItem: () => 'en' },
+  });
+  try {
+    const workbook = await readStoredZip(createMenuXlsx([
+      {
+        name: 'Hamburguesa de la casa',
+        description: 'Carne artesanal, queso, vegetales y papas.',
+        category: 'PLATO',
+        price: 28000,
+      },
+    ], 3));
+    const xml = workbook.files.get('xl/worksheets/sheet1.xml');
+    assert.match(xml, /House burger/);
+    assert.match(xml, /Handcrafted beef, cheese, vegetables, and fries/);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'localStorage', previous);
+    else delete globalThis.localStorage;
+  }
+});
+
 test('rejects incomplete menu data before exporting', () => {
   assert.throws(() => createMenuXlsx([{ name: 'Plato' }], 2), /carta contiene datos incompletos/);
+});
+
+test('localizes downloadable menu and sales workbooks using the selected language', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: { getItem: () => 'fr' },
+  });
+  try {
+    const menu = await readStoredZip(createMenuXlsx([
+      { name: 'Pâtes du chef', description: null, category: 'PLATO', price: 24500 }
+    ], 4));
+    const menuXml = menu.files.get('xl/worksheets/sheet1.xml');
+    assert.match(menu.files.get('xl/workbook.xml'), /<sheet name="Menu"/);
+    assert.match(menuXml, /Menu numérique · Table 4/);
+    assert.match(menuXml, /PRÊT À DÉGUSTER/);
+    assert.match(menuXml, /Plats/);
+    assert.match(menuXml, /Préparé à la minute dans notre cuisine/);
+
+    const report = await readStoredZip(createCashCloseXlsx({
+      from: '2026-10-02',
+      to: '2026-10-02',
+      facturas: 1,
+      efectivo: 150000,
+      digital: 0,
+      total: 150000,
+      invoices: [{
+        invoiceNumber: 'FAC-1',
+        issuedAt: '2026-10-02T14:30:00',
+        tableNumber: 4,
+        paymentMethod: 'EFECTIVO',
+        total: 150000,
+        employee: 'maria'
+      }]
+    }, true));
+    assert.match(report.files.get('xl/workbook.xml'), /<sheet name="Ventes"/);
+    assert.match(report.files.get('xl/worksheets/sheet1.xml'), /RAPPORT DES VENTES/);
+    assert.match(report.files.get('xl/worksheets/sheet1.xml'), /ESPÈCES/);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'localStorage', previous);
+    else delete globalThis.localStorage;
+  }
+});
+
+test('localizes the printable menu without translating restaurant content', () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  let printedHtml = '';
+  const printWindow = {
+    document: {
+      open() {},
+      write(value) { printedHtml = value; },
+      close() {},
+    },
+    setTimeout(callback) { callback(); },
+    focus() {},
+    print() {},
+    addEventListener() {},
+  };
+  Object.defineProperties(globalThis, {
+    localStorage: { configurable: true, value: { getItem: () => 'de' } },
+    window: { configurable: true, value: { open: () => printWindow } },
+  });
+  try {
+    printMenuPdf([{
+      name: 'Hausgericht',
+      description: 'Familienrezept',
+      category: 'PLATO',
+      price: 24500
+    }], 4);
+    assert.match(printedHtml, /<html lang="de">/);
+    assert.match(printedHtml, /Unsere Speisekarte/);
+    assert.match(printedHtml, /Tisch 4 Speisekarte|Speisekarte für Tisch 4/);
+    assert.match(printedHtml, /Hausgericht/);
+    assert.match(printedHtml, /Familienrezept/);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'localStorage', previous);
+    else delete globalThis.localStorage;
+    if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow);
+    else delete globalThis.window;
+  }
 });

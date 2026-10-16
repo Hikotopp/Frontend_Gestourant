@@ -19,6 +19,7 @@ import { isAvailableForOrder } from '../domain/product';
 import { guestOrderingView } from './guestOrdering';
 import { productPhoto } from './productPhoto';
 import { downloadCashCloseXlsx } from './cashCloseXlsx';
+import { bindLanguagePicker, getLocale, languagePicker, translate } from '../shared/locale.js';
 
 let services;
 let logger;
@@ -27,6 +28,8 @@ const app = document.querySelector('#app');
 let tables = [];
 let products = [];
 let activeOrder = null;
+let activeQrTable = null;
+let activeQrRenderId = 0;
 let productCategoryFilter = 'TODOS';
 let authConfig = { captchaEnabled: false, captchaSiteKey: '', googleEnabled: false, microsoftEnabled: false };
 let idleWarningTimer;
@@ -70,7 +73,7 @@ const themeOptions = [
 
 function themeSwitcher() {
   const currentTheme = localStorage.getItem('gestourant_theme') || 'light';
-  return `<div class="theme-switcher" role="group" aria-label="Tema visual">${themeOptions.map(theme => `<button type="button" class="theme-button ${theme.id === currentTheme ? 'active' : ''}" data-theme="${theme.id}" aria-pressed="${theme.id === currentTheme}" title="Tema ${theme.label}"><span>${theme.icon}</span><small>${theme.label}</small></button>`).join('')}</div>`;
+  return `<div class="theme-switcher" role="group" aria-label="${escapeHtml(translate('Tema visual'))}">${themeOptions.map(theme => `<button type="button" class="theme-button ${theme.id === currentTheme ? 'active' : ''}" data-theme="${theme.id}" aria-pressed="${theme.id === currentTheme}" title="${escapeHtml(translate('Tema {theme}', { theme: translate(theme.label) }))}"><span>${theme.icon}</span><small>${escapeHtml(translate(theme.label))}</small></button>`).join('')}</div>`;
 }
 function applyTheme(theme) {
   const selectedTheme = themeOptions.some(option => option.id === theme) ? theme : 'light';
@@ -90,6 +93,13 @@ function bindThemeControls() {
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
+}
+
+function updateDocumentLocale() {
+  document.documentElement.lang = getLocale();
+  document.title = translate('Gestourant | Servicio de restaurante en un solo lugar');
+  const description = document.querySelector('meta[name="description"]');
+  if (description) description.content = translate('Coordina mesas, pedidos y menú de tu restaurante con Gestourant. Explora la demo interactiva.');
 }
 
 function icon(name, className = '') {
@@ -115,38 +125,38 @@ function socialLoginOptions() {
     { id: 'google', label: 'Google', enabled: authConfig.googleEnabled },
     { id: 'microsoft', label: 'Microsoft', enabled: authConfig.microsoftEnabled }
   ];
-  const apiRoot = (apiBase || 'http://localhost:8081').replace(/\/+$/, '');
-  return `<div class="social-login"><div class="social-divider"><span>o continúa con</span></div><div class="social-buttons">${providers.map(provider => provider.enabled
-    ? `<a class="social-button" data-oauth-provider="${provider.id}" href="${escapeHtml(apiRoot)}/oauth2/authorization/${provider.id}"><span class="social-mark ${provider.id}">${provider.id === 'google' ? 'G' : 'M'}</span>Continuar con ${provider.label}</a>`
-    : `<button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark ${provider.id}">${provider.id === 'google' ? 'G' : 'M'}</span>Continuar con ${provider.label}<small>No configurado</small></button>`).join('')}</div>${providers.some(provider => !provider.enabled) ? '<p id="provider-setup-note" class="provider-setup-note">Algunos proveedores de acceso todavía no están configurados.</p>' : ''}</div>`;
+  const apiRoot = (apiBase || window.location.origin).replace(/\/+$/, '');
+  return `<div class="social-login"><div class="social-divider"><span>${escapeHtml(translate('o continúa con'))}</span></div><div class="social-buttons">${providers.map(provider => provider.enabled
+    ? `<a class="social-button" data-oauth-provider="${provider.id}" href="${escapeHtml(apiRoot)}/oauth2/authorization/${provider.id}"><span class="social-mark ${provider.id}">${provider.id === 'google' ? 'G' : 'M'}</span>${escapeHtml(translate('Continuar con {provider}', { provider: provider.label }))}</a>`
+    : `<button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark ${provider.id}">${provider.id === 'google' ? 'G' : 'M'}</span>${escapeHtml(translate('Continuar con {provider}', { provider: provider.label }))}<small>${escapeHtml(translate('No configurado'))}</small></button>`).join('')}</div>${providers.some(provider => !provider.enabled) ? `<p id="provider-setup-note" class="provider-setup-note">${escapeHtml(translate('Algunos proveedores de acceso todavía no están configurados.'))}</p>` : ''}</div>`;
 }
 
 function oauthConsentField(text, required = false) {
-  return `<label class="oauth-consent"><input type="checkbox" name="privacyConsent" ${required ? 'required' : ''}><span>${text} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">Leer política</a>.</span></label>`;
+  return `<label class="oauth-consent"><input type="checkbox" name="privacyConsent" ${required ? 'required' : ''}><span>${escapeHtml(translate(text))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('Leer política'))}</a>.</span></label>`;
 }
 
 function showSpanishFormValidation(form, message) {
   const invalidField = [...form.elements].find(field => field.willValidate && !field.validity.valid);
   if (!invalidField) return true;
   const validity = invalidField.validity;
-  const label = invalidField.closest('label')?.innerText.split('\n')[0].trim() || 'este campo';
-  let text = `Revisa el campo «${label}».`;
+  const label = invalidField.closest('label')?.innerText.split('\n')[0].trim() || translate('este campo');
+  let text = translate('Revisa el campo «{field}».', { field: label });
   if (validity.valueMissing && invalidField.type === 'checkbox') {
-    text = 'Debes autorizar el tratamiento de tus datos para continuar.';
+    text = translate('Debes autorizar el tratamiento de tus datos para continuar.');
   } else if (validity.valueMissing) {
-    text = `Completa el campo «${label}».`;
+    text = translate('Completa el campo «{field}».', { field: label });
   } else if (validity.typeMismatch && invalidField.type === 'email') {
-    text = 'Escribe un correo electrónico válido.';
+    text = translate('Escribe un correo electrónico válido.');
   } else if (validity.tooShort) {
-    text = `Este campo debe tener al menos ${invalidField.minLength} caracteres.`;
+    text = translate('Este campo debe tener al menos {count} caracteres.', { count: invalidField.minLength });
   } else if (validity.tooLong) {
-    text = `Este campo no puede superar ${invalidField.maxLength} caracteres.`;
+    text = translate('Este campo no puede superar {count} caracteres.', { count: invalidField.maxLength });
   } else if (validity.rangeUnderflow) {
-    text = `El valor debe ser igual o mayor que ${invalidField.min}.`;
+    text = translate('El valor debe ser igual o mayor que {min}.', { min: invalidField.min });
   } else if (validity.rangeOverflow) {
-    text = `El valor debe ser igual o menor que ${invalidField.max}.`;
+    text = translate('El valor debe ser igual o menor que {max}.', { max: invalidField.max });
   } else if (validity.stepMismatch) {
-    text = 'Ingresa un valor válido para este campo.';
+    text = translate('Ingresa un valor válido para este campo.');
   }
   message.textContent = '';
   showToast(text, true);
@@ -171,7 +181,7 @@ function initializeCaptcha(containerId) {
       sitekey: authConfig.captchaSiteKey,
       callback: token => { const field = container.closest('form')?.querySelector('[name="captchaToken"]'); if (field) field.value = token; },
       'expired-callback': () => { const field = container.closest('form')?.querySelector('[name="captchaToken"]'); if (field) field.value = ''; },
-      'error-callback': () => { showToast('No se pudo cargar la verificación. Recarga la página para intentarlo de nuevo.', true); }
+      'error-callback': () => { showToast(translate('No se pudo cargar la verificación. Recarga la página para intentarlo de nuevo.'), true); }
     });
     container.dataset.widgetId = widgetId;
   };
@@ -192,7 +202,7 @@ function initializeCaptcha(containerId) {
     window.dispatchEvent(new Event('turnstile-ready'));
     render();
   }, { once: true });
-  script.addEventListener('error', () => showToast('No se pudo cargar Cloudflare Turnstile.', true), { once: true });
+  script.addEventListener('error', () => showToast(translate('No se pudo cargar Cloudflare Turnstile.'), true), { once: true });
   document.head.appendChild(script);
 }
 
@@ -212,9 +222,13 @@ function showCookieNotice() {
   notice = document.createElement('aside');
   notice.id = 'cookie-notice';
   notice.className = 'cookie-notice';
-  notice.setAttribute('aria-label', 'Preferencias de cookies');
-  notice.innerHTML = `<div><p class="eyebrow">TU PRIVACIDAD</p><strong>Cookies y almacenamiento</strong><p>Usamos almacenamiento esencial para mantener tu sesión y preferencias, y protección anti-bots cuando está habilitada. Consulta nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos y cookies</a>.</p></div><div class="cookie-actions"><button type="button" class="outline" data-cookie-choice="necessary">Solo necesarias</button><button type="button" class="primary" data-cookie-choice="all">Aceptar</button></div>`;
+  renderCookieNotice(notice);
   document.body.appendChild(notice);
+}
+
+function renderCookieNotice(notice) {
+  notice.setAttribute('aria-label', translate('Preferencias de cookies'));
+  notice.innerHTML = `<div><p class="eyebrow">${escapeHtml(translate('TU PRIVACIDAD'))}</p><strong>${escapeHtml(translate('Cookies y almacenamiento'))}</strong><p>${escapeHtml(translate('Usamos almacenamiento esencial para mantener tu sesión y preferencias, y protección anti-bots cuando está habilitada. Consulta nuestra política de datos y cookies.'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos y cookies'))}</a>.</p></div><div class="cookie-actions"><button type="button" class="outline" data-cookie-choice="necessary">${escapeHtml(translate('Solo necesarias'))}</button><button type="button" class="primary" data-cookie-choice="all">${escapeHtml(translate('Aceptar'))}</button></div>`;
   notice.querySelectorAll('[data-cookie-choice]').forEach(button => button.addEventListener('click', () => {
     localStorage.setItem('gestourant_cookie_consent', button.dataset.cookieChoice);
     notice.remove();
@@ -313,7 +327,7 @@ function setupIdleMonitoring(session) {
             await logout(session, false, false);
           } else if (!idleActivityReportWarningShown) {
             idleActivityReportWarningShown = true;
-            showToast('No se pudo consultar el estado de la sesión bloqueada.', true);
+            showToast(translate('No se pudo consultar el estado de la sesión bloqueada.'), true);
           }
         }
       } else if (error.status === 401) {
@@ -321,7 +335,7 @@ function setupIdleMonitoring(session) {
         await logout(session, false, false);
       } else if (!idleActivityReportWarningShown) {
         idleActivityReportWarningShown = true;
-        showToast('No se pudo sincronizar la actividad de la sesión con el servidor.', true);
+        showToast(translate('No se pudo sincronizar la actividad de la sesión con el servidor.'), true);
       }
     }
   };
@@ -375,7 +389,7 @@ function showSessionLock() {
   const overlay = document.createElement('div');
   overlay.className = 'session-lock';
   overlay.id = 'session-lock';
-  overlay.innerHTML = `<section class="session-lock-card" role="dialog" aria-modal="true" aria-labelledby="session-lock-title"><span class="lock-icon">◉</span><p class="eyebrow accent">SESIÓN PAUSADA</p><h2 id="session-lock-title">Confirma que eres tú</h2><p class="muted">La pantalla se bloqueó tras 2 minutos y 30 segundos sin actividad. Verifica tu contraseña para seguir trabajando.</p><p class="muted" role="status">La sesión se cerrará en <strong id="idle-countdown" class="idle-countdown">02:30</strong> si no la desbloqueas.</p><form id="unlock-form" novalidate><label>Cuenta<input name="identifier" value="${escapeHtml(currentSession.email)}" readonly autocomplete="username"></label><label>Contraseña<div class="password-wrap"><input name="password" type="password" required autocomplete="current-password" autofocus></div></label><div id="unlock-captcha" class="captcha-slot"></div><input type="hidden" name="captchaToken"><p id="unlock-error" class="form-message" role="alert"></p><button class="primary" type="submit">Desbloquear sesión</button></form><div class="unlock-social"><button type="button" class="text-button" id="unlock-logout">Cerrar sesión</button></div></section>`;
+  overlay.innerHTML = `<section class="session-lock-card" role="dialog" aria-modal="true" aria-labelledby="session-lock-title"><span class="lock-icon">◉</span><p class="eyebrow accent">${escapeHtml(translate('SESIÓN PAUSADA'))}</p><h2 id="session-lock-title">${escapeHtml(translate('Confirma que eres tú'))}</h2><p class="muted">${escapeHtml(translate('La pantalla se bloqueó tras 2 minutos y 30 segundos sin actividad. Verifica tu contraseña para seguir trabajando.'))}</p><p class="muted" role="status">${escapeHtml(translate('La sesión se cerrará en {countdown} si no la desbloqueas.', { countdown: '' }))}<strong id="idle-countdown" class="idle-countdown">02:30</strong></p><form id="unlock-form" novalidate><label>${escapeHtml(translate('Cuenta'))}<input name="identifier" value="${escapeHtml(currentSession.email)}" readonly autocomplete="username"></label><label>${escapeHtml(translate('Contraseña'))}<div class="password-wrap"><input name="password" type="password" required autocomplete="current-password" autofocus></div></label><div id="unlock-captcha" class="captcha-slot"></div><input type="hidden" name="captchaToken"><p id="unlock-error" class="form-message" role="alert"></p><button class="primary" type="submit">${escapeHtml(translate('Desbloquear sesión'))}</button></form><div class="unlock-social"><button type="button" class="text-button" id="unlock-logout">${escapeHtml(translate('Cerrar sesión'))}</button></div></section>`;
   document.body.appendChild(overlay);
   updateIdleCountdown();
   idleCountdownTimer = window.setInterval(() => {
@@ -402,19 +416,19 @@ async function unlockSession(event) {
   const message = validationMessage;
   const submitButton = unlockForm.querySelector('[type="submit"]');
   const captchaToken = form.get('captchaToken');
-  if (authConfig.captchaEnabled && !captchaToken) { message.textContent = 'Completa la verificación de seguridad.'; return; }
+  if (authConfig.captchaEnabled && !captchaToken) { message.textContent = translate('Completa la verificación de seguridad.'); return; }
   submitButton.disabled = true;
   try {
     const session = currentSession;
     const status = await services.auth.unlock(session, form.get('password'), captchaToken);
     if (!idleLocked || !currentSession) return;
     if (!status.active || status.locked) {
-      message.textContent = 'No fue posible reanudar la sesión. Inténtalo de nuevo.';
+      message.textContent = translate('No fue posible reanudar la sesión. Inténtalo de nuevo.');
       return;
     }
     document.querySelector('#session-lock')?.remove();
     setupIdleMonitoring(session);
-    showToast('Sesión desbloqueada.');
+    showToast(translate('Sesión desbloqueada.'));
   } catch (error) {
     if (idleLocked && currentSession) {
       if (error.status === 401) {
@@ -433,17 +447,19 @@ async function unlockSession(event) {
 function publicHomeView() {
   clearSessionValidation();
   currentSession = null;
+  document.documentElement.lang = getLocale();
   app.innerHTML = `<main class="public-home">
-    <header class="public-nav"><a href="#" class="public-brand" aria-label="Gestourant, inicio">${brandMark()}<span>Gestourant</span></a><nav aria-label="Navegación de la página"><a href="#funciones">Funciones</a><a href="#demo">Explorar demo</a></nav><div class="public-nav-actions"><button type="button" class="public-login" data-public-auth="login">Iniciar sesión</button><button type="button" class="public-signup" data-public-auth="register">Crear cuenta ${icon('arrow')}</button></div></header>
-    ${authNotice ? `<p class="public-notice" role="status">${escapeHtml(authNotice)}</p>` : ''}
-    <section class="public-hero"><div class="public-hero-copy"><p class="eyebrow">EL SERVICIO, BAJO CONTROL</p><h1>Un restaurante que fluye, <em>mesa a mesa.</em></h1><p class="public-lead">Coordina sala, pedidos y menú desde un solo lugar. Menos vueltas entre el salón y la cocina; más atención para tus clientes.</p><div class="public-hero-actions"><button type="button" class="public-signup" data-public-auth="register">Conoce Gestourant ${icon('arrow')}</button><a class="public-text-link" href="#demo">Explorar demo interactiva <span>↓</span></a></div><div class="public-trust"><span>✓ Pedidos por mesa</span><span>✓ Cambios al instante</span><span>✓ Control de inventario</span></div></div><div class="public-hero-visual"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=85" alt="Platos servidos en un restaurante" loading="eager"><div class="hero-photo-caption"><span class="live-dot"></span><span><strong>El servicio conectado</strong><small>Sala, carta y pedidos en sincronía</small></span></div><div class="hero-floating-card"><span>${icon('tables')}</span><div><strong>La sala está en marcha</strong><small>Mesas y cuentas a la vista</small></div></div></div></section>
-    <section class="public-proof-bar" aria-label="Funciones principales"><span>DISEÑADO PARA EL DÍA A DÍA</span><strong>Atiende con claridad</strong><i></i><strong>Organiza tu operación</strong><i></i><strong>Cuida cada pedido</strong></section>
-    <section id="funciones" class="public-features"><div class="public-section-heading"><p class="eyebrow">UNA OPERACIÓN MÁS SIMPLE</p><h2>Todo el servicio, en su lugar.</h2><p>Herramientas prácticas para que el equipo sepa qué está pasando y qué sigue.</p></div><div class="public-feature-grid"><article class="public-feature-card"><span class="public-feature-icon">${icon('tables')}</span><p class="eyebrow">01 · SALÓN</p><h3>Un mapa vivo de mesas</h3><p>Consulta cuáles están libres o en servicio. Abre la cuenta desde la mesa y mantén el contexto mientras atiendes.</p></article><article class="public-feature-card"><span class="public-feature-icon">${icon('orders')}</span><p class="eyebrow">02 · PEDIDOS</p><h3>La cuenta al día</h3><p>Agrega productos, retira lo que cambió y deja indicaciones de ingredientes para que el equipo las confirme con cocina.</p></article><article class="public-feature-card"><span class="public-feature-icon">${icon('products')}</span><p class="eyebrow">03 · CARTA</p><h3>Menú e inventario conectados</h3><p>Presenta platos con fotos, precios y disponibilidad. El stock acompaña la operación para ayudar a evitar pedidos agotados.</p></article></div></section>
-    <section id="demo" class="public-demo-section"><div class="public-section-heading"><p class="eyebrow">PRUÉBALO SIN RIESGO</p><h2>Explora un turno de ejemplo.</h2><p>Selecciona una mesa, simula un cambio y mira cómo se actualiza la cuenta. Esta demostración no guarda ni envía datos.</p></div><div class="public-demo"><div class="demo-floor"><div class="demo-panel-heading"><span><small>VISTA DE SALA</small><strong>Salón principal</strong></span><span class="demo-tag"><i></i>Demo interactiva</span></div><div id="demo-table-list" class="demo-table-list"></div><div class="demo-floor-note">${icon('tables')}<span>Prueba una mesa ocupada o abre una cuenta de muestra en una mesa libre.</span></div></div><div id="demo-order-panel" class="demo-order-panel" aria-live="polite"></div></div><div class="demo-disclaimer">Todo lo que hagas aquí es una simulación en tu navegador. No se conecta a cuentas, mesas ni inventario reales.</div></section>
-    <section class="public-cta"><div><p class="eyebrow">LISTO PARA TU PRÓXIMO TURNO</p><h2>Haz que el servicio avance con más calma.</h2><p>Entra a tu espacio de trabajo o crea una cuenta para comenzar.</p></div><div class="public-cta-actions"><button type="button" class="public-signup" data-public-auth="register">Crear una cuenta ${icon('arrow')}</button><button type="button" class="public-login" data-public-auth="login">Ya tengo cuenta</button></div></section>
-    <footer class="public-footer"><a href="#" class="public-brand">${brandMark()}<span>Gestourant</span></a><span>Herramientas para que cada servicio fluya mejor.</span><a href="/politica-tratamiento.html" target="_blank" rel="noopener">Privacidad y tratamiento de datos</a></footer>
+    <header class="public-nav"><a href="#" class="public-brand" aria-label="${escapeHtml(translate('Gestourant, inicio'))}">${brandMark()}<span>Gestourant</span></a><nav aria-label="${escapeHtml(translate('Navegación de la página'))}"><a href="#funciones">${escapeHtml(translate('Funciones'))}</a><a href="#demo">${escapeHtml(translate('Explorar demo'))}</a></nav><div class="public-nav-actions"><button type="button" class="public-login" data-public-auth="login">${escapeHtml(translate('Iniciar sesión'))}</button><button type="button" class="public-signup" data-public-auth="register">${escapeHtml(translate('Crear cuenta'))} ${icon('arrow')}</button>${languagePicker()}</div></header>
+    ${authNotice ? `<p class="public-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}
+    <section class="public-hero"><div class="public-hero-copy"><p class="eyebrow">${escapeHtml(translate('EL SERVICIO, BAJO CONTROL'))}</p><h1>${escapeHtml(translate('Un restaurante que fluye,'))} <em>${escapeHtml(translate('mesa a mesa.'))}</em></h1><p class="public-lead">${escapeHtml(translate('Coordina sala, pedidos y menú desde un solo lugar. Menos vueltas entre el salón y la cocina; más atención para tus clientes.'))}</p><div class="public-hero-actions"><button type="button" class="public-signup" data-public-auth="register">${escapeHtml(translate('Conoce Gestourant'))} ${icon('arrow')}</button><a class="public-text-link" href="#demo">${escapeHtml(translate('Explorar demo interactiva'))} <span>↓</span></a></div><div class="public-trust"><span>✓ ${escapeHtml(translate('Pedidos por mesa'))}</span><span>✓ ${escapeHtml(translate('Cambios al instante'))}</span><span>✓ ${escapeHtml(translate('Control de inventario'))}</span></div></div><div class="public-hero-visual"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=85" alt="${escapeHtml(translate('Platos servidos en un restaurante'))}" loading="eager"><div class="hero-photo-caption"><span class="live-dot"></span><span><strong>${escapeHtml(translate('El servicio conectado'))}</strong><small>${escapeHtml(translate('Sala, carta y pedidos en sincronía'))}</small></span></div><div class="hero-floating-card"><span>${icon('tables')}</span><div><strong>${escapeHtml(translate('La sala está en marcha'))}</strong><small>${escapeHtml(translate('Mesas y cuentas a la vista'))}</small></div></div></div></section>
+    <section class="public-proof-bar" aria-label="${escapeHtml(translate('Funciones principales'))}"><span>${escapeHtml(translate('DISEÑADO PARA EL DÍA A DÍA'))}</span><strong>${escapeHtml(translate('Atiende con claridad'))}</strong><i></i><strong>${escapeHtml(translate('Organiza tu operación'))}</strong><i></i><strong>${escapeHtml(translate('Cuida cada pedido'))}</strong></section>
+    <section id="funciones" class="public-features"><div class="public-section-heading"><p class="eyebrow">${escapeHtml(translate('UNA OPERACIÓN MÁS SIMPLE'))}</p><h2>${escapeHtml(translate('Todo el servicio, en su lugar.'))}</h2><p>${escapeHtml(translate('Herramientas prácticas para que el equipo sepa qué está pasando y qué sigue.'))}</p></div><div class="public-feature-grid"><article class="public-feature-card"><span class="public-feature-icon">${icon('tables')}</span><p class="eyebrow">${escapeHtml(translate('01 · SALÓN'))}</p><h3>${escapeHtml(translate('Un mapa vivo de mesas'))}</h3><p>${escapeHtml(translate('Consulta cuáles están libres o en servicio. Abre la cuenta desde la mesa y mantén el contexto mientras atiendes.'))}</p></article><article class="public-feature-card"><span class="public-feature-icon">${icon('orders')}</span><p class="eyebrow">${escapeHtml(translate('02 · PEDIDOS'))}</p><h3>${escapeHtml(translate('La cuenta al día'))}</h3><p>${escapeHtml(translate('Agrega productos, retira lo que cambió y deja indicaciones de ingredientes para que el equipo las confirme con cocina.'))}</p></article><article class="public-feature-card"><span class="public-feature-icon">${icon('products')}</span><p class="eyebrow">${escapeHtml(translate('03 · CARTA'))}</p><h3>${escapeHtml(translate('Menú e inventario conectados'))}</h3><p>${escapeHtml(translate('Presenta platos con fotos, precios y disponibilidad. El stock acompaña la operación para ayudar a evitar pedidos agotados.'))}</p></article></div></section>
+    <section id="demo" class="public-demo-section"><div class="public-section-heading"><p class="eyebrow">${escapeHtml(translate('PRUÉBALO SIN RIESGO'))}</p><h2>${escapeHtml(translate('Explora un turno de ejemplo.'))}</h2><p>${escapeHtml(translate('Selecciona una mesa, simula un cambio y mira cómo se actualiza la cuenta. Esta demostración no guarda ni envía datos.'))}</p></div><div class="public-demo"><div class="demo-floor"><div class="demo-panel-heading"><span><small>${escapeHtml(translate('VISTA DE SALA'))}</small><strong>${escapeHtml(translate('Salón principal'))}</strong></span><span class="demo-tag"><i></i>${escapeHtml(translate('Demo interactiva'))}</span></div><div id="demo-table-list" class="demo-table-list"></div><div class="demo-floor-note">${icon('tables')}<span>${escapeHtml(translate('Prueba una mesa ocupada o abre una cuenta de muestra en una mesa libre.'))}</span></div></div><div id="demo-order-panel" class="demo-order-panel" aria-live="polite"></div></div><div class="demo-disclaimer">${escapeHtml(translate('Todo lo que hagas aquí es una simulación en tu navegador. No se conecta a cuentas, mesas ni inventario reales.'))}</div></section>
+    <section class="public-cta"><div><p class="eyebrow">${escapeHtml(translate('LISTO PARA TU PRÓXIMO TURNO'))}</p><h2>${escapeHtml(translate('Haz que el servicio avance con más calma.'))}</h2><p>${escapeHtml(translate('Entra a tu espacio de trabajo o crea una cuenta para comenzar.'))}</p></div><div class="public-cta-actions"><button type="button" class="public-signup" data-public-auth="register">${escapeHtml(translate('Crear una cuenta'))} ${icon('arrow')}</button><button type="button" class="public-login" data-public-auth="login">${escapeHtml(translate('Ya tengo cuenta'))}</button></div></section>
+    <footer class="public-footer"><a href="#" class="public-brand">${brandMark()}<span>Gestourant</span></a><span>${escapeHtml(translate('Herramientas para que cada servicio fluya mejor.'))}</span><a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('Privacidad y tratamiento de datos'))}</a></footer>
   </main>`;
   bindThemeControls();
+  bindLanguagePicker(app);
   app.querySelector('.public-brand').addEventListener('click', event => { event.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   app.querySelectorAll('.public-footer .public-brand').forEach(link => link.addEventListener('click', event => { event.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }));
   app.querySelectorAll('[data-public-auth]').forEach(button => button.addEventListener('click', () => {
@@ -488,12 +504,12 @@ function renderDemo() {
   const tableList = document.querySelector('#demo-table-list');
   const orderPanel = document.querySelector('#demo-order-panel');
   if (!tableList || !orderPanel) return;
-  tableList.innerHTML = demoTables.map(table => `<button type="button" class="demo-table ${table.status === 'OCUPADA' ? 'is-busy' : 'is-free'} ${table.id === demoSelectedTableId ? 'selected' : ''}" data-demo-table="${table.id}" aria-pressed="${table.id === demoSelectedTableId}"><span class="demo-table-icon">${diningTableIcon()}</span><span><strong>Mesa ${table.id}</strong><small>${table.seats} puestos</small></span><span class="demo-table-state"><i></i>${table.status === 'LIBRE' ? 'Libre' : 'En servicio'}</span></button>`).join('');
+  tableList.innerHTML = demoTables.map(table => `<button type="button" class="demo-table ${table.status === 'OCUPADA' ? 'is-busy' : 'is-free'} ${table.id === demoSelectedTableId ? 'selected' : ''}" data-demo-table="${table.id}" aria-pressed="${table.id === demoSelectedTableId}"><span class="demo-table-icon">${diningTableIcon()}</span><span><strong>${escapeHtml(translate('Mesa'))} ${table.id}</strong><small>${table.seats} ${escapeHtml(translate('Puestos'))}</small></span><span class="demo-table-state"><i></i>${escapeHtml(translate(table.status === 'LIBRE' ? 'Libre' : 'En servicio'))}</span></button>`).join('');
   const table = demoTables.find(item => item.id === demoSelectedTableId);
   if (!table) return;
   const items = demoOrders[table.id];
   const total = items.reduce((sum, item) => sum + item.price, 0);
-  orderPanel.innerHTML = `<div class="demo-order-heading"><div><span class="demo-order-kicker">CUENTA DE MUESTRA</span><h3>Mesa ${table.id}</h3></div><span class="demo-order-status ${table.status === 'LIBRE' ? 'is-free' : 'is-busy'}"><i></i>${table.status === 'LIBRE' ? 'Disponible' : 'En servicio'}</span></div>${table.status === 'LIBRE' ? `<div class="demo-empty-order"><span>${icon('orders')}</span><strong>Lista para recibir</strong><small>Abre una cuenta de prueba y agrega algo del menú.</small><button type="button" class="demo-open-button" data-demo-open>Abrir cuenta de prueba ${icon('arrow')}</button></div>` : `<div class="demo-order-lines">${items.map(item => `<article class="demo-order-line"><span class="demo-line-icon">${icon('products')}</span><span class="demo-line-name"><strong>${item.name}</strong>${item.note ? `<small>Indicación: ${item.note}</small>` : '<small>Preparado al momento</small>'}</span><strong class="demo-line-price">$ ${item.price.toLocaleString('es-CO')}</strong><button type="button" class="demo-remove" data-demo-remove="${item.id}" aria-label="Quitar ${item.name}">×</button></article>`).join('') || '<p class="demo-no-items">Aún no hay productos en la cuenta de prueba.</p>'}</div>${items.length ? `<div class="demo-allergy-editor"><label for="demo-allergy-note">Indicación de ingrediente <small>Ej. sin maní</small></label><div><input id="demo-allergy-note" maxlength="90" placeholder="Escribe una indicación" value="${escapeHtml(items[0].note)}"><button type="button" data-demo-save-note>Guardar</button></div></div>` : ''}<div class="demo-total"><span>Total de ejemplo</span><strong>$ ${total.toLocaleString('es-CO')} COP</strong></div><div class="demo-add-area"><span>Agregar a la cuenta</span><div><button type="button" data-demo-add data-name="Limonada natural" data-price="7000">＋ Limonada <strong>$ 7.000</strong></button><button type="button" data-demo-add data-name="Postre de la casa" data-price="9000">＋ Postre <strong>$ 9.000</strong></button></div></div>`}<p class="demo-confirm-note">Las indicaciones de alergias siempre deben confirmarse con cocina.</p>`;
+  orderPanel.innerHTML = `<div class="demo-order-heading"><div><span class="demo-order-kicker">${escapeHtml(translate('CUENTA DE MUESTRA'))}</span><h3>${escapeHtml(translate('Mesa'))} ${table.id}</h3></div><span class="demo-order-status ${table.status === 'LIBRE' ? 'is-free' : 'is-busy'}"><i></i>${escapeHtml(translate(table.status === 'LIBRE' ? 'Disponible' : 'En servicio'))}</span></div>${table.status === 'LIBRE' ? `<div class="demo-empty-order"><span>${icon('orders')}</span><strong>${escapeHtml(translate('Lista para recibir'))}</strong><small>${escapeHtml(translate('Abre una cuenta de prueba y agrega algo del menú.'))}</small><button type="button" class="demo-open-button" data-demo-open>${escapeHtml(translate('Abrir cuenta de prueba'))} ${icon('arrow')}</button></div>` : `<div class="demo-order-lines">${items.map(item => `<article class="demo-order-line"><span class="demo-line-icon">${icon('products')}</span><span class="demo-line-name"><strong>${escapeHtml(translate(item.name))}</strong>${item.note ? `<small>${escapeHtml(translate('Indicación: {note}', { note: item.note }))}</small>` : `<small>${escapeHtml(translate('Preparado al momento'))}</small>`}</span><strong class="demo-line-price">$ ${item.price.toLocaleString(getLocale())}</strong><button type="button" class="demo-remove" data-demo-remove="${item.id}" aria-label="${escapeHtml(translate('Quitar {product}', { product: item.name }))}">×</button></article>`).join('') || `<p class="demo-no-items">${escapeHtml(translate('Aún no hay productos en la cuenta de prueba.'))}</p>`}</div>${items.length ? `<div class="demo-allergy-editor"><label for="demo-allergy-note">${escapeHtml(translate('Indicación de ingrediente'))} <small>${escapeHtml(translate('Ej. sin maní'))}</small></label><div><input id="demo-allergy-note" maxlength="90" placeholder="${escapeHtml(translate('Escribe una indicación'))}" value="${escapeHtml(items[0].note)}"><button type="button" data-demo-save-note>${escapeHtml(translate('Guardar'))}</button></div></div>` : ''}<div class="demo-total"><span>${escapeHtml(translate('Total de ejemplo'))}</span><strong>$ ${total.toLocaleString(getLocale())} COP</strong></div><div class="demo-add-area"><span>${escapeHtml(translate('Agregar a la cuenta'))}</span><div><button type="button" data-demo-add data-name="Limonada natural" data-price="7000">＋ ${escapeHtml(translate('Limonada'))} <strong>$ 7.000</strong></button><button type="button" data-demo-add data-name="Postre de la casa" data-price="9000">＋ ${escapeHtml(translate('Postre'))} <strong>$ 9.000</strong></button></div></div>`}<p class="demo-confirm-note">${escapeHtml(translate('Las indicaciones de alergias siempre deben confirmarse con cocina.'))}</p>`;
 }
 
 function loginView() {
@@ -504,26 +520,27 @@ function loginView() {
   app.innerHTML = `
     <main class="login-layout">
       <section class="brand-panel">
-        <div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← Página principal</button>
-        <div class="hero-copy"><p class="eyebrow">OPERACIÓN INTELIGENTE</p><h1>Tu restaurante, en perfecto ritmo.</h1><p>Organiza tu sala, atiende con claridad y toma decisiones desde un solo lugar.</p></div>
-        <div class="login-proof"><span>✦</span><div><strong>Una operación más simple</strong><small>Mesas, pedidos y equipo en armonía.</small></div></div>
+        <div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← ${escapeHtml(translate('Página principal'))}</button>
+        <div class="hero-copy"><p class="eyebrow">${escapeHtml(translate('OPERACIÓN INTELIGENTE'))}</p><h1>${escapeHtml(translate('Tu restaurante, en perfecto ritmo.'))}</h1><p>${escapeHtml(translate('Organiza tu sala, atiende con claridad y toma decisiones desde un solo lugar.'))}</p></div>
+        <div class="login-proof"><span>✦</span><div><strong>${escapeHtml(translate('Una operación más simple'))}</strong><small>${escapeHtml(translate('Mesas, pedidos y equipo en armonía.'))}</small></div></div>
       </section>
-      <section class="login-panel"><div class="login-theme">${themeSwitcher()}</div><form id="login-form" class="login-card" novalidate>
-        <p class="eyebrow accent">BIENVENIDO DE NUEVO</p><h2>Inicia sesión</h2><p class="muted">Tu espacio de trabajo te espera.</p>
-        ${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(authNotice)}</p>` : ''}
-        <label>Correo o usuario<input id="identifier" name="identifier" autocomplete="username" placeholder="ej. maria@restaurante.com" required /></label>
-        <label>Contraseña<div class="password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required /><button type="button" id="toggle-password" aria-label="Mostrar contraseña">◉</button></div></label>
+      <section class="login-panel"><div class="login-theme">${themeSwitcher()}${languagePicker()}</div><form id="login-form" class="login-card" novalidate>
+        <p class="eyebrow accent">${escapeHtml(translate('BIENVENIDO DE NUEVO'))}</p><h2>${escapeHtml(translate('Inicia sesión'))}</h2><p class="muted">${escapeHtml(translate('Tu espacio de trabajo te espera.'))}</p>
+        ${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}
+        <label>${escapeHtml(translate('Correo o usuario'))}<input id="identifier" name="identifier" autocomplete="username" placeholder="${escapeHtml(translate('ej. maria@restaurante.com'))}" required /></label>
+        <label>${escapeHtml(translate('Contraseña'))}<div class="password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="${escapeHtml(translate('Tu contraseña'))}" required /><button type="button" id="toggle-password" aria-label="${escapeHtml(translate('Mostrar contraseña'))}">◉</button></div></label>
         <div id="login-captcha" class="captcha-slot"></div>
-        <label class="honeypot" aria-hidden="true">No llenar<input name="website" tabindex="-1" autocomplete="off" /></label>
+        <label class="honeypot" aria-hidden="true">${escapeHtml(translate('No llenar'))}<input name="website" tabindex="-1" autocomplete="off" /></label>
         <input type="hidden" name="captchaToken" />
         <p id="login-error" class="form-message" role="alert"></p>
-        <button id="login-button" class="primary" type="submit">Iniciar sesión <span>→</span></button>
+        <button id="login-button" class="primary" type="submit">${escapeHtml(translate('Iniciar sesión'))} <span>→</span></button>
         ${socialLoginOptions()}
-        <p class="privacy-link">Al continuar, consulta nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos personales</a>.</p>
-        <p class="demo-note">¿Aún no tienes cuenta? <button type="button" class="text-button" id="show-register">Crear cuenta</button></p>
+        <p class="privacy-link">${escapeHtml(translate('Al continuar, consulta nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p>
+        <p class="demo-note">${escapeHtml(translate('¿Aún no tienes cuenta?'))} <button type="button" class="text-button" id="show-register">${escapeHtml(translate('Crear cuenta'))}</button></p>
       </form></section>
     </main>`;
   bindThemeControls();
+  bindLanguagePicker(app);
   document.querySelector('#back-home').addEventListener('click', publicHomeView);
   document.querySelector('#toggle-password').addEventListener('click', () => {
     const field = document.querySelector('#password'); field.type = field.type === 'password' ? 'text' : 'password';
@@ -536,8 +553,9 @@ function loginView() {
 }
 
 function registerView() {
-  app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← Página principal</button><div class="hero-copy"><p class="eyebrow">EMPIEZA HOY</p><h1>La operación clara comienza aquí.</h1><p>Crea tu acceso y conoce el espacio de trabajo de Gestourant.</p></div><div class="login-proof"><span>✦</span><div><strong>Tu información, protegida</strong><small>Acceso seguro para cada miembro del equipo.</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}</div><form id="register-form" class="login-card" novalidate><p class="eyebrow accent">NUEVA CUENTA</p><h2>Crear cuenta</h2><p class="muted">Completa tus datos para comenzar.</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(authNotice)}</p>` : ''}<label>Nombre de usuario<input name="username" autocomplete="username" placeholder="ej. maria.lopez" required minlength="3" /></label><label>Correo electrónico<input name="email" type="email" autocomplete="email" placeholder="maria@restaurante.com" required /></label><label>Contraseña<div class="password-wrap"><input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 10 caracteres y un número" required minlength="10" /><button type="button" id="toggle-password" aria-label="Mostrar contraseña">◉</button></div></label>${oauthConsentField('Autorizo el tratamiento de mis datos para crear mi cuenta.', true)}<label class="honeypot" aria-hidden="true">No llenar<input name="website" tabindex="-1" autocomplete="off" /></label><input type="hidden" name="captchaToken" /><div id="register-captcha" class="captcha-slot"></div><p class="form-hint">Los permisos administrativos los asigna el responsable del sistema.</p><p id="register-error" class="form-message" role="alert"></p><button id="register-button" class="primary" type="submit">Crear mi cuenta <span>→</span></button>${socialLoginOptions()}<p class="privacy-link">Al continuar, consulta nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos personales</a>.</p><p class="demo-note">¿Ya tienes cuenta? <button type="button" class="text-button" id="show-login">Iniciar sesión</button></p></form></section></main>`;
+  app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← ${escapeHtml(translate('Página principal'))}</button><div class="hero-copy"><p class="eyebrow">${escapeHtml(translate('EMPIEZA HOY'))}</p><h1>${escapeHtml(translate('La operación clara comienza aquí.'))}</h1><p>${escapeHtml(translate('Crea tu acceso y conoce el espacio de trabajo de Gestourant.'))}</p></div><div class="login-proof"><span>✦</span><div><strong>${escapeHtml(translate('Tu información, protegida'))}</strong><small>${escapeHtml(translate('Acceso seguro para cada miembro del equipo.'))}</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}${languagePicker()}</div><form id="register-form" class="login-card" novalidate><p class="eyebrow accent">${escapeHtml(translate('NUEVA CUENTA'))}</p><h2>${escapeHtml(translate('Crear cuenta'))}</h2><p class="muted">${escapeHtml(translate('Completa tus datos para comenzar.'))}</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}<label>${escapeHtml(translate('Nombre de usuario'))}<input name="username" autocomplete="username" placeholder="${escapeHtml(translate('ej. maria.lopez'))}" required minlength="3" /></label><label>${escapeHtml(translate('Correo electrónico'))}<input name="email" type="email" autocomplete="email" placeholder="${escapeHtml(translate('maria@restaurante.com'))}" required /></label><label>${escapeHtml(translate('Contraseña'))}<div class="password-wrap"><input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="${escapeHtml(translate('Mínimo 10 caracteres y un número'))}" required minlength="10" /><button type="button" id="toggle-password" aria-label="${escapeHtml(translate('Mostrar contraseña'))}">◉</button></div></label>${oauthConsentField('Autorizo el tratamiento de mis datos para crear mi cuenta.', true)}<label class="honeypot" aria-hidden="true">${escapeHtml(translate('No llenar'))}<input name="website" tabindex="-1" autocomplete="off" /></label><input type="hidden" name="captchaToken" /><div id="register-captcha" class="captcha-slot"></div><p class="form-hint">${escapeHtml(translate('Los permisos administrativos los asigna el responsable del sistema.'))}</p><p id="register-error" class="form-message" role="alert"></p><button id="register-button" class="primary" type="submit">${escapeHtml(translate('Crear mi cuenta'))} <span>→</span></button>${socialLoginOptions()}<p class="privacy-link">${escapeHtml(translate('Al continuar, consulta nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p><p class="demo-note">${escapeHtml(translate('¿Ya tienes cuenta?'))} <button type="button" class="text-button" id="show-login">${escapeHtml(translate('Inicia sesión'))}</button></p></form></section></main>`;
   bindThemeControls();
+  bindLanguagePicker(app);
   document.querySelector('#back-home').addEventListener('click', publicHomeView);
   document.querySelector('#toggle-password').addEventListener('click', () => { const field = document.querySelector('#register-password'); field.type = field.type === 'password' ? 'text' : 'password'; });
   document.querySelector('#show-login').addEventListener('click', loginView);
@@ -550,8 +568,9 @@ function registerView() {
 function oauthRegistrationView(code) {
   clearIdleMonitoring();
   currentSession = null;
-  app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← Página principal</button><div class="hero-copy"><p class="eyebrow">UN ÚLTIMO PASO</p><h1>Tu cuenta, con tu permiso.</h1><p>Tu proveedor de acceso confirmó tu identidad. Antes de crear tu cuenta de Gestourant, revisa y autoriza el tratamiento de tus datos.</p></div><div class="login-proof"><span>✓</span><div><strong>Tu decisión importa</strong><small>Solo crearemos tu cuenta si aceptas expresamente.</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}</div><form id="oauth-register-form" class="login-card" novalidate><p class="eyebrow accent">CONFIRMA LA CREACIÓN</p><h2>Crear cuenta con tu proveedor</h2><p class="muted">Si ya tienes una cuenta de Gestourant vinculada, iniciarás sesión directamente y no verás este paso.</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(authNotice)}</p>` : ''}<input type="hidden" name="code" value="${escapeHtml(code)}">${oauthConsentField('He leído y autorizo el tratamiento de mis datos personales para crear mi cuenta de Gestourant.', true)}<p class="form-hint">Si no deseas crearla, puedes volver al inicio de sesión. No guardaremos una cuenta.</p><p id="oauth-register-error" class="form-message" role="alert"></p><button id="oauth-register-button" class="primary" type="submit">Autorizar y crear cuenta <span>→</span></button><p class="demo-note">¿No quieres continuar? <button type="button" class="text-button" id="cancel-oauth-register">Volver al inicio de sesión</button></p><p class="privacy-link">Lee nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos personales</a>.</p></form></section></main>`;
+  app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← ${escapeHtml(translate('Página principal'))}</button><div class="hero-copy"><p class="eyebrow">${escapeHtml(translate('UN ÚLTIMO PASO'))}</p><h1>${escapeHtml(translate('Tu cuenta, con tu permiso.'))}</h1><p>${escapeHtml(translate('Tu proveedor de acceso confirmó tu identidad. Antes de crear tu cuenta de Gestourant, revisa y autoriza el tratamiento de tus datos.'))}</p></div><div class="login-proof"><span>✓</span><div><strong>${escapeHtml(translate('Tu decisión importa'))}</strong><small>${escapeHtml(translate('Solo crearemos tu cuenta si aceptas expresamente.'))}</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}${languagePicker()}</div><form id="oauth-register-form" class="login-card" novalidate><p class="eyebrow accent">${escapeHtml(translate('CONFIRMA LA CREACIÓN'))}</p><h2>${escapeHtml(translate('Crear cuenta con tu proveedor'))}</h2><p class="muted">${escapeHtml(translate('Si ya tienes una cuenta de Gestourant vinculada, iniciarás sesión directamente y no verás este paso.'))}</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}<input type="hidden" name="code" value="${escapeHtml(code)}">${oauthConsentField('He leído y autorizo el tratamiento de mis datos personales para crear mi cuenta de Gestourant.', true)}<p class="form-hint">${escapeHtml(translate('Si no deseas crearla, puedes volver al inicio de sesión. No guardaremos una cuenta.'))}</p><p id="oauth-register-error" class="form-message" role="alert"></p><button id="oauth-register-button" class="primary" type="submit">${escapeHtml(translate('Autorizar y crear cuenta'))} <span>→</span></button><p class="demo-note">${escapeHtml(translate('¿No quieres continuar?'))} <button type="button" class="text-button" id="cancel-oauth-register">${escapeHtml(translate('Volver al inicio de sesión'))}</button></p><p class="privacy-link">${escapeHtml(translate('Lee nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p></form></section></main>`;
   bindThemeControls();
+  bindLanguagePicker(app);
   document.querySelector('#back-home').addEventListener('click', publicHomeView);
   document.querySelector('#oauth-register-form').addEventListener('submit', registerOAuthAccount);
   document.querySelector('#cancel-oauth-register').addEventListener('click', () => {
@@ -571,11 +590,11 @@ async function registerOAuthAccount(event) {
   const button = document.querySelector('#oauth-register-button');
   const message = validationMessage;
   if (form.get('privacyConsent') !== 'on') {
-    message.textContent = 'Debes autorizar el tratamiento para crear la cuenta.';
+    message.textContent = translate('Debes autorizar el tratamiento para crear la cuenta.');
     return;
   }
   button.disabled = true;
-  button.textContent = 'Creando cuenta…';
+  button.textContent = translate('Creando cuenta…');
   try {
     const data = await services.auth.registerOAuthAccount({
       code: form.get('code'),
@@ -586,16 +605,16 @@ async function registerOAuthAccount(event) {
     dashboardView(data);
   } catch (error) {
     message.textContent = error instanceof TypeError
-      ? 'No se pudo conectar con el servidor. Confirma que el backend esté activo.'
+      ? translate('No se pudo conectar con el servidor. Confirma que el backend esté activo.')
       : error.status === 401
-        ? 'El paso de registro expiró o ya se usó. Vuelve a iniciar con tu cuenta de Google o Microsoft.'
+        ? translate('El paso de registro expiró o ya se usó. Vuelve a iniciar con tu cuenta de Google o Microsoft.')
         : error.status === 409
-          ? 'Ya existe una cuenta de Gestourant con ese correo. Inicia sesión con ella; no la vinculamos automáticamente.'
+          ? translate('Ya existe una cuenta de Gestourant con ese correo. Inicia sesión con ella; no la vinculamos automáticamente.')
           : error.message;
   } finally {
     if (button.isConnected) {
       button.disabled = false;
-      button.innerHTML = 'Autorizar y crear cuenta <span>→</span>';
+      button.innerHTML = `${escapeHtml(translate('Autorizar y crear cuenta'))} <span>→</span>`;
     }
   }
 }
@@ -608,8 +627,8 @@ async function authenticate(event) {
   if (!showSpanishFormValidation(loginForm, message)) return;
   const form = new FormData(loginForm), button = document.querySelector('#login-button');
   const credentials = { identifier: form.get('identifier').trim(), password: form.get('password'), website: form.get('website'), captchaToken: form.get('captchaToken') };
-  if (authConfig.captchaEnabled && !credentials.captchaToken) { message.textContent = 'Completa la verificación de seguridad.'; return; }
-  message.textContent = ''; button.disabled = true; button.textContent = 'Ingresando…';
+  if (authConfig.captchaEnabled && !credentials.captchaToken) { message.textContent = translate('Completa la verificación de seguridad.'); return; }
+  message.textContent = ''; button.disabled = true; button.textContent = translate('Ingresando…');
   try {
     const data = await services.auth.login(credentials);
     logger.info('Login succeeded', { username: data.username, role: data.role });
@@ -619,12 +638,12 @@ async function authenticate(event) {
     sessionStorage.setItem('gestourant_session', JSON.stringify(data));
     dashboardView(data);
     if (previousSessionClosed) {
-      showToast('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.');
+      showToast(translate('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.'));
     }
   } catch (error) {
-    message.textContent = error instanceof TypeError ? 'No se pudo conectar con el servidor. Confirma que el backend esté activo.' : error.message;
+    message.textContent = error instanceof TypeError ? translate('No se pudo conectar con el servidor. Confirma que el backend esté activo.') : error.message;
     resetCaptcha('login-captcha');
-  } finally { button.disabled = false; button.innerHTML = 'Iniciar sesión <span>→</span>'; }
+  } finally { button.disabled = false; button.innerHTML = `${escapeHtml(translate('Iniciar sesión'))} <span>→</span>`; }
 }
 
 async function register(event) {
@@ -635,16 +654,16 @@ async function register(event) {
   if (!showSpanishFormValidation(registerForm, message)) return;
   const form = new FormData(registerForm), button = document.querySelector('#register-button');
   const account = { username: form.get('username').trim(), email: form.get('email').trim(), password: form.get('password'), website: form.get('website'), captchaToken: form.get('captchaToken'), privacyConsent: form.get('privacyConsent') === 'on' };
-  if (!/\d/.test(account.password)) { message.textContent = 'La contraseña debe incluir al menos un número.'; return; }
-  if (authConfig.captchaEnabled && !account.captchaToken) { message.textContent = 'Completa la verificación de seguridad.'; return; }
-  message.textContent = ''; button.disabled = true; button.textContent = 'Creando cuenta…';
+  if (!/\d/.test(account.password)) { message.textContent = translate('La contraseña debe incluir al menos un número.'); return; }
+  if (authConfig.captchaEnabled && !account.captchaToken) { message.textContent = translate('Completa la verificación de seguridad.'); return; }
+  message.textContent = ''; button.disabled = true; button.textContent = translate('Creando cuenta…');
   try {
     const data = await services.auth.register(account);
     logger.info('Registration succeeded', { username: data.username, role: data.role });
     authNotice = '';
     sessionStorage.setItem('gestourant_session', JSON.stringify(data)); dashboardView(data);
-  } catch (error) { message.textContent = error instanceof TypeError ? 'No se pudo conectar con el servidor. Confirma que el backend esté activo.' : error.message; resetCaptcha('register-captcha'); }
-  finally { button.disabled = false; button.innerHTML = 'Crear mi cuenta <span>→</span>'; }
+  } catch (error) { message.textContent = error instanceof TypeError ? translate('No se pudo conectar con el servidor. Confirma que el backend esté activo.') : error.message; resetCaptcha('register-captcha'); }
+  finally { button.disabled = false; button.innerHTML = `${escapeHtml(translate('Crear mi cuenta'))} <span>→</span>`; }
 }
 
 function dashboardView(session) {
@@ -652,8 +671,9 @@ function dashboardView(session) {
   currentSession = session;
   const user = escapeHtml(session.username || 'Equipo');
   const role = session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado';
-  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>Restaurante Central</strong><small>${role} · Turno activo</small></div></div><nav aria-label="Navegación principal"><a data-view="overview">${icon('overview')}<span>Resumen</span></a><a class="active" data-view="tables">${icon('tables')}<span>Mesas</span></a><a data-view="orders">${icon('orders')}<span>Pedidos</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>Cocina</span></a><a data-view="products">${icon('products')}<span>Menú e inventario</span></a><a data-view="reports">${icon('reports')}<span>Reportes</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('reports')}<span>Copias de seguridad</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}<button id="logout" class="logout">↪ Cerrar sesión</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>Tu sala está lista</h3><p>Selecciona una mesa para ver la cuenta y comenzar el servicio.</p></div></aside></main>`;
+  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>${escapeHtml(translate('Restaurante Central'))}</strong><small>${escapeHtml(translate(role))} · ${escapeHtml(translate('Turno activo'))}</small></div></div><nav aria-label="${escapeHtml(translate('Navegación principal'))}"><a data-view="overview">${icon('overview')}<span>${escapeHtml(translate('Resumen'))}</span></a><a class="active" data-view="tables">${icon('tables')}<span>${escapeHtml(translate('Mesas'))}</span></a><a data-view="orders">${icon('orders')}<span>${escapeHtml(translate('Pedidos'))}</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>${escapeHtml(translate('Cocina'))}</span></a><a data-view="products">${icon('products')}<span>${escapeHtml(translate('Menú e inventario'))}</span></a><a data-view="reports">${icon('reports')}<span>${escapeHtml(translate('Reportes'))}</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('reports')}<span>${escapeHtml(translate('Copias de seguridad'))}</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}${languagePicker()}<button id="logout" class="logout">↪ ${escapeHtml(translate('Cerrar sesión'))}</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>${escapeHtml(translate('Tu sala está lista'))}</h3><p>${escapeHtml(translate('Selecciona una mesa para ver la cuenta y comenzar el servicio.'))}</p></div></aside></main>`;
   bindThemeControls();
+  bindLanguagePicker(app);
   document.querySelector('#logout').addEventListener('click', () => logout(session));
   document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => {
     if (link.dataset.view === 'overview' && globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__) {
@@ -684,21 +704,20 @@ async function navigate(view, session) {
   document.querySelectorAll('[data-view]').forEach(link => link.classList.toggle('active', link.dataset.view === view));
   document.querySelector('#detail')?.classList.remove('open');
   const content = document.querySelector('#content');
-  document.querySelector('#detail').innerHTML = '<div class="detail-empty"><span>⌁</span><h3>Selecciona una mesa</h3><p>Verás aquí el resumen de la atención.</p></div>';
+  document.querySelector('#detail').innerHTML = `<div class="detail-empty"><span>⌁</span><h3>${escapeHtml(translate('Selecciona una mesa'))}</h3><p>${escapeHtml(translate('Verás aquí el resumen de la atención.'))}</p></div>`;
   if (view === 'overview') { content.innerHTML = overviewView(session); await loadOverview(session); return; }
   if (view === 'tables') { content.innerHTML = tablesView(session); bindTableAdmin(session); await loadTables(session); tableMapPoll = window.setInterval(() => refreshTableMap(session), 5000); return; }
   if (view === 'products') {
     content.innerHTML = productsView(session);
     bindProductAdmin(session);
-    document.querySelector('#return-to-order')?.addEventListener('click', () => navigate('tables', session).then(() => activeOrder?.table?.id && selectTable(activeOrder.table.id)));
-    document.querySelector('#choose-table')?.addEventListener('click', () => navigate('tables', session));
+    bindProductViewControls(session);
     await loadProducts(session);
     return;
   }
   if (view === 'orders') { content.innerHTML = ordersView(); loadGuestRequests(session); guestRequestPoll = window.setInterval(() => loadGuestRequests(session), 5000); return; }
   if (view === 'kitchen') { content.innerHTML = kitchenView(); loadKitchenRequests(session); kitchenPoll = window.setInterval(() => loadKitchenRequests(session), 5000); return; }
   if (view === 'backups') {
-    if (session.role !== 'ADMINISTRADOR') { showToast('Solo el administrador puede gestionar copias de seguridad.', true); return; }
+    if (session.role !== 'ADMINISTRADOR') { showToast(translate('Solo el administrador puede gestionar copias de seguridad.'), true); return; }
     content.innerHTML = backupsView();
     await loadBackups(session);
     return;
@@ -722,8 +741,8 @@ function stopViewPolling() {
 }
 
 function overviewView(session) {
-  const user = escapeHtml(session.username || 'Equipo');
-  return `<header class="overview-header"><div><p class="eyebrow">CENTRO DE OPERACIÓN</p><h1>Hola, ${user}</h1><p class="muted">Este es el pulso de tu restaurante para comenzar la jornada.</p></div><div class="header-actions"><span class="date">● Sistema listo</span></div></header><section class="overview-grid"><article class="overview-card overview-primary"><span class="overview-icon">⌂</span><div><small>Mesas ocupadas</small><strong id="overview-busy">...</strong><p>Controla el ritmo de la sala</p></div><button class="overview-link" data-quick-view="tables">Ver sala →</button></article><article class="overview-card"><span class="overview-icon">◇</span><div><small>Mesas disponibles</small><strong id="overview-free">...</strong><p>Listas para recibir clientes</p></div><button class="overview-link" data-quick-view="tables">Abrir mapa →</button></article><article class="overview-card"><span class="overview-icon">✦</span><div><small>Stock por revisar</small><strong id="overview-low-stock">...</strong><p>Productos con cinco unidades o menos</p></div><button class="overview-link" data-quick-view="products">Ver inventario →</button></article></section><section class="overview-actions"><div><p class="eyebrow">ACCESOS RÁPIDOS</p><h2>Continúa tu operación</h2><p class="muted">Elige el siguiente paso según el momento de tu servicio.</p></div><div class="quick-actions"><button class="quick-action" data-quick-view="tables"><span>⌘</span><strong>Gestionar mesas</strong><small>Abre mesas y revisa pedidos</small></button><button class="quick-action" data-quick-view="orders"><span>▤</span><strong>Revisar pedidos</strong><small>Consulta las cuentas abiertas</small></button><button class="quick-action" data-quick-view="products"><span>◫</span><strong>Ver inventario</strong><small>Consulta disponibilidad del menú</small></button></div></section>`;
+  const user = session.username || 'Equipo';
+  return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('CENTRO DE OPERACIÓN'))}</p><h1>${escapeHtml(translate('Hola, {user}', { user }))}</h1><p class="muted">${escapeHtml(translate('Este es el pulso de tu restaurante para comenzar la jornada.'))}</p></div><div class="header-actions"><span class="date">● ${escapeHtml(translate('Sistema listo'))}</span></div></header><section class="overview-grid"><article class="overview-card overview-primary"><span class="overview-icon">⌂</span><div><small>${escapeHtml(translate('Mesas ocupadas'))}</small><strong id="overview-busy">...</strong><p>${escapeHtml(translate('Controla el ritmo de la sala'))}</p></div><button class="overview-link" data-quick-view="tables">${escapeHtml(translate('Ver sala →'))}</button></article><article class="overview-card"><span class="overview-icon">◇</span><div><small>${escapeHtml(translate('Mesas disponibles'))}</small><strong id="overview-free">...</strong><p>${escapeHtml(translate('Listas para recibir clientes'))}</p></div><button class="overview-link" data-quick-view="tables">${escapeHtml(translate('Abrir mapa →'))}</button></article><article class="overview-card"><span class="overview-icon">✦</span><div><small>${escapeHtml(translate('Stock por revisar'))}</small><strong id="overview-low-stock">...</strong><p>${escapeHtml(translate('Productos con cinco unidades o menos'))}</p></div><button class="overview-link" data-quick-view="products">${escapeHtml(translate('Ver inventario →'))}</button></article></section><section class="overview-actions"><div><p class="eyebrow">${escapeHtml(translate('ACCESOS RÁPIDOS'))}</p><h2>${escapeHtml(translate('Continúa tu operación'))}</h2><p class="muted">${escapeHtml(translate('Elige el siguiente paso según el momento de tu servicio.'))}</p></div><div class="quick-actions"><button class="quick-action" data-quick-view="tables"><span>⌘</span><strong>${escapeHtml(translate('Gestionar mesas'))}</strong><small>${escapeHtml(translate('Abre mesas y revisa pedidos'))}</small></button><button class="quick-action" data-quick-view="orders"><span>▤</span><strong>${escapeHtml(translate('Revisar pedidos'))}</strong><small>${escapeHtml(translate('Consulta las cuentas abiertas'))}</small></button><button class="quick-action" data-quick-view="products"><span>◫</span><strong>${escapeHtml(translate('Ver inventario'))}</strong><small>${escapeHtml(translate('Consulta disponibilidad del menú'))}</small></button></div></section>`;
 }
 
 async function loadOverview(session) {
@@ -741,32 +760,37 @@ async function loadOverview(session) {
 function tablesView(session) {
   const occupied = tables.filter(table => table.status === 'OCUPADA').length;
   const available = tables.length - occupied;
-  const adminTools = session.role === 'ADMINISTRADOR' ? `<details class="admin-tools table-tools"><summary><span><strong>Configurar sala</strong><small>Agregar mesas o unir espacios</small></span><span class="tools-plus">＋</span></summary><div class="table-tools-content"><form id="create-table-form" class="inline-form"><input name="tableNumber" type="number" min="1" placeholder="N.º mesa" required><input name="seats" type="number" min="1" placeholder="Puestos" required><button class="primary" type="submit">＋ Agregar mesa</button></form><form id="join-table-form" class="inline-form"><select name="firstTableId" required><option value="">Primera mesa</option>${tables.filter(table => table.status === 'LIBRE' && !table.joinedTableId).map(table => `<option value="${table.id}">Mesa ${table.tableNumber}</option>`).join('')}</select><select name="secondTableId" required><option value="">Segunda mesa</option>${tables.filter(table => table.status === 'LIBRE' && !table.joinedTableId).map(table => `<option value="${table.id}">Mesa ${table.tableNumber}</option>`).join('')}</select><button class="outline" type="submit">Unir mesas</button></form></div></details>` : '';
-  return `<header class="page-heading"><div><p class="eyebrow">SERVICIO · SALA PRINCIPAL</p><h1>Mapa de mesas</h1><p class="muted">Elige una mesa para abrir su cuenta y atender el pedido.</p></div><div class="service-status"><span class="live-dot"></span>Servicio en curso</div></header>
-    <section class="service-metrics"><article><span class="metric-icon occupied-icon">${icon('tables')}</span><div><small>En servicio</small><strong>${occupied}</strong></div></article><article><span class="metric-icon available-icon">${icon('tables')}</span><div><small>Disponibles</small><strong>${available}</strong></div></article><article><span class="metric-icon total-icon">${icon('overview')}</span><div><small>Total de mesas</small><strong>${tables.length}</strong></div></article></section>
-    ${adminTools}<section class="floor-panel"><div class="floor-head"><div><p class="eyebrow">PLANTA DEL RESTAURANTE</p><h2>Salón principal</h2><p>Elige una mesa; puedes moverla en el croquis y abrir su cuenta.</p></div><div class="floor-tools">${session.role === 'ADMINISTRADOR' ? '<label class="floor-arrange-toggle"><input id="arrange-floor" type="checkbox"> Acomodar mesas</label>' : ''}<div class="floor-legend"><span><i class="legend-dot free-dot"></i>Disponible</span><span><i class="legend-dot busy-dot"></i>En servicio</span></div></div></div><div class="floor-map-background"><div class="floor-zone floor-zone-kitchen">COCINA</div><div class="floor-zone floor-zone-entry">ENTRADA</div><div class="floor-zone floor-zone-window">VENTANAL</div><div id="table-grid" class="floor-map"></div></div><footer class="floor-footer"><span>Las cuentas abiertas se guardan automáticamente.</span><span>${available} mesa${available === 1 ? '' : 's'} lista${available === 1 ? '' : 's'} para recibir clientes</span></footer></section>`;
+  const eligibleTables = tables.filter(table => table.status === 'LIBRE' && !table.joinedTableId);
+  const adminTools = session.role === 'ADMINISTRADOR' ? `<details class="admin-tools table-tools"><summary><span><strong>${escapeHtml(translate('Configurar sala'))}</strong><small>${escapeHtml(translate('Agregar mesas o unir espacios'))}</small></span><span class="tools-plus">＋</span></summary><div class="table-tools-content"><form id="create-table-form" class="inline-form"><input name="tableNumber" type="number" min="1" placeholder="${escapeHtml(translate('N.º mesa'))}" required><input name="seats" type="number" min="1" placeholder="${escapeHtml(translate('Puestos'))}" required><button class="primary" type="submit">${escapeHtml(translate('＋ Agregar mesa'))}</button></form><form id="join-table-form" class="inline-form"><select name="firstTableId" required><option value="">${escapeHtml(translate('Primera mesa'))}</option>${eligibleTables.map(table => `<option value="${table.id}">${escapeHtml(translate('Mesa'))} ${table.tableNumber}</option>`).join('')}</select><select name="secondTableId" required><option value="">${escapeHtml(translate('Segunda mesa'))}</option>${eligibleTables.map(table => `<option value="${table.id}">${escapeHtml(translate('Mesa'))} ${table.tableNumber}</option>`).join('')}</select><button class="outline" type="submit">${escapeHtml(translate('Unir mesas'))}</button></form></div></details>` : '';
+  return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('SERVICIO · SALA PRINCIPAL'))}</p><h1>${escapeHtml(translate('Mapa de mesas'))}</h1><p class="muted">${escapeHtml(translate('Elige una mesa para abrir su cuenta y atender el pedido.'))}</p></div><div class="service-status"><span class="live-dot"></span>${escapeHtml(translate('Servicio en curso'))}</div></header>
+    <section class="service-metrics"><article><span class="metric-icon occupied-icon">${icon('tables')}</span><div><small>${escapeHtml(translate('En servicio'))}</small><strong>${occupied}</strong></div></article><article><span class="metric-icon available-icon">${icon('tables')}</span><div><small>${escapeHtml(translate('Disponibles'))}</small><strong>${available}</strong></div></article><article><span class="metric-icon total-icon">${icon('overview')}</span><div><small>${escapeHtml(translate('Total de mesas'))}</small><strong>${tables.length}</strong></div></article></section>
+    ${adminTools}<section class="floor-panel"><div class="floor-head"><div><p class="eyebrow">${escapeHtml(translate('PLANTA DEL RESTAURANTE'))}</p><h2>${escapeHtml(translate('Salón principal'))}</h2><p>${escapeHtml(translate('Elige una mesa; puedes moverla en el croquis y abrir su cuenta.'))}</p></div><div class="floor-tools">${session.role === 'ADMINISTRADOR' ? `<label class="floor-arrange-toggle"><input id="arrange-floor" type="checkbox"> ${escapeHtml(translate('Acomodar mesas'))}</label>` : ''}<div class="floor-legend"><span><i class="legend-dot free-dot"></i>${escapeHtml(translate('Disponible'))}</span><span><i class="legend-dot busy-dot"></i>${escapeHtml(translate('En servicio'))}</span></div></div></div><div class="floor-map-background"><div class="floor-zone floor-zone-kitchen">${escapeHtml(translate('COCINA'))}</div><div class="floor-zone floor-zone-entry">${escapeHtml(translate('ENTRADA'))}</div><div class="floor-zone floor-zone-window">${escapeHtml(translate('VENTANAL'))}</div><div id="table-grid" class="floor-map"></div></div><footer class="floor-footer"><span>${escapeHtml(translate('Las cuentas abiertas se guardan automáticamente.'))}</span><span>${escapeHtml(translate(available === 1 ? '{count} mesa lista para recibir clientes' : '{count} mesas listas para recibir clientes', { count: available }))}</span></footer></section>`;
 }
 function bindTableAdmin(session) {
   const createForm = document.querySelector('#create-table-form');
   const joinForm = document.querySelector('#join-table-form');
-  createForm?.addEventListener('submit', async event => { event.preventDefault(); const data = new FormData(event.currentTarget); try { await services.tables.create(session, { tableNumber: Number(data.get('tableNumber')), seats: Number(data.get('seats')) }); showToast('Mesa creada.'); navigate('tables', session); } catch (error) { showToast(error.message, true); } });
-  joinForm?.addEventListener('submit', async event => { event.preventDefault(); const data = new FormData(event.currentTarget); try { await services.tables.join(session, { firstTableId: Number(data.get('firstTableId')), secondTableId: Number(data.get('secondTableId')) }); showToast('Mesas unidas.'); navigate('tables', session); } catch (error) { showToast(error.message, true); } });
+  createForm?.addEventListener('submit', async event => { event.preventDefault(); const data = new FormData(event.currentTarget); try { await services.tables.create(session, { tableNumber: Number(data.get('tableNumber')), seats: Number(data.get('seats')) }); showToast(translate('Mesa creada.')); navigate('tables', session); } catch (error) { showToast(error.message, true); } });
+  joinForm?.addEventListener('submit', async event => { event.preventDefault(); const data = new FormData(event.currentTarget); try { await services.tables.join(session, { firstTableId: Number(data.get('firstTableId')), secondTableId: Number(data.get('secondTableId')) }); showToast(translate('Mesas unidas.')); navigate('tables', session); } catch (error) { showToast(error.message, true); } });
 }
 function productsView(session) {
-  const adminTools = session.role === 'ADMINISTRADOR' ? `<details class="admin-tools menu-admin-tools"><summary><span><strong id="product-form-title">Administrar menú</strong><small>Crear o actualizar platos, bebidas y precios</small></span><span class="tools-plus">＋</span></summary><form id="create-product-form" class="product-form"><label>Nombre del producto<input name="name" maxlength="120" placeholder="Ej. Trucha a la plancha" required></label><label>Categoría<select name="category"><option value="PLATO">Plato</option><option value="BEBIDA">Bebida</option><option value="OTRO">Otro</option></select></label><label class="form-wide">Descripción<textarea name="description" maxlength="500" placeholder="Descripción e ingredientes principales" required></textarea></label><label class="form-wide">Foto del producto<input name="imageUrl" type="url" maxlength="1000" placeholder="https://… (opcional)"><small>Usa una imagen propia o de tu proveedor, con permiso de uso.</small></label><label>Precio (COP)<input name="price" type="number" min="1" step="1" placeholder="28000" required></label><label>Existencias<input name="stock" type="number" min="0" step="1" placeholder="20" required></label><label class="product-active"><input name="active" type="checkbox" checked> Disponible para pedidos</label><div class="product-form-actions"><button id="product-submit" class="primary" type="submit">＋ Guardar producto</button><button id="cancel-product-edit" class="outline hidden-field" type="button">Cancelar</button></div></form></details>` : '';
-  const orderContext = activeOrder ? `<div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>Pedido en curso · Mesa ${activeOrder.table.tableNumber}</strong><small>Pedido #${activeOrder.id} · Los productos se agregarán a esta cuenta</small></div><button id="return-to-order" class="outline" type="button">Ver cuenta ${icon('arrow')}</button></div>` : `<div class="active-order-banner no-active-order"><div>${icon('tables')}<span><strong>Para tomar un pedido</strong><small>Selecciona una mesa libre o en servicio.</small></span></div><button id="choose-table" class="outline" type="button">Elegir mesa ${icon('arrow')}</button></div>`;
-  return `<header class="page-heading"><div><p class="eyebrow">CARTA · COCINA Y BAR</p><h1>Menú del restaurante</h1><p class="muted">Platos y bebidas disponibles durante el servicio.</p></div><span class="menu-count">${products.filter(product => product.active).length} productos disponibles</span></header>${orderContext}${adminTools}<section class="menu-section"><div class="menu-toolbar"><div><p class="eyebrow">LA CARTA</p><h2>Elige algo delicioso</h2></div><label class="menu-search"><span>⌕</span><input id="product-search" type="search" placeholder="Buscar en el menú…" aria-label="Buscar productos"></label></div><div class="catalog-filters menu-filters"><button class="filter-button active" data-category-filter="TODOS">Todo el menú</button><button class="filter-button" data-category-filter="PLATO">Platos</button><button class="filter-button" data-category-filter="BEBIDA">Bebidas</button><button class="filter-button" data-category-filter="OTRO">Otros</button></div><div id="product-list" class="product-list menu-grid"><p class="muted">Cargando menú…</p></div></section>`;
+  const adminTools = session.role === 'ADMINISTRADOR' ? `<details class="admin-tools menu-admin-tools"><summary><span><strong id="product-form-title">${escapeHtml(translate('Administrar menú'))}</strong><small>${escapeHtml(translate('Crear o actualizar platos, bebidas y precios'))}</small></span><span class="tools-plus">＋</span></summary><form id="create-product-form" class="product-form"><label>${escapeHtml(translate('Nombre del producto'))}<input name="name" maxlength="120" placeholder="${escapeHtml(translate('Ej. Trucha a la plancha'))}" required></label><label>${escapeHtml(translate('Categoría'))}<select name="category"><option value="PLATO">${escapeHtml(translate('Plato'))}</option><option value="BEBIDA">${escapeHtml(translate('Bebida'))}</option><option value="OTRO">${escapeHtml(translate('Otro'))}</option></select></label><label class="form-wide">${escapeHtml(translate('Descripción'))}<textarea name="description" maxlength="500" placeholder="${escapeHtml(translate('Descripción e ingredientes principales'))}" required></textarea></label><label class="form-wide">${escapeHtml(translate('Foto del producto'))}<input name="imageUrl" type="url" maxlength="1000" placeholder="${escapeHtml(translate('https://… (opcional)'))}"><small>${escapeHtml(translate('Usa una imagen propia o de tu proveedor, con permiso de uso.'))}</small></label><label>${escapeHtml(translate('Precio (COP)'))}<input name="price" type="number" min="1" step="1" placeholder="28000" required></label><label>${escapeHtml(translate('Existencias'))}<input name="stock" type="number" min="0" step="1" placeholder="20" required></label><label class="product-active"><input name="active" type="checkbox" checked> ${escapeHtml(translate('Disponible para pedidos'))}</label><div class="product-form-actions"><button id="product-submit" class="primary" type="submit">${escapeHtml(translate('＋ Guardar producto'))}</button><button id="cancel-product-edit" class="outline hidden-field" type="button">${escapeHtml(translate('Cancelar'))}</button></div></form></details>` : '';
+  const orderContext = activeOrder ? `<div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>${escapeHtml(translate('Pedido en curso · Mesa {table}', { table: activeOrder.table.tableNumber }))}</strong><small>${escapeHtml(translate('Pedido #{id} · Los productos se agregarán a esta cuenta', { id: activeOrder.id }))}</small></div><button id="return-to-order" class="outline" type="button">${escapeHtml(translate('Ver cuenta'))} ${icon('arrow')}</button></div>` : `<div class="active-order-banner no-active-order"><div>${icon('tables')}<span><strong>${escapeHtml(translate('Para tomar un pedido'))}</strong><small>${escapeHtml(translate('Selecciona una mesa libre o en servicio.'))}</small></span></div><button id="choose-table" class="outline" type="button">${escapeHtml(translate('Elegir mesa'))} ${icon('arrow')}</button></div>`;
+  return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('CARTA · COCINA Y BAR'))}</p><h1>${escapeHtml(translate('Menú del restaurante'))}</h1><p class="muted">${escapeHtml(translate('Platos y bebidas disponibles durante el servicio.'))}</p></div><span class="menu-count">${escapeHtml(translate('{count} productos disponibles', { count: products.filter(product => product.active).length }))}</span></header>${orderContext}${adminTools}<section class="menu-section"><div class="menu-toolbar"><div><p class="eyebrow">${escapeHtml(translate('LA CARTA'))}</p><h2>${escapeHtml(translate('Elige algo delicioso'))}</h2></div><label class="menu-search"><span>⌕</span><input id="product-search" type="search" placeholder="${escapeHtml(translate('Buscar en el menú…'))}" aria-label="${escapeHtml(translate('Buscar productos'))}"></label></div><div class="catalog-filters menu-filters"><button class="filter-button active" data-category-filter="TODOS">${escapeHtml(translate('Todo el menú'))}</button><button class="filter-button" data-category-filter="PLATO">${escapeHtml(translate('Platos'))}</button><button class="filter-button" data-category-filter="BEBIDA">${escapeHtml(translate('Bebidas'))}</button><button class="filter-button" data-category-filter="OTRO">${escapeHtml(translate('Otros'))}</button></div><div id="product-list" class="product-list menu-grid"><p class="muted">${escapeHtml(translate('Cargando menú…'))}</p></div></section>`;
 }
-function ordersView() { return `<header class="page-heading"><div><p class="eyebrow">OPERACIÓN · PEDIDOS QR</p><h1>Solicitudes de clientes</h1><p class="muted">Revisa cada solicitud; solo al confirmarla pasa a la cuenta y se descuenta del inventario.</p></div><div class="service-status"><span class="live-dot"></span>Actualización automática</div></header><section id="guest-request-queue" class="guest-request-queue"><p class="muted">Cargando solicitudes…</p></section>`; }
-function kitchenView() { return `<header class="page-heading"><div><p class="eyebrow">SERVICIO · PREPARACIÓN</p><h1>Comandas de cocina</h1><p class="muted">Pedidos confirmados por el equipo. Actualiza el estado para que el cliente sepa cómo va.</p></div><div class="service-status"><span class="live-dot"></span>Actualización automática</div></header><section id="kitchen-request-queue" class="guest-request-queue"><p class="muted">Cargando comandas…</p></section>`; }
+function bindProductViewControls(session) {
+  document.querySelector('#return-to-order')?.addEventListener('click', () => navigate('tables', session).then(() => activeOrder?.table?.id && selectTable(activeOrder.table.id)));
+  document.querySelector('#choose-table')?.addEventListener('click', () => navigate('tables', session));
+}
+function ordersView() { return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('OPERACIÓN · PEDIDOS QR'))}</p><h1>${escapeHtml(translate('Solicitudes de clientes'))}</h1><p class="muted">${escapeHtml(translate('Revisa cada solicitud; solo al confirmarla pasa a la cuenta y se descuenta del inventario.'))}</p></div><div class="service-status"><span class="live-dot"></span>${escapeHtml(translate('Actualización automática'))}</div></header><section id="guest-request-queue" class="guest-request-queue"><p class="muted">${escapeHtml(translate('Cargando solicitudes…'))}</p></section>`; }
+function kitchenView() { return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('SERVICIO · PREPARACIÓN'))}</p><h1>${escapeHtml(translate('Comandas de cocina'))}</h1><p class="muted">${escapeHtml(translate('Pedidos confirmados por el equipo. Actualiza el estado para que el cliente sepa cómo va.'))}</p></div><div class="service-status"><span class="live-dot"></span>${escapeHtml(translate('Actualización automática'))}</div></header><section id="kitchen-request-queue" class="guest-request-queue"><p class="muted">${escapeHtml(translate('Cargando comandas…'))}</p></section>`; }
 function reportsView(session) {
   const administrator = session.role === 'ADMINISTRADOR';
   const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  return `<header class="page-heading"><div><p class="eyebrow">CONTROL · CIERRE E HISTORIAL</p><h1>Reportes</h1><p class="muted">${administrator ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.'}</p></div></header>
-    <section class="report-filter-card"><div class="report-date-fields"><label for="report-from">${administrator ? 'Desde' : 'Fecha del turno'}<input id="report-from" type="date" value="${today}" required></label>${administrator ? `<label for="report-to">Hasta<input id="report-to" type="date" value="${today}" required></label>` : ''}</div><div class="report-actions"><button id="report-search" class="outline" type="button">Consultar ${administrator ? 'historial' : 'fecha'}</button><button id="download-cash-close" class="primary report-download" type="button" disabled>Descargar Excel (.xlsx)</button></div></section>
-    <p id="report-message" class="report-message" role="status">Cargando reporte…</p>
-    <section class="metrics report-metrics"><article><span>Facturas</span><strong id="report-invoices">—</strong></article><article><span>Efectivo</span><strong id="report-cash">—</strong></article><article><span>Pagos digitales</span><strong id="report-digital">—</strong></article><article><span>Total vendido</span><strong id="report-total">—</strong></article></section>
-    <section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">DETALLE</p><h2>Facturas del periodo</h2></div><span id="report-period"></span></div><div id="report-history" class="report-table-wrap"><p class="muted">Cargando facturas…</p></div></section>`;
+  return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('CONTROL · CIERRE E HISTORIAL'))}</p><h1>${escapeHtml(translate('Reportes'))}</h1><p class="muted">${escapeHtml(translate(administrator ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.'))}</p></div></header>
+    <section class="report-filter-card"><div class="report-date-fields"><label for="report-from">${escapeHtml(translate(administrator ? 'Desde' : 'Fecha del turno'))}<input id="report-from" type="date" value="${today}" required></label>${administrator ? `<label for="report-to">${escapeHtml(translate('Hasta'))}<input id="report-to" type="date" value="${today}" required></label>` : ''}</div><div class="report-actions"><button id="report-search" class="outline" type="button">${escapeHtml(translate(administrator ? 'Consultar historial' : 'Consultar fecha'))}</button><button id="download-cash-close" class="primary report-download" type="button" disabled>${escapeHtml(translate('Descargar Excel (.xlsx)'))}</button></div></section>
+    <p id="report-message" class="report-message" role="status">${escapeHtml(translate('Cargando reporte…'))}</p>
+    <section class="metrics report-metrics"><article><span>${escapeHtml(translate('Facturas'))}</span><strong id="report-invoices">—</strong></article><article><span>${escapeHtml(translate('Efectivo'))}</span><strong id="report-cash">—</strong></article><article><span>${escapeHtml(translate('Pagos digitales'))}</span><strong id="report-digital">—</strong></article><article><span>${escapeHtml(translate('Total vendido'))}</span><strong id="report-total">—</strong></article></section>
+    <section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('DETALLE'))}</p><h2>${escapeHtml(translate('Facturas del periodo'))}</h2></div><span id="report-period"></span></div><div id="report-history" class="report-table-wrap"><p class="muted">${escapeHtml(translate('Cargando facturas…'))}</p></div></section>`;
 }
 
 async function loadProducts(session) {
@@ -778,7 +802,7 @@ function bindProductAdmin(session) {
   if (form) {
     const submitButton = document.querySelector('#product-submit');
     const cancelButton = document.querySelector('#cancel-product-edit');
-    const resetForm = () => { form.reset(); form.dataset.editingId = ''; document.querySelector('#product-form-title').textContent = 'Administrar menú'; submitButton.textContent = '＋ Guardar producto'; cancelButton.classList.add('hidden-field'); };
+    const resetForm = () => { form.reset(); form.dataset.editingId = ''; document.querySelector('#product-form-title').textContent = translate('Administrar menú'); submitButton.textContent = translate('＋ Guardar producto'); cancelButton.classList.add('hidden-field'); };
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
@@ -788,7 +812,7 @@ function bindProductAdmin(session) {
         const product = { name: data.get('name').trim(), description: data.get('description').trim(), category: data.get('category'), imageUrl, price: Number(data.get('price')), stock: Number(data.get('stock')), active: data.get('active') === 'on' };
         const editingId = form.dataset.editingId;
         await services.products.save(session, product, editingId);
-        showToast(editingId ? 'Producto actualizado.' : 'Producto guardado en el menú.');
+        showToast(translate(editingId ? 'Producto actualizado.' : 'Producto guardado en el menú.'));
         navigate('products', session);
       } catch (error) { showToast(error.message, true); }
     });
@@ -810,15 +834,15 @@ function renderProducts() {
   const isAdmin = session?.role === 'ADMINISTRADOR';
   const visibleProducts = products.filter(product => {
     const matchesCategory = productCategoryFilter === 'TODOS' || product.category === productCategoryFilter;
-    const matchesSearch = !search || `${product.name} ${product.description} ${product.category}`.toLocaleLowerCase('es').includes(search);
+    const matchesSearch = !search || `${product.name} ${translate(product.name)} ${product.description} ${translate(product.description || '')} ${product.category}`.toLocaleLowerCase(getLocale()).includes(search);
     return matchesCategory && matchesSearch && (isAdmin || product.active);
   });
   list.innerHTML = visibleProducts.length ? visibleProducts.map(product => `<article class="product-card ${!product.active ? 'inactive' : ''}" data-product-id="${product.id}">
-    <div class="product-photo-wrap"><img class="product-photo" src="${escapeHtml(productPhoto(product))}" alt="${escapeHtml(product.name)}" loading="lazy"><span class="product-category">${escapeHtml(product.category || 'PLATO')}</span>${!product.active ? '<span class="menu-unavailable">Pausado</span>' : ''}</div>
-    <div class="product-card-body"><div class="product-card-title"><h3>${escapeHtml(product.name)}</h3><strong>$ ${Number(product.price).toLocaleString('es-CO')}</strong></div>
-      <p>${escapeHtml(product.description || 'Preparado al momento en nuestra cocina.')}</p>
-      <div class="product-card-footer"><span class="stock ${product.stock < 5 ? 'low' : ''}">${product.stock > 0 ? `${product.stock} disponibles` : 'Agotado'}</span><div class="product-actions">${product.active && product.stock ? (activeOrder ? '<button class="primary add-product" type="button">＋ Agregar</button>' : '<button class="outline select-table-for-product" type="button">Elegir mesa</button>') : '<span class="unavailable">No disponible</span>'}${isAdmin ? '<button class="outline edit-product" type="button" aria-label="Editar producto">Editar</button><button class="danger delete-product" type="button" aria-label="Eliminar producto">Eliminar</button>' : ''}</div></div>
-    </div></article>`).join('') : '<div class="menu-empty"><span>⌕</span><h3>No encontramos productos</h3><p>Ajusta la búsqueda o elige otra categoría.</p></div>';
+    <div class="product-photo-wrap"><img class="product-photo" src="${escapeHtml(productPhoto(product))}" alt="${escapeHtml(translate(product.name))}" loading="lazy"><span class="product-category">${escapeHtml(translate(product.category || 'PLATO'))}</span>${!product.active ? `<span class="menu-unavailable">${escapeHtml(translate('Pausado'))}</span>` : ''}</div>
+    <div class="product-card-body"><div class="product-card-title"><h3>${escapeHtml(translate(product.name))}</h3><strong>$ ${Number(product.price).toLocaleString(getLocale())}</strong></div>
+      <p>${escapeHtml(product.description ? translate(product.description) : translate('Preparado al momento en nuestra cocina.'))}</p>
+      <div class="product-card-footer"><span class="stock ${product.stock < 5 ? 'low' : ''}">${product.stock > 0 ? escapeHtml(translate('{count} disponibles', { count: product.stock })) : escapeHtml(translate('Agotado'))}</span><div class="product-actions">${product.active && product.stock ? (activeOrder ? `<button class="primary add-product" type="button">${escapeHtml(translate('＋ Agregar'))}</button>` : `<button class="outline select-table-for-product" type="button">${escapeHtml(translate('Elegir mesa'))}</button>`) : `<span class="unavailable">${escapeHtml(translate('No disponible'))}</span>`}${isAdmin ? `<button class="outline edit-product" type="button" aria-label="${escapeHtml(translate('Editar producto'))}">${escapeHtml(translate('Editar'))}</button><button class="danger delete-product" type="button" aria-label="${escapeHtml(translate('Eliminar producto'))}">${escapeHtml(translate('Eliminar'))}</button>` : ''}</div></div>
+    </div></article>`).join('') : `<div class="menu-empty"><span>⌕</span><h3>${escapeHtml(translate('No encontramos productos'))}</h3><p>${escapeHtml(translate('Ajusta la búsqueda o elige otra categoría.'))}</p></div>`;
   list.querySelectorAll('.product-photo').forEach(image => image.addEventListener('error', () => {
     image.src = defaultFoodPhoto;
     image.classList.add('photo-fallback');
@@ -829,11 +853,11 @@ function renderProducts() {
   list.querySelectorAll('.delete-product').forEach(button => button.addEventListener('click', () => deleteProduct(Number(button.closest('[data-product-id]').dataset.productId))));
 }
 
-function editProduct(id) { const product = products.find(item => item.id === id), form = document.querySelector('#create-product-form'); if (!product || !form) return; form.dataset.editingId = String(id); form.elements.name.value = product.name; form.elements.category.value = product.category || 'PLATO'; form.elements.description.value = product.description || ''; form.elements.imageUrl.value = product.imageUrl || ''; form.elements.price.value = product.price; form.elements.stock.value = product.stock; form.elements.active.checked = product.active; document.querySelector('#product-form-title').textContent = 'Editar producto'; document.querySelector('#product-submit').textContent = 'Guardar cambios'; document.querySelector('#cancel-product-edit').classList.remove('hidden-field'); form.closest('details').open = true; form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-async function deleteProduct(id) { const product = products.find(item => item.id === id), session = JSON.parse(sessionStorage.getItem('gestourant_session')); if (!product || !window.confirm(`¿Eliminar ${product.name} del menú?`)) return; try { await services.products.remove(session, id); showToast('Producto eliminado.'); navigate('products', session); } catch (error) { showToast(error.message, true); } }
+function editProduct(id) { const product = products.find(item => item.id === id), form = document.querySelector('#create-product-form'); if (!product || !form) return; form.dataset.editingId = String(id); form.elements.name.value = product.name; form.elements.category.value = product.category || 'PLATO'; form.elements.description.value = product.description || ''; form.elements.imageUrl.value = product.imageUrl || ''; form.elements.price.value = product.price; form.elements.stock.value = product.stock; form.elements.active.checked = product.active; document.querySelector('#product-form-title').textContent = translate('Editar producto'); document.querySelector('#product-submit').textContent = translate('Guardar cambios'); document.querySelector('#cancel-product-edit').classList.remove('hidden-field'); form.closest('details').open = true; form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+async function deleteProduct(id) { const product = products.find(item => item.id === id), session = JSON.parse(sessionStorage.getItem('gestourant_session')); if (!product || !window.confirm(translate('¿Eliminar {product} del menú?', { product: product.name }))) return; try { await services.products.remove(session, id); showToast(translate('Producto eliminado.')); navigate('products', session); } catch (error) { showToast(error.message, true); } }
 
 function backupsView() {
-  return `<header class="overview-header"><div><p class="eyebrow">ADMINISTRACIÓN</p><h1>Copias de seguridad</h1><p class="muted">Crea respaldos completos de MySQL, descarga una copia o restaura un punto anterior.</p></div><div class="header-actions"><button type="button" class="primary" id="create-backup">Crear copia ahora</button></div></header><section class="backup-warning"><strong>Restaurar reemplaza los datos actuales de la base de datos.</strong><span>La operación requiere confirmación y solo está disponible para el administrador.</span></section><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">ALMACENAMIENTO SEGURO</p><h2>Historial de respaldos</h2></div><span id="backup-count">Cargando…</span></div><p id="backup-message" class="report-message" aria-live="polite"></p><div id="backup-history" class="report-table-wrap"><p class="report-empty">Cargando copias de seguridad…</p></div></section>`;
+  return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('ADMINISTRACIÓN'))}</p><h1>${escapeHtml(translate('Copias de seguridad'))}</h1><p class="muted">${escapeHtml(translate('Crea respaldos completos de MySQL, descarga una copia o restaura un punto anterior.'))}</p></div><div class="header-actions"><button type="button" class="primary" id="create-backup">${escapeHtml(translate('Crear copia ahora'))}</button></div></header><section class="backup-warning"><strong>${escapeHtml(translate('Restaurar reemplaza los datos actuales de la base de datos.'))}</strong><span>${escapeHtml(translate('La operación requiere confirmación y solo está disponible para el administrador.'))}</span></section><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('ALMACENAMIENTO SEGURO'))}</p><h2>${escapeHtml(translate('Historial de respaldos'))}</h2></div><span id="backup-count">${escapeHtml(translate('Cargando…'))}</span></div><p id="backup-message" class="report-message" aria-live="polite"></p><div id="backup-history" class="report-table-wrap"><p class="report-empty">${escapeHtml(translate('Cargando copias de seguridad…'))}</p></div></section>`;
 }
 
 async function loadBackups(session) {
@@ -844,64 +868,64 @@ async function loadBackups(session) {
   if (!list || !message || !createButton) return;
 
   const render = backups => {
-    count.textContent = `${backups.length} copia${backups.length === 1 ? '' : 's'}`;
-    list.innerHTML = backups.length ? `<table class="report-table"><thead><tr><th>Archivo</th><th>Fecha y hora (UTC)</th><th>Tamaño</th><th>Acciones</th></tr></thead><tbody>${backups.map(backup => `<tr><td>${escapeHtml(backup.fileName)}</td><td>${new Date(backup.createdAt).toLocaleString('es-CO', { timeZone: 'UTC' })}</td><td>${formatBackupSize(backup.sizeBytes)}</td><td><div class="backup-actions"><button type="button" class="outline backup-download" data-backup-id="${escapeHtml(backup.id)}">Descargar</button><button type="button" class="outline backup-restore" data-backup-id="${escapeHtml(backup.id)}">Restaurar</button></div></td></tr>`).join('')}</tbody></table>` : '<p class="report-empty">Todavía no hay copias. Crea la primera para que aparezca aquí.</p>';
+    count.textContent = translate(backups.length === 1 ? '{count} copia' : '{count} copias', { count: backups.length });
+    list.innerHTML = backups.length ? `<table class="report-table"><thead><tr><th>${escapeHtml(translate('Archivo'))}</th><th>${escapeHtml(translate('Fecha y hora (UTC)'))}</th><th>${escapeHtml(translate('Tamaño'))}</th><th>${escapeHtml(translate('Acciones'))}</th></tr></thead><tbody>${backups.map(backup => `<tr><td>${escapeHtml(backup.fileName)}</td><td>${new Date(backup.createdAt).toLocaleString(getLocale(), { timeZone: 'UTC' })}</td><td>${formatBackupSize(backup.sizeBytes)}</td><td><div class="backup-actions"><button type="button" class="outline backup-download" data-backup-id="${escapeHtml(backup.id)}">${escapeHtml(translate('Descargar'))}</button><button type="button" class="outline backup-restore" data-backup-id="${escapeHtml(backup.id)}">${escapeHtml(translate('Restaurar'))}</button></div></td></tr>`).join('')}</tbody></table>` : `<p class="report-empty">${escapeHtml(translate('Todavía no hay copias. Crea la primera para que aparezca aquí.'))}</p>`;
     list.querySelectorAll('.backup-download').forEach(button => button.addEventListener('click', async () => {
       button.disabled = true;
       try {
         await services.backups.download(session, button.dataset.backupId);
-        showToast('Descarga del respaldo iniciada.');
+        showToast(translate('Descarga del respaldo iniciada.'));
       } catch (error) {
-        showToast(`No se pudo descargar el respaldo: ${error.message}`, true);
+        showToast(translate('No se pudo descargar el respaldo: {detail}', { detail: error.message }), true);
       } finally {
         button.disabled = false;
       }
     }));
     list.querySelectorAll('.backup-restore').forEach(button => button.addEventListener('click', async () => {
-      const accepted = window.confirm('Esta acción reemplazará la base de datos actual. Se recomienda descargar un respaldo reciente antes de continuar.');
-      if (!accepted || window.prompt('Escribe RESTAURAR para confirmar:') !== 'RESTAURAR') return;
+      const accepted = window.confirm(translate('Esta acción reemplazará la base de datos actual. Se recomienda descargar un respaldo reciente antes de continuar.'));
+      if (!accepted || window.prompt(translate('Escribe RESTAURAR para confirmar:')) !== 'RESTAURAR') return;
       button.disabled = true;
       try {
         const result = await services.backups.restore(session, button.dataset.backupId);
-        showToast(`La base se restauró. Respaldo de seguridad: ${result.safetyBackupFileName}.`);
-        message.textContent = `Restauración completada. Se creó el respaldo de seguridad ${result.safetyBackupFileName}.`;
+        showToast(translate('La base se restauró. Respaldo de seguridad: {fileName}.', { fileName: result.safetyBackupFileName }));
+        message.textContent = translate('Restauración completada. Se creó el respaldo de seguridad {fileName}.', { fileName: result.safetyBackupFileName });
         await refresh();
       } catch (error) {
-        showToast(`No se pudo restaurar la base de datos: ${error.message}`, true);
+        showToast(translate('No se pudo restaurar la base de datos: {detail}', { detail: error.message }), true);
       } finally {
         button.disabled = false;
       }
     }));
   };
   const refresh = async () => {
-    message.textContent = 'Consultando el almacenamiento seguro…';
+    message.textContent = translate('Consultando el almacenamiento seguro…');
     message.classList.remove('is-error');
     try {
       render(await services.backups.list(session));
       message.textContent = '';
     } catch (error) {
-      list.innerHTML = `<p class="report-empty">No se pudo cargar el historial: ${escapeHtml(error.message)}</p>`;
-      count.textContent = 'No disponible';
-      message.textContent = 'Verifica que el almacenamiento S3 y sus credenciales estén configurados.';
+      list.innerHTML = `<p class="report-empty">${escapeHtml(translate('No se pudo cargar el historial: {detail}', { detail: error.message }))}</p>`;
+      count.textContent = translate('No disponible');
+      message.textContent = translate('Verifica que el almacenamiento S3 y sus credenciales estén configurados.');
       message.classList.add('is-error');
     }
   };
   createButton.onclick = async () => {
     createButton.disabled = true;
-    createButton.textContent = 'Creando copia…';
-    message.textContent = 'Generando el respaldo de MySQL y guardándolo de forma segura…';
+    createButton.textContent = translate('Creando copia…');
+    message.textContent = translate('Generando el respaldo de MySQL y guardándolo de forma segura…');
     message.classList.remove('is-error');
     try {
       const backup = await services.backups.create(session);
-      showToast(`Copia creada: ${backup.fileName}`);
+      showToast(translate('Copia creada: {fileName}', { fileName: backup.fileName }));
       await refresh();
     } catch (error) {
-      message.textContent = `No se pudo crear la copia: ${error.message}`;
+      message.textContent = translate('No se pudo crear la copia: {detail}', { detail: error.message });
       message.classList.add('is-error');
       showToast(message.textContent, true);
     } finally {
       createButton.disabled = false;
-      createButton.textContent = 'Crear copia ahora';
+      createButton.textContent = translate('Crear copia ahora');
     }
   };
   await refresh();
@@ -915,7 +939,7 @@ function formatBackupSize(size) {
   let value = bytes / 1024;
   let unit = 0;
   while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
-  return `${value.toLocaleString('es-CO', { maximumFractionDigits: 1 })} ${units[unit]}`;
+  return `${value.toLocaleString(getLocale(), { maximumFractionDigits: 1 })} ${units[unit]}`;
 }
 
 async function loadReport(session) {
@@ -932,7 +956,7 @@ async function loadReport(session) {
       document.querySelector(selector).textContent = '—';
     });
     document.querySelector('#report-period').textContent = '';
-    document.querySelector('#report-history').innerHTML = '<p class="report-empty">Consulta un periodo para ver las facturas.</p>';
+    document.querySelector('#report-history').innerHTML = `<p class="report-empty">${escapeHtml(translate('Consulta un periodo para ver las facturas.'))}</p>`;
   };
 
   const showReport = async () => {
@@ -945,36 +969,36 @@ async function loadReport(session) {
       searchButton.disabled = false;
       downloadButton.disabled = true;
       clearResults();
-      message.textContent = 'Verifica las fechas: la fecha final debe ser igual o posterior a la inicial.';
+      message.textContent = translate('Verifica las fechas: la fecha final debe ser igual o posterior a la inicial.');
       message.classList.add('is-error');
       return;
     }
 
     searchButton.disabled = true;
     downloadButton.disabled = true;
-    message.textContent = 'Consultando facturas…';
+    message.textContent = translate('Consultando facturas…');
     message.classList.remove('is-error');
     try {
       const report = await services.reports.getHistory(session, from, to, administrator);
       if (requestId !== reportRequest) return;
       currentReport = report;
       document.querySelector('#report-invoices').textContent = currentReport.facturas;
-      document.querySelector('#report-cash').textContent = `$ ${Number(currentReport.efectivo).toLocaleString('es-CO')}`;
-      document.querySelector('#report-digital').textContent = `$ ${Number(currentReport.digital).toLocaleString('es-CO')}`;
-      document.querySelector('#report-total').textContent = `$ ${Number(currentReport.total).toLocaleString('es-CO')}`;
+      document.querySelector('#report-cash').textContent = `$ ${Number(currentReport.efectivo).toLocaleString(getLocale())}`;
+      document.querySelector('#report-digital').textContent = `$ ${Number(currentReport.digital).toLocaleString(getLocale())}`;
+      document.querySelector('#report-total').textContent = `$ ${Number(currentReport.total).toLocaleString(getLocale())}`;
       document.querySelector('#report-period').textContent = from === to ? from : `${from} — ${to}`;
       const invoices = currentReport.invoices || [];
-      const rows = invoices.map(invoice => `<tr><td>${escapeHtml(invoice.invoiceNumber)}</td><td>${escapeHtml(String(invoice.issuedAt).replace('T', ' '))}</td><td>Mesa ${escapeHtml(invoice.tableNumber)}</td><td>${invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'}</td><td>$ ${Number(invoice.total).toLocaleString('es-CO')}</td>${administrator ? `<td>${escapeHtml(invoice.employee)}</td>` : ''}</tr>`).join('');
+      const rows = invoices.map(invoice => `<tr><td>${escapeHtml(invoice.invoiceNumber)}</td><td>${escapeHtml(String(invoice.issuedAt).replace('T', ' '))}</td><td>${escapeHtml(translate('Mesa {table}', { table: invoice.tableNumber }))}</td><td>${escapeHtml(translate(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'))}</td><td>$ ${Number(invoice.total).toLocaleString(getLocale())}</td>${administrator ? `<td>${escapeHtml(invoice.employee)}</td>` : ''}</tr>`).join('');
       document.querySelector('#report-history').innerHTML = invoices.length
-        ? `<table class="report-table"><thead><tr><th>Factura</th><th>Fecha y hora</th><th>Mesa</th><th>Pago</th><th>Total</th>${administrator ? '<th>Pedido abierto por</th>' : ''}</tr></thead><tbody>${rows}</tbody></table>`
-        : '<p class="report-empty">No hay facturas para el periodo seleccionado.</p>';
-      message.textContent = `${invoices.length} factura${invoices.length === 1 ? '' : 's'} encontrada${invoices.length === 1 ? '' : 's'}.`;
+        ? `<table class="report-table"><thead><tr><th>${escapeHtml(translate('Factura'))}</th><th>${escapeHtml(translate('Fecha y hora'))}</th><th>${escapeHtml(translate('Mesa'))}</th><th>${escapeHtml(translate('Pago'))}</th><th>${escapeHtml(translate('Total'))}</th>${administrator ? `<th>${escapeHtml(translate('Pedido abierto por'))}</th>` : ''}</tr></thead><tbody>${rows}</tbody></table>`
+        : `<p class="report-empty">${escapeHtml(translate('No hay facturas para el periodo seleccionado.'))}</p>`;
+      message.textContent = translate(invoices.length === 1 ? '{count} factura encontrada.' : '{count} facturas encontradas.', { count: invoices.length });
       downloadButton.disabled = false;
     } catch (error) {
       if (requestId !== reportRequest) return;
       currentReport = null;
       clearResults();
-      message.textContent = `No se pudo consultar el historial: ${error.message}`;
+      message.textContent = translate('No se pudo consultar el historial: {detail}', { detail: error.message });
       message.classList.add('is-error');
     } finally {
       if (requestId === reportRequest) searchButton.disabled = false;
@@ -989,16 +1013,16 @@ async function loadReport(session) {
     downloadButton.disabled = true;
     clearResults();
     const message = document.querySelector('#report-message');
-    message.textContent = 'Consulta las fechas seleccionadas para cargar el reporte.';
+    message.textContent = translate('Consulta las fechas seleccionadas para cargar el reporte.');
     message.classList.remove('is-error');
   }));
   downloadButton.addEventListener('click', () => {
     if (!currentReport) return;
     try {
       downloadCashCloseXlsx(currentReport, administrator);
-      showToast('Historial de facturas descargado en Excel.');
+      showToast(translate('Historial de facturas descargado en Excel.'));
     } catch (error) {
-      showToast(`No se pudo descargar el reporte: ${error.message}`, true);
+      showToast(translate('No se pudo descargar el reporte: {detail}', { detail: error.message }), true);
     }
   });
   await showReport();
@@ -1027,7 +1051,7 @@ async function logout(session, inactivity = false, notifyServer = true) {
     logger.info('Logout completed', { username: sessionToClose.username });
   } catch (error) {
     logger.warn('Server logout could not be recorded', { message: error.message });
-    if (!inactivity) showToast('La sesión local se cerró, pero no se pudo registrar el cierre en el servidor.', true);
+    if (!inactivity) showToast(translate('La sesión local se cerró, pero no se pudo registrar el cierre en el servidor.'), true);
   }
 }
 
@@ -1035,12 +1059,17 @@ function renderTables() {
   const grid = document.querySelector('#table-grid');
   if (!grid) return;
   const arranging = document.querySelector('#arrange-floor')?.checked || false;
-  grid.innerHTML = tables.length ? tables.map((table, index) => `<div class="floor-table-wrap" style="left:${Number(table.floorX ?? (15 + (index % 4) * 22))}%;top:${Number(table.floorY ?? (18 + (Math.floor(index / 4) % 4) * 22))}%">
-    <button type="button" class="floor-table-button ${table.status === 'OCUPADA' ? 'busy' : ''} ${table.billRequested ? 'bill-requested' : ''}" data-id="${table.id}" aria-label="Mesa ${table.tableNumber}, ${table.status === 'LIBRE' ? 'disponible' : 'en servicio'}, ${table.seats} puestos${table.billRequested ? ', pidió la cuenta' : ''}">
+  grid.innerHTML = tables.length ? tables.map((table, index) => {
+    const status = table.billRequested ? 'Pide la cuenta' : table.status === 'LIBRE' ? 'Disponible' : 'En servicio';
+    const accessibleStatus = table.status === 'LIBRE' ? translate('disponible') : translate('En servicio');
+    const billRequest = table.billRequested ? `, ${translate('pidió la cuenta')}` : '';
+    return `<div class="floor-table-wrap" style="left:${Number(table.floorX ?? (15 + (index % 4) * 22))}%;top:${Number(table.floorY ?? (18 + (Math.floor(index / 4) % 4) * 22))}%">
+    <button type="button" class="floor-table-button ${table.status === 'OCUPADA' ? 'busy' : ''} ${table.billRequested ? 'bill-requested' : ''}" data-id="${table.id}" aria-label="${escapeHtml(translate('Mesa'))} ${table.tableNumber}, ${escapeHtml(accessibleStatus)}, ${table.seats} ${escapeHtml(translate('Puestos'))}${escapeHtml(billRequest)}">
       <span class="table-graphic">${diningTableIcon()}</span><span class="table-card-number">${String(table.tableNumber).padStart(2, '0')}</span>
-      <span class="table-card-info"><strong>Mesa ${table.tableNumber}</strong><small>${table.seats} puestos${table.joinedTableId ? ' · Salón unido' : ''}</small></span>
-      <span class="table-card-status"><i></i>${table.billRequested ? 'Pide la cuenta' : table.status === 'LIBRE' ? 'Disponible' : 'En servicio'}</span></button>
-    <button type="button" class="floor-qr-button" data-qr-id="${table.id}" aria-label="Ver QR de Mesa ${table.tableNumber}">QR</button></div>`).join('') : '<div class="menu-empty"><span>＋</span><h3>Aún no hay mesas</h3><p>Configura la sala para comenzar a recibir pedidos.</p></div>';
+      <span class="table-card-info"><strong>${escapeHtml(translate('Mesa'))} ${table.tableNumber}</strong><small>${table.seats} ${escapeHtml(translate('Puestos'))}${table.joinedTableId ? ` · ${escapeHtml(translate('Salón unido'))}` : ''}</small></span>
+      <span class="table-card-status"><i></i>${escapeHtml(translate(status))}</span></button>
+    <button type="button" class="floor-qr-button" data-qr-id="${table.id}" aria-label="${escapeHtml(translate('Ver QR de Mesa {table}', { table: table.tableNumber }))}">QR</button></div>`;
+  }).join('') : `<div class="menu-empty"><span>＋</span><h3>${escapeHtml(translate('Aún no hay mesas'))}</h3><p>${escapeHtml(translate('Configura la sala para comenzar a recibir pedidos.'))}</p></div>`;
   const session = JSON.parse(sessionStorage.getItem('gestourant_session'));
   grid.querySelectorAll('.floor-table-button').forEach(button => {
     button.classList.toggle('selected', Number(document.querySelector('#detail .detail-content')?.dataset.tableId) === Number(button.dataset.id));
@@ -1067,7 +1096,7 @@ function renderTables() {
   }
   arrangeToggle?.addEventListener('change', () => {
     grid.classList.toggle('is-arranging', arrangeToggle.checked);
-    showToast(arrangeToggle.checked ? 'Arrastra una mesa para cambiar su ubicación.' : 'Ubicación del croquis guardada.');
+    showToast(translate(arrangeToggle.checked ? 'Arrastra una mesa para cambiar su ubicación.' : 'Ubicación del croquis guardada.'));
   });
 }
 
@@ -1113,9 +1142,9 @@ function bindFloorTablePosition(button, map, session) {
     try {
       const table = await services.tables.updatePosition(session, button.dataset.id, position);
       Object.assign(tables.find(item => item.id === table.id), table);
-      showToast('Ubicación de mesa guardada.');
+      showToast(translate('Ubicación de mesa guardada.'));
     } catch (error) {
-      showToast(`No se pudo guardar la ubicación: ${error.message}`, true);
+      showToast(translate('No se pudo guardar la ubicación: {detail}', { detail: error.message }), true);
       renderTables();
     }
   });
@@ -1135,24 +1164,36 @@ function bindFloorTablePosition(button, map, session) {
 }
 
 async function showTableQr(table) {
+  activeQrTable = table;
+  const renderId = ++activeQrRenderId;
   const url = new URL('/', window.location.origin);
   url.searchParams.set('mesa', table.qrToken);
   const localOnly = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
   try {
     const image = await QRCode.toDataURL(url.toString(), { width: 360, margin: 2, color: { dark: '#153f35', light: '#ffffff' } });
+    if (activeQrRenderId !== renderId || activeQrTable !== table) return;
     document.querySelector('#table-qr-overlay')?.remove();
     const overlay = document.createElement('div');
     overlay.id = 'table-qr-overlay';
     overlay.className = 'table-qr-overlay';
-    overlay.innerHTML = `<section class="table-qr-card" role="dialog" aria-modal="true" aria-labelledby="table-qr-title"><button type="button" class="table-qr-close" aria-label="Cerrar">×</button><p class="eyebrow">MENÚ DIGITAL</p><h2 id="table-qr-title">Mesa ${table.tableNumber}</h2><img src="${image}" alt="Código QR para que los clientes de la Mesa ${table.tableNumber} abran el menú"><p>Escanea para ver la cuenta, explorar la carta y enviar pedidos al equipo.</p>${localOnly ? '<p class="table-qr-local-note">Este QR usa la dirección local de este computador. Para probarlo aquí, mantén Gestourant abierto. Para escanearlo con un celular, abre Gestourant desde la dirección IP local del computador y genera el QR de nuevo.</p>' : ''}<a class="table-qr-url" href="${escapeHtml(url.toString())}" target="_blank" rel="noopener">Probar enlace: ${escapeHtml(url.toString())}</a><div class="table-qr-actions"><button type="button" class="outline" data-print-qr>Imprimir código</button><button type="button" class="primary" data-close-qr>Listo</button></div></section>`;
+    overlay.innerHTML = `<section class="table-qr-card" role="dialog" aria-modal="true" aria-labelledby="table-qr-title"><button type="button" class="table-qr-close" aria-label="${escapeHtml(translate('Cerrar'))}">×</button>${languagePicker()}<p class="eyebrow">${escapeHtml(translate('MENÚ DIGITAL'))}</p><h2 id="table-qr-title">${escapeHtml(translate('Mesa'))} ${table.tableNumber}</h2><img src="${image}" alt="${escapeHtml(translate('Código QR para que los clientes de la Mesa {table} abran el menú', { table: table.tableNumber }))}"><p>${escapeHtml(translate('Escanea para ver la cuenta, explorar la carta y enviar pedidos al equipo.'))}</p>${localOnly ? `<p class="table-qr-local-note">${escapeHtml(translate('Este QR usa la dirección local de este computador. Para probarlo aquí, mantén Gestourant abierto. Para escanearlo con un celular, abre Gestourant desde la dirección IP local del computador y genera el QR de nuevo.'))}</p>` : ''}<a class="table-qr-url" href="${escapeHtml(url.toString())}" target="_blank" rel="noopener">${escapeHtml(translate('Probar enlace: {url}', { url: url.toString() }))}</a><div class="table-qr-actions"><button type="button" class="outline" data-print-qr>${escapeHtml(translate('Imprimir código'))}</button><button type="button" class="primary" data-close-qr>${escapeHtml(translate('Listo'))}</button></div></section>`;
     document.body.appendChild(overlay);
-    const close = () => overlay.remove();
+    bindLanguagePicker(overlay);
+    const close = () => {
+      if (activeQrTable === table) {
+        activeQrTable = null;
+        activeQrRenderId += 1;
+      }
+      overlay.remove();
+    };
     overlay.querySelector('.table-qr-close').addEventListener('click', close);
     overlay.querySelector('[data-close-qr]').addEventListener('click', close);
     overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
     overlay.querySelector('[data-print-qr]').addEventListener('click', () => window.print());
   } catch (error) {
-    showToast(`No se pudo generar el código QR: ${error.message}`, true);
+    if (activeQrRenderId === renderId && activeQrTable === table) {
+      showToast(translate('No se pudo generar el código QR: {detail}', { detail: error.message }), true);
+    }
   }
 }
 
@@ -1166,11 +1207,11 @@ async function loadGuestRequests(session) {
       badge.textContent = String(requests.length);
       badge.hidden = requests.length === 0;
     }
-    queue.innerHTML = requests.length ? requests.map(request => `<article class="staff-request-card" data-request-id="${request.id}"><div class="staff-request-header"><div><span class="staff-request-table">MESA ${request.tableNumber}</span><h2>Solicitud #${request.id}</h2></div><time>${new Date(request.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</time></div><div class="staff-request-items">${request.items.map(item => `<div><span><strong>${item.quantity} × ${escapeHtml(item.name)}</strong>${item.removedIngredients ? `<small>⚠ Sin ${escapeHtml(item.removedIngredients)}</small>` : ''}</span><strong>$ ${Number(item.subtotal).toLocaleString('es-CO')}</strong></div>`).join('')}</div><div class="staff-request-footer"><strong>Total estimado · $ ${Number(request.total).toLocaleString('es-CO')} COP</strong><div><button class="outline reject-guest-request" type="button">Rechazar</button><button class="primary approve-guest-request" type="button">Confirmar y enviar a cocina</button></div></div></article>`).join('') : '<div class="staff-request-empty"><span>✓</span><h2>Todo al día</h2><p>No hay solicitudes pendientes. Las nuevas solicitudes aparecerán aquí automáticamente.</p></div>';
+    queue.innerHTML = requests.length ? requests.map(request => `<article class="staff-request-card" data-request-id="${request.id}"><div class="staff-request-header"><div><span class="staff-request-table">${escapeHtml(translate('MESA {table}', { table: request.tableNumber }))}</span><h2>${escapeHtml(translate('Solicitud #{id}', { id: request.id }))}</h2></div><time>${new Date(request.createdAt).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })}</time></div><div class="staff-request-items">${request.items.map(item => `<div><span><strong>${item.quantity} × ${escapeHtml(translate(item.name))}</strong>${item.removedIngredients ? `<small>⚠ ${escapeHtml(translate('Sin'))} ${escapeHtml(item.removedIngredients)}</small>` : ''}</span><strong>$ ${Number(item.subtotal).toLocaleString(getLocale())}</strong></div>`).join('')}</div><div class="staff-request-footer"><strong>${escapeHtml(translate('Total estimado · $ {amount} COP', { amount: Number(request.total).toLocaleString(getLocale()) }))}</strong><div><button class="outline reject-guest-request" type="button">${escapeHtml(translate('Rechazar'))}</button><button class="primary approve-guest-request" type="button">${escapeHtml(translate('Confirmar y enviar a cocina'))}</button></div></div></article>`).join('') : `<div class="staff-request-empty"><span>✓</span><h2>${escapeHtml(translate('Todo al día'))}</h2><p>${escapeHtml(translate('No hay solicitudes pendientes. Las nuevas solicitudes aparecerán aquí automáticamente.'))}</p></div>`;
     queue.querySelectorAll('.approve-guest-request').forEach(button => button.addEventListener('click', () => resolveGuestRequest(button, session, 'approve')));
     queue.querySelectorAll('.reject-guest-request').forEach(button => button.addEventListener('click', () => resolveGuestRequest(button, session, 'reject')));
   } catch (error) {
-    queue.innerHTML = `<div class="staff-request-error"><strong>No pudimos cargar las solicitudes.</strong><p>${escapeHtml(error.message)}</p><button class="outline" type="button" id="retry-guest-requests">Intentar de nuevo</button></div>`;
+    queue.innerHTML = `<div class="staff-request-error"><strong>${escapeHtml(translate('No pudimos cargar las solicitudes.'))}</strong><p>${escapeHtml(error.message)}</p><button class="outline" type="button" id="retry-guest-requests">${escapeHtml(translate('Intentar de nuevo'))}</button></div>`;
     queue.querySelector('#retry-guest-requests').addEventListener('click', () => loadGuestRequests(session));
   }
 }
@@ -1195,11 +1236,11 @@ async function loadKitchenRequests(session) {
     const requests = await services.kitchen.listRequests(session);
     queue.innerHTML = requests.length ? requests.map(request => {
       const preparing = request.status === 'PREPARANDO';
-      return `<article class="staff-request-card kitchen-ticket ${preparing ? 'is-preparing' : ''}" data-kitchen-request-id="${request.id}"><div class="staff-request-header"><div><span class="staff-request-table">MESA ${request.tableNumber} · COMANDA #${request.id}</span><h2>${preparing ? 'En preparación' : 'Nueva comanda'}</h2></div><time>${new Date(request.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</time></div><div class="staff-request-items">${request.items.map(item => `<div><span><strong>${item.quantity} × ${escapeHtml(item.name)}</strong>${item.removedIngredients ? `<small class="kitchen-modification">⚠ PREPARAR SIN: ${escapeHtml(item.removedIngredients)} · CONFIRMAR CON COCINA</small>` : ''}</span></div>`).join('')}</div><div class="staff-request-footer"><strong>${preparing ? 'La preparación está en curso' : 'Confirmado · agregado a la cuenta'}</strong><div><button type="button" class="primary advance-kitchen-request">${preparing ? 'Marcar listo para servir' : 'Iniciar preparación'}</button></div></div></article>`;
-    }).join('') : '<div class="staff-request-empty"><span>✓</span><h2>Cocina al día</h2><p>Las solicitudes aparecerán aquí después de que el equipo las confirme.</p></div>';
+      return `<article class="staff-request-card kitchen-ticket ${preparing ? 'is-preparing' : ''}" data-kitchen-request-id="${request.id}"><div class="staff-request-header"><div><span class="staff-request-table">${escapeHtml(translate('MESA {table}', { table: request.tableNumber }))} · ${escapeHtml(translate('COMANDA #{id}', { id: request.id }))}</span><h2>${escapeHtml(translate(preparing ? 'En preparación' : 'Nueva comanda'))}</h2></div><time>${new Date(request.createdAt).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })}</time></div><div class="staff-request-items">${request.items.map(item => `<div><span><strong>${item.quantity} × ${escapeHtml(translate(item.name))}</strong>${item.removedIngredients ? `<small class="kitchen-modification">⚠ ${escapeHtml(translate('PREPARAR SIN: {ingredients} · CONFIRMAR CON COCINA', { ingredients: item.removedIngredients }))}</small>` : ''}</span></div>`).join('')}</div><div class="staff-request-footer"><strong>${escapeHtml(translate(preparing ? 'La preparación está en curso' : 'Confirmado · agregado a la cuenta'))}</strong><div><button type="button" class="primary advance-kitchen-request">${escapeHtml(translate(preparing ? 'Marcar listo para servir' : 'Iniciar preparación'))}</button></div></div></article>`;
+    }).join('') : `<div class="staff-request-empty"><span>✓</span><h2>${escapeHtml(translate('Cocina al día'))}</h2><p>${escapeHtml(translate('Las solicitudes aparecerán aquí después de que el equipo las confirme.'))}</p></div>`;
     queue.querySelectorAll('.advance-kitchen-request').forEach(button => button.addEventListener('click', () => advanceKitchenRequest(button, session)));
   } catch (error) {
-    queue.innerHTML = `<div class="staff-request-error"><strong>No pudimos cargar las comandas.</strong><p>${escapeHtml(error.message)}</p><button class="outline" type="button" id="retry-kitchen-requests">Intentar de nuevo</button></div>`;
+    queue.innerHTML = `<div class="staff-request-error"><strong>${escapeHtml(translate('No pudimos cargar las comandas.'))}</strong><p>${escapeHtml(error.message)}</p><button class="outline" type="button" id="retry-kitchen-requests">${escapeHtml(translate('Intentar de nuevo'))}</button></div>`;
     queue.querySelector('#retry-kitchen-requests').addEventListener('click', () => loadKitchenRequests(session));
   }
 }
@@ -1209,7 +1250,7 @@ async function advanceKitchenRequest(button, session) {
   button.disabled = true;
   try {
     await services.kitchen.advanceRequest(session, card.dataset.kitchenRequestId);
-    showToast('Estado de cocina actualizado.');
+    showToast(translate('Estado de cocina actualizado.'));
     await loadKitchenRequests(session);
   } catch (error) {
     showToast(error.message, true);
@@ -1223,7 +1264,7 @@ async function resolveGuestRequest(button, session, action) {
   try {
     if (action === 'approve') await services.guest.approveStaffRequest(session, card.dataset.requestId);
     else await services.guest.rejectStaffRequest(session, card.dataset.requestId);
-    showToast(action === 'approve' ? 'Pedido confirmado, agregado a la cuenta y enviado a cocina.' : 'Solicitud rechazada.');
+    showToast(translate(action === 'approve' ? 'Pedido confirmado, agregado a la cuenta y enviado a cocina.' : 'Solicitud rechazada.'));
     await loadGuestRequests(session);
     if (action === 'approve') await loadTables(session);
   } catch (error) {
@@ -1232,25 +1273,31 @@ async function resolveGuestRequest(button, session, action) {
   }
 }
 
+function renderTableDetail(table, session) {
+  const detail = document.querySelector('#detail');
+  if (!detail) return;
+  const adminActions = session.role === 'ADMINISTRADOR' ? `<div class="detail-actions"><button id="edit-table" class="outline">${escapeHtml(translate('Editar mesa'))}</button><button id="delete-table" class="danger">${escapeHtml(translate('Eliminar'))}</button>${table.joinedTableId ? `<button id="unjoin-table" class="outline full">${escapeHtml(translate('Separar mesas'))}</button>` : ''}</div>` : '';
+  detail.classList.add('open');
+  detail.innerHTML = `<div class="detail-content" data-table-id="${table.id}"><div class="detail-topline"><span class="table-number">${String(table.tableNumber).padStart(2, '0')}</span><button id="close-table-detail" class="icon-button" type="button" aria-label="${escapeHtml(translate('Cerrar detalle'))}">${icon('close')}</button></div><span class="service-pill ${table.status === 'OCUPADA' ? 'is-busy' : 'is-free'}"><i></i>${escapeHtml(translate(table.status === 'LIBRE' ? 'Disponible' : 'En servicio'))}</span><h2>${escapeHtml(translate('Mesa'))} ${table.tableNumber}</h2><p class="muted">${escapeHtml(translate('Aforo: {seats} · Salón principal', { seats: table.seats }))}${table.joinedTableId ? ` · ${escapeHtml(translate('Mesa unida'))}` : ''}</p><button id="show-table-qr" class="outline table-detail-qr" type="button">▦ ${escapeHtml(translate('Mostrar QR de menú'))}</button>${table.billRequested ? `<p class="bill-request-alert">${escapeHtml(translate('El cliente está solicitando la cuenta.'))}</p>` : ''}<div class="detail-separator"></div><div class="detail-row"><span>${escapeHtml(translate('Estado de mesa'))}</span><strong>${escapeHtml(translate(table.status === 'LIBRE' ? 'Lista para recibir' : 'Cuenta abierta'))}</strong></div><div id="order-detail"></div>${table.status === 'LIBRE' ? `<button id="table-action" class="primary"><span>${escapeHtml(translate('Abrir cuenta'))}</span>${icon('arrow')}</button><p class="table-action-hint">${escapeHtml(translate('Empieza el servicio y registra el primer pedido.'))}</p>` : `<div class="order-loading"><span class="loading-dot"></span> ${escapeHtml(translate('Cargando cuenta abierta…'))}</div>`}${adminActions}</div>`;
+  document.querySelector('#close-table-detail').addEventListener('click', () => { detail.classList.remove('open'); document.querySelectorAll('.floor-table-button').forEach(card => card.classList.remove('selected')); activeOrder = null; });
+  document.querySelector('#show-table-qr').addEventListener('click', () => showTableQr(table));
+  document.querySelector('#table-action')?.addEventListener('click', () => openTable(table.id, session));
+  if (session.role === 'ADMINISTRADOR') { document.querySelector('#edit-table').addEventListener('click', () => editTable(table, session)); document.querySelector('#delete-table').addEventListener('click', () => deleteTable(table, session)); document.querySelector('#unjoin-table')?.addEventListener('click', () => unjoinTable(table, session)); }
+}
+
 async function selectTable(id) {
   const table = tables.find(item => item.id === id), detail = document.querySelector('#detail');
   if (!table || !detail) return;
   activeOrder = null;
   document.querySelectorAll('.floor-table-button').forEach(card => card.classList.toggle('selected', Number(card.dataset.id) === id));
   const session = JSON.parse(sessionStorage.getItem('gestourant_session'));
-  detail.classList.add('open');
-  const adminActions = session.role === 'ADMINISTRADOR' ? `<div class="detail-actions"><button id="edit-table" class="outline">Editar mesa</button><button id="delete-table" class="danger">Eliminar</button>${table.joinedTableId ? '<button id="unjoin-table" class="outline full">Separar mesas</button>' : ''}</div>` : '';
-  detail.innerHTML = `<div class="detail-content" data-table-id="${table.id}"><div class="detail-topline"><span class="table-number">${String(table.tableNumber).padStart(2, '0')}</span><button id="close-table-detail" class="icon-button" type="button" aria-label="Cerrar detalle">${icon('close')}</button></div><span class="service-pill ${table.status === 'OCUPADA' ? 'is-busy' : 'is-free'}"><i></i>${table.status === 'LIBRE' ? 'Disponible' : 'En servicio'}</span><h2>Mesa ${table.tableNumber}</h2><p class="muted">${table.seats} puestos · Salón principal${table.joinedTableId ? ' · Mesa unida' : ''}</p><button id="show-table-qr" class="outline table-detail-qr" type="button">▦ Mostrar QR de menú</button>${table.billRequested ? '<p class="bill-request-alert">El cliente está solicitando la cuenta.</p>' : ''}<div class="detail-separator"></div><div class="detail-row"><span>Estado de mesa</span><strong>${table.status === 'LIBRE' ? 'Lista para recibir' : 'Cuenta abierta'}</strong></div><div id="order-detail"></div>${table.status === 'LIBRE' ? `<button id="table-action" class="primary"><span>Abrir cuenta</span>${icon('arrow')}</button><p class="table-action-hint">Empieza el servicio y registra el primer pedido.</p>` : '<div class="order-loading"><span class="loading-dot"></span> Cargando cuenta abierta…</div>'}${adminActions}</div>`;
-  document.querySelector('#close-table-detail').addEventListener('click', () => { detail.classList.remove('open'); document.querySelectorAll('.floor-table-button').forEach(card => card.classList.remove('selected')); activeOrder = null; });
-  document.querySelector('#show-table-qr').addEventListener('click', () => showTableQr(table));
-  document.querySelector('#table-action')?.addEventListener('click', () => openTable(table.id, session));
-  if (session.role === 'ADMINISTRADOR') { document.querySelector('#edit-table').addEventListener('click', () => editTable(table, session)); document.querySelector('#delete-table').addEventListener('click', () => deleteTable(table, session)); document.querySelector('#unjoin-table')?.addEventListener('click', () => unjoinTable(table, session)); }
+  renderTableDetail(table, session);
   if (table.status === 'OCUPADA') await loadOpenOrder(table.id, session);
 }
 
-async function editTable(table, session) { const tableNumber = Number(window.prompt('Número de mesa:', table.tableNumber)); const seats = Number(window.prompt('Cantidad de puestos:', table.seats)); if (!tableNumber || !seats) return; try { await services.tables.update(session, table.id, { tableNumber, seats }); showToast('Mesa actualizada.'); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
-async function deleteTable(table, session) { if (!window.confirm(`¿Eliminar la Mesa ${table.tableNumber}?`)) return; try { await services.tables.remove(session, table.id); showToast('Mesa eliminada.'); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
-async function unjoinTable(table, session) { if (!table.joinedTableId) return; try { await services.tables.unjoin(session, { firstTableId: table.id, secondTableId: table.joinedTableId }); showToast('Mesas separadas.'); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
+async function editTable(table, session) { const tableNumber = Number(window.prompt(translate('Número de mesa:'), table.tableNumber)); const seats = Number(window.prompt(translate('Cantidad de puestos:'), table.seats)); if (!tableNumber || !seats) return; try { await services.tables.update(session, table.id, { tableNumber, seats }); showToast(translate('Mesa actualizada.')); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
+async function deleteTable(table, session) { if (!window.confirm(translate('¿Eliminar la Mesa {table}?', { table: table.tableNumber }))) return; try { await services.tables.remove(session, table.id); showToast(translate('Mesa eliminada.')); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
+async function unjoinTable(table, session) { if (!table.joinedTableId) return; try { await services.tables.unjoin(session, { firstTableId: table.id, secondTableId: table.joinedTableId }); showToast(translate('Mesas separadas.')); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
 
 async function openTable(tableId, session) { try { await services.tables.openOrder(session, tableId); await loadTables(session); await selectTable(tableId); } catch (error) { showToast(error.message, true); } }
 async function loadOpenOrder(tableId, session) {
@@ -1276,17 +1323,17 @@ async function refreshOrderDetail(order, session) {
     if (document.querySelector('#product-list')) renderProducts();
     return true;
   } catch (error) {
-    showToast(`El pedido sí se guardó, pero no se pudo actualizar el menú: ${error.message}`, true);
+    showToast(translate('El pedido sí se guardó, pero no se pudo actualizar el menú: {detail}', { detail: error.message }), true);
     return false;
   }
 }
 
 async function addProduct(productId) {
   const session = JSON.parse(sessionStorage.getItem('gestourant_session'));
-  if (!activeOrder) { showToast('Selecciona una mesa ocupada o abre una mesa antes de agregar productos.', true); return; }
+  if (!activeOrder) { showToast(translate('Selecciona una mesa ocupada o abre una mesa antes de agregar productos.'), true); return; }
   try {
     const updatedOrder = await services.orders.addProduct(session, activeOrder.id, productId);
-    if (await refreshOrderDetail(updatedOrder, session)) showToast('Producto agregado al pedido y guardado.');
+    if (await refreshOrderDetail(updatedOrder, session)) showToast(translate('Producto agregado al pedido y guardado.'));
   } catch (error) { showToast(error.message, true); }
 }
 
@@ -1295,7 +1342,7 @@ async function removeOrderItem(itemId) {
   if (!activeOrder) return;
   try {
     const updatedOrder = await services.orders.removeItem(session, activeOrder.id, itemId);
-    if (await refreshOrderDetail(updatedOrder, session)) showToast('Producto retirado; inventario actualizado.');
+    if (await refreshOrderDetail(updatedOrder, session)) showToast(translate('Producto retirado; inventario actualizado.'));
   } catch (error) { showToast(error.message, true); }
 }
 
@@ -1304,7 +1351,7 @@ async function saveItemModification(itemId, ingredients) {
   if (!activeOrder) return;
   try {
     const updatedOrder = await services.orders.updateItem(session, activeOrder.id, itemId, ingredients);
-    if (await refreshOrderDetail(updatedOrder, session)) showToast(ingredients ? 'Indicación guardada y enviada al pedido.' : 'Indicación eliminada del pedido.');
+    if (await refreshOrderDetail(updatedOrder, session)) showToast(translate(ingredients ? 'Indicación guardada y enviada al pedido.' : 'Indicación eliminada del pedido.'));
   } catch (error) { showToast(error.message, true); }
 }
 
@@ -1312,20 +1359,20 @@ function renderOrderDetail(order, session) {
   const target = document.querySelector('#order-detail');
   if (!target) return;
   const availableProducts = products.filter(isAvailableForOrder);
-  target.innerHTML = `<div class="order-summary"><strong>Pedido #${order.id}</strong><span>$ ${Number(order.total).toLocaleString('es-CO')} COP</span></div>
-    <p class="order-live-status">Cambios guardados al instante</p>
+  target.innerHTML = `<div class="order-summary"><strong>${escapeHtml(translate('Pedido #{id}', { id: order.id }))}</strong><span>$ ${Number(order.total).toLocaleString(getLocale())} COP</span></div>
+    <p class="order-live-status">${escapeHtml(translate('Cambios guardados al instante'))}</p>
     <div class="order-items">${(order.items || []).map(item => `<article class="order-item" data-item-id="${item.id}">
-      <div class="order-item-heading"><img class="order-item-photo" src="${escapeHtml(productPhoto(item.product))}" alt="" loading="lazy"><span><strong>${escapeHtml(item.product.name)} × ${item.quantity}</strong><small>${escapeHtml(item.product.category || 'PLATO')}</small></span><strong>$ ${Number(item.subtotal).toLocaleString('es-CO')}</strong></div>
-      ${item.removedIngredients ? `<p class="removed-ingredients">Sin: ${escapeHtml(item.removedIngredients)}</p>` : ''}
-      <label class="allergy-label">Ingrediente a retirar (por alergia o preferencia)
-        <input class="removed-ingredients-input" type="text" maxlength="500" value="${escapeHtml(item.removedIngredients || '')}" placeholder="Ej. maní, queso, cilantro">
+      <div class="order-item-heading"><img class="order-item-photo" src="${escapeHtml(productPhoto(item.product))}" alt="" loading="lazy"><span><strong>${escapeHtml(translate(item.product.name))} × ${item.quantity}</strong><small>${escapeHtml(translate(item.product.category || 'PLATO'))}</small></span><strong>$ ${Number(item.subtotal).toLocaleString(getLocale())}</strong></div>
+      ${item.removedIngredients ? `<p class="removed-ingredients">${escapeHtml(translate('Sin'))}: ${escapeHtml(item.removedIngredients)}</p>` : ''}
+      <label class="allergy-label">${escapeHtml(translate('Ingrediente a retirar (por alergia o preferencia)'))}
+        <input class="removed-ingredients-input" type="text" maxlength="500" value="${escapeHtml(item.removedIngredients || '')}" placeholder="${escapeHtml(translate('Ej. maní, queso, cilantro'))}">
       </label>
-      <div class="order-item-actions"><button type="button" class="outline save-modification">Guardar indicación</button><button type="button" class="danger remove-order-item">Quitar producto</button></div>
-    </article>`).join('') || '<small>Aún no hay productos. Agrégalos desde el menú.</small>'}</div>
-    <p class="allergy-warning"><strong>Atención alergias:</strong> confirma la solicitud con cocina. Esta indicación no garantiza ausencia de contaminación cruzada.</p>
-    <section class="order-menu"><h3>Agregar al pedido</h3>${availableProducts.length ? availableProducts.map(product => `<div class="order-menu-product"><img src="${escapeHtml(productPhoto(product))}" alt="" loading="lazy"><div><strong>${escapeHtml(product.name)}</strong><small>${product.stock} disponibles · $ ${Number(product.price).toLocaleString('es-CO')} COP</small></div><button type="button" class="outline add-order-product" data-product-id="${product.id}" aria-label="Agregar ${escapeHtml(product.name)}">＋</button></div>`).join('') : '<small>No hay productos disponibles en el menú.</small>'}</section>
-    <label class="payment-method-label">Pago recibido en caja<select id="payment-method"><option value="EFECTIVO">Efectivo</option><option value="DIGITAL">Digital · Nequi, Bancolombia o tarjeta</option></select></label>
-    <button id="close-order" class="outline full" ${order.items?.length ? '' : 'disabled'}>Registrar pago y cerrar cuenta</button>`;
+      <div class="order-item-actions"><button type="button" class="outline save-modification">${escapeHtml(translate('Guardar indicación'))}</button><button type="button" class="danger remove-order-item">${escapeHtml(translate('Quitar producto'))}</button></div>
+    </article>`).join('') || `<small>${escapeHtml(translate('Aún no hay productos. Agrégalos desde el menú.'))}</small>`}</div>
+    <p class="allergy-warning"><strong>${escapeHtml(translate('Atención alergias:'))}</strong> ${escapeHtml(translate('confirma la solicitud con cocina. Esta indicación no garantiza ausencia de contaminación cruzada.'))}</p>
+    <section class="order-menu"><h3>${escapeHtml(translate('Agregar al pedido'))}</h3>${availableProducts.length ? availableProducts.map(product => `<div class="order-menu-product"><img src="${escapeHtml(productPhoto(product))}" alt="" loading="lazy"><div><strong>${escapeHtml(translate(product.name))}</strong><small>${escapeHtml(translate('{count} disponibles · $ {price} COP', { count: product.stock, price: Number(product.price).toLocaleString(getLocale()) }))}</small></div><button type="button" class="outline add-order-product" data-product-id="${product.id}" aria-label="${escapeHtml(translate('＋ Agregar'))} ${escapeHtml(translate(product.name))}">＋</button></div>`).join('') : `<small>${escapeHtml(translate('No hay productos disponibles en el menú.'))}</small>`}</section>
+    <label class="payment-method-label">${escapeHtml(translate('Pago recibido en caja'))}<select id="payment-method"><option value="EFECTIVO">${escapeHtml(translate('Efectivo'))}</option><option value="DIGITAL">${escapeHtml(translate('Digital · Nequi, Bancolombia o tarjeta'))}</option></select></label>
+    <button id="close-order" class="outline full" ${order.items?.length ? '' : 'disabled'}>${escapeHtml(translate('Registrar pago y cerrar cuenta'))}</button>`;
   target.querySelectorAll('.save-modification').forEach(button => button.addEventListener('click', () => {
     const row = button.closest('[data-item-id]');
     saveItemModification(Number(row.dataset.itemId), row.querySelector('.removed-ingredients-input').value.trim());
@@ -1335,9 +1382,161 @@ function renderOrderDetail(order, session) {
   target.querySelectorAll('img').forEach(image => image.addEventListener('error', () => { image.src = defaultFoodPhoto; }, { once: true }));
   target.querySelector('#close-order').addEventListener('click', () => closeOrder(order.id, session, target.querySelector('#payment-method').value));
 }
-async function closeOrder(orderId, session, paymentMethod) { try { const invoice = await services.orders.close(session, orderId, paymentMethod); activeOrder = null; showToast(`Factura ${invoice.invoiceNumber} creada.`); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
+async function closeOrder(orderId, session, paymentMethod) { try { const invoice = await services.orders.close(session, orderId, paymentMethod); activeOrder = null; showToast(translate('Factura {invoiceNumber} creada.', { invoiceNumber: invoice.invoiceNumber })); navigate('tables', session); } catch (error) { showToast(error.message, true); } }
 let toastDismissTimer;
 function showToast(message, error = false) { let toast = document.querySelector('#toast'); if (!toast) { toast = document.createElement('div'); toast.id = 'toast'; toast.setAttribute('role', 'alert'); toast.setAttribute('aria-live', 'assertive'); document.body.appendChild(toast); } window.clearTimeout(toastDismissTimer); toast.textContent = message; toast.className = error ? 'toast error' : 'toast'; toastDismissTimer = window.setTimeout(() => toast.remove(), 3500); }
+
+
+window.addEventListener('gestourant:locale-change', () => {
+  updateDocumentLocale();
+  const cookieNotice = document.querySelector('#cookie-notice');
+  if (cookieNotice) renderCookieNotice(cookieNotice);
+  if (app.querySelector('.public-home')) {
+    const scrollTop = window.scrollY;
+    publicHomeView();
+    window.scrollTo(0, scrollTop);
+  }
+  const authForm = app.querySelector('.login-layout form');
+  if (authForm) {
+    const formId = authForm.id;
+    const values = [...authForm.elements]
+      .filter(field => field.name && field.name !== 'captchaToken')
+      .map(field => ({ name: field.name, value: field.type === 'checkbox' ? field.checked : field.value, type: field.type }));
+    const focusedName = document.activeElement?.form === authForm ? document.activeElement.name : '';
+    const selection = focusedName && typeof document.activeElement.selectionStart === 'number'
+      ? [document.activeElement.selectionStart, document.activeElement.selectionEnd]
+      : null;
+    const oauthCode = authForm.elements.code?.value;
+    if (formId === 'login-form') loginView();
+    else if (formId === 'register-form') registerView();
+    else if (formId === 'oauth-register-form') oauthRegistrationView(oauthCode);
+    const updatedForm = app.querySelector(`#${formId}`);
+    values.forEach(({ name, value, type }) => {
+      const field = updatedForm?.elements.namedItem(name);
+      if (!field) return;
+      if (type === 'checkbox') field.checked = value;
+      else field.value = value;
+    });
+    const focusedField = focusedName ? updatedForm?.elements.namedItem(focusedName) : null;
+    focusedField?.focus({ preventScroll: true });
+    if (selection && focusedField?.setSelectionRange) focusedField.setSelectionRange(...selection);
+  }
+  const content = document.querySelector('#content');
+  if (currentSession) {
+    const restaurantName = document.querySelector('.restaurant > div > strong');
+    if (restaurantName) restaurantName.textContent = translate('Restaurante Central');
+    const roleLabel = document.querySelector('.restaurant > div > small');
+    if (roleLabel) roleLabel.textContent = `${translate(currentSession.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado')} · ${translate('Turno activo')}`;
+    const viewLabels = {
+      overview: 'Resumen',
+      tables: 'Mesas',
+      orders: 'Pedidos',
+      kitchen: 'Cocina',
+      products: 'Menú e inventario',
+      reports: 'Reportes',
+      backups: 'Copias de seguridad',
+    };
+    document.querySelectorAll('.sidebar nav [data-view]').forEach(link => {
+      const label = link.querySelector('span');
+      if (label && viewLabels[link.dataset.view]) label.textContent = translate(viewLabels[link.dataset.view]);
+    });
+    const nav = document.querySelector('.sidebar nav');
+    if (nav) nav.setAttribute('aria-label', translate('Navegación principal'));
+    const logoutButton = document.querySelector('#logout');
+    if (logoutButton) logoutButton.innerHTML = `↪ ${escapeHtml(translate('Cerrar sesión'))}`;
+    document.querySelectorAll('.theme-button').forEach(button => {
+      const theme = themeOptions.find(option => option.id === button.dataset.theme);
+      if (!theme) return;
+      button.title = translate('Tema {theme}', { theme: translate(theme.label) });
+      button.querySelector('small').textContent = translate(theme.label);
+    });
+    if (content?.querySelector('#report-from')) {
+      const from = content.querySelector('#report-from').value;
+      const to = content.querySelector('#report-to')?.value;
+      content.innerHTML = reportsView(currentSession);
+      content.querySelector('#report-from').value = from;
+      if (to) content.querySelector('#report-to').value = to;
+      void loadReport(currentSession);
+    } else if (content?.querySelector('#backup-history')) {
+      content.innerHTML = backupsView();
+      void loadBackups(currentSession);
+    }
+    if (content?.querySelector('.overview-header')) {
+      content.innerHTML = overviewView(currentSession);
+      void loadOverview(currentSession);
+    }
+    const emptyDetail = document.querySelector('#detail .detail-empty');
+    if (emptyDetail) {
+      emptyDetail.innerHTML = `<span>${icon('tables')}</span><h3>${escapeHtml(translate('Selecciona una mesa'))}</h3><p>${escapeHtml(translate('Verás aquí el resumen de la atención.'))}</p>`;
+    }
+  }
+  if (currentSession && content?.querySelector('#product-list')) {
+    const search = document.querySelector('#product-search')?.value ?? '';
+    const previousForm = document.querySelector('#create-product-form');
+    const formState = previousForm ? {
+      editingId: previousForm.dataset.editingId,
+      open: previousForm.closest('details').open,
+      name: previousForm.elements.name.value,
+      category: previousForm.elements.category.value,
+      description: previousForm.elements.description.value,
+      imageUrl: previousForm.elements.imageUrl.value,
+      price: previousForm.elements.price.value,
+      stock: previousForm.elements.stock.value,
+      active: previousForm.elements.active.checked,
+    } : null;
+    content.innerHTML = productsView(currentSession);
+    bindProductAdmin(currentSession);
+    bindProductViewControls(currentSession);
+    const searchInput = document.querySelector('#product-search');
+    if (searchInput) searchInput.value = search;
+    if (formState) {
+      const form = document.querySelector('#create-product-form');
+      form.closest('details').open = formState.open;
+      form.dataset.editingId = formState.editingId;
+      form.elements.name.value = formState.name;
+      form.elements.category.value = formState.category;
+      form.elements.description.value = formState.description;
+      form.elements.imageUrl.value = formState.imageUrl;
+      form.elements.price.value = formState.price;
+      form.elements.stock.value = formState.stock;
+      form.elements.active.checked = formState.active;
+      if (formState.editingId) {
+        document.querySelector('#product-form-title').textContent = translate('Editar producto');
+        document.querySelector('#product-submit').textContent = translate('Guardar cambios');
+        document.querySelector('#cancel-product-edit').classList.remove('hidden-field');
+      }
+    }
+    renderProducts();
+  }
+  if (currentSession && content?.querySelector('#table-grid')) {
+    const arrangeTables = document.querySelector('#arrange-floor')?.checked ?? false;
+    const tableToolsOpen = content.querySelector('.table-tools')?.open ?? false;
+    content.innerHTML = tablesView(currentSession);
+    content.querySelector('.table-tools')?.toggleAttribute('open', tableToolsOpen);
+    bindTableAdmin(currentSession);
+    const arrangeToggle = document.querySelector('#arrange-floor');
+    if (arrangeToggle) arrangeToggle.checked = arrangeTables;
+    renderTables();
+  }
+  if (currentSession && document.querySelector('#guest-request-queue')) void loadGuestRequests(currentSession);
+  if (currentSession && document.querySelector('#kitchen-request-queue')) void loadKitchenRequests(currentSession);
+  const detailPanel = document.querySelector('#detail');
+  const tableDetail = detailPanel?.querySelector('.detail-content');
+  const table = tableDetail && tables.find(item => item.id === Number(tableDetail.dataset.tableId));
+  if (detailPanel?.classList.contains('open') && table && currentSession) {
+    const orderDetail = document.querySelector('#order-detail');
+    const notes = new Map([...orderDetail.querySelectorAll('[data-item-id]')].map(row => [row.dataset.itemId, row.querySelector('.removed-ingredients-input')?.value ?? '']));
+    const payment = orderDetail.querySelector('#payment-method')?.value;
+    renderTableDetail(table, currentSession);
+    if (activeOrder) renderOrderDetail(activeOrder, currentSession);
+    document.querySelectorAll('#order-detail [data-item-id]').forEach(row => {
+      const input = row.querySelector('.removed-ingredients-input');
+      if (input && notes.has(row.dataset.itemId)) input.value = notes.get(row.dataset.itemId);
+    });
+    if (payment) document.querySelector('#order-detail #payment-method').value = payment;
+  }
+  if (activeQrTable && document.querySelector('#table-qr-overlay')) void showTableQr(activeQrTable);
+});
 
 async function initializeApplication() {
   const guestToken = new URLSearchParams(window.location.search).get('mesa');
@@ -1378,6 +1577,7 @@ async function initializeApplication() {
 }
 
 export function startGestourantApp(applicationServices, applicationLogger, apiBaseUrl = '') {
+  updateDocumentLocale();
   services = applicationServices;
   logger = applicationLogger;
   apiBase = apiBaseUrl;
@@ -1417,7 +1617,7 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     if (!await refreshOrderDetail(updatedOrder, currentSession)) {
       throw new Error('No se pudo actualizar el detalle del pedido.');
     }
-    showToast('Producto agregado al pedido y guardado.');
+    showToast(translate('Producto agregado al pedido y guardado.'));
   };
   globalThis.__GESTOURANT_GET_ACTIVE_ORDER__ = async () => activeOrder
     ? { id: activeOrder.id, tableNumber: activeOrder.table.tableNumber }
@@ -1454,7 +1654,7 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     sessionStorage.setItem('gestourant_session', JSON.stringify(session));
     dashboardView(session);
     if (previousSessionClosed) {
-      showToast('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.');
+      showToast(translate('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.'));
     }
   };
   const applicationReady = globalThis.__GESTOURANT_AUTH_INITIALIZED__;

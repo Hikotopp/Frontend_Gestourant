@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from './locale';
+import { TranslatePipe, translate } from './locale';
 
 @Component({
   selector: 'app-tables-page',
@@ -206,7 +206,9 @@ export class TablesPage implements OnInit, OnDestroy {
       const updated = await updatePosition(this.session, tableId, position);
       this.tables.update((items) => items.map((table) => table.id === tableId ? updated : table));
     } catch (error) {
-      this.error.set(error instanceof Error ? `No se pudo guardar la ubicación: ${error.message}` : 'No se pudo guardar la ubicación.');
+      this.error.set(error instanceof Error
+        ? translate('No se pudo guardar la ubicación: {detail}', { detail: error.message })
+        : 'No se pudo guardar la ubicación.');
       await this.loadTables();
     }
   }

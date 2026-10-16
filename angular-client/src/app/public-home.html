@@ -1,6 +1,6 @@
 <main class="public-home">
   <header class="public-nav">
-    <a href="#" class="public-brand" aria-label="Gestourant, inicio" (click)="scrollToTop($event)">
+    <a href="#" class="public-brand" [attr.aria-label]="'Gestourant, inicio' | tr" (click)="scrollToTop($event)">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span>
       <span>Gestourant</span>
     </a>
@@ -122,9 +122,9 @@
             @for (item of selectedOrder; track item.id) {
               <article class="demo-order-line">
                 <span class="demo-line-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v13H4zM7 7l1-4h8l1 4M8 11h8m-8 4h5"/></svg></span>
-                <span class="demo-line-name"><strong>{{ item.name }}</strong>@if (item.note) { <small>{{ 'Indicación:' | tr }} {{ item.note }}</small> } @else { <small>{{ 'Preparado al momento' | tr }}</small> }</span>
+                <span class="demo-line-name"><strong>{{ item.name | tr }}</strong>@if (item.note) { <small>{{ 'Indicación:' | tr }} {{ item.note }}</small> } @else { <small>{{ 'Preparado al momento' | tr }}</small> }</span>
                 <strong class="demo-line-price">$ {{ formatMoney(item.price) }}</strong>
-                <button type="button" class="demo-remove" [attr.aria-label]="('Quitar' | tr) + ' ' + item.name" (click)="removeItem(item.id)">×</button>
+                <button type="button" class="demo-remove" [attr.aria-label]="('Quitar' | tr) + ' ' + (item.name | tr)" (click)="removeItem(item.id)">×</button>
               </article>
             } @empty {
               <p class="demo-no-items">{{ 'Aún no hay productos en la cuenta de prueba.' | tr }}</p>
@@ -139,7 +139,7 @@
           <div class="demo-total"><span>{{ 'Total de ejemplo' | tr }}</span><strong>$ {{ formatMoney(orderTotal) }} COP</strong></div>
           <div class="demo-add-area">
             <span>{{ 'Agregar a la cuenta' | tr }}</span>
-            <div><button type="button" (click)="addItem('Limonada natural', 7000)">＋ Limonada <strong>$ 7.000</strong></button><button type="button" (click)="addItem('Postre de la casa', 9000)">＋ Postre <strong>$ 9.000</strong></button></div>
+            <div><button type="button" (click)="addItem('Limonada natural', 7000)">＋ {{ 'Limonada' | tr }} <strong>$ 7.000</strong></button><button type="button" (click)="addItem('Postre de la casa', 9000)">＋ {{ 'Postre' | tr }} <strong>$ 9.000</strong></button></div>
           </div>
         }
         <p class="demo-confirm-note">{{ 'Las indicaciones de alergias siempre deben confirmarse con cocina.' | tr }}</p>
@@ -154,7 +154,7 @@
   </section>
 
   <footer class="public-footer">
-    <a href="#" class="public-brand" (click)="scrollToTop($event)"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span><span>Gestourant</span></a>
+    <a href="#" class="public-brand" [attr.aria-label]="'Gestourant, inicio' | tr" (click)="scrollToTop($event)"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M7 6v6m3-6v6m3-6v6M8.5 12v22m23-28c-2.5 3-3.5 5.5-3.5 9v5m0 0v12M13 25a7 7 0 0 1 14 0m-16 3h18m-15 3h12m-5-13v-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="13" r="1.8" fill="#e7b34f"/></svg></span><span>Gestourant</span></a>
     <span>{{ 'Herramientas para que cada servicio fluya mejor.' | tr }}</span>
     <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Privacidad y tratamiento de datos' | tr }}</a>
   </footer>

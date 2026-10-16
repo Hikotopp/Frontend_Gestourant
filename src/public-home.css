@@ -61,6 +61,69 @@
   gap: 11px;
 }
 
+.locale-picker {
+  position: relative;
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background .18s ease, border-color .18s ease;
+}
+
+.locale-picker:hover {
+  border-color: color-mix(in srgb, currentColor 28%, transparent);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.locale-picker:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.locale-picker-icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  color: var(--accent);
+}
+
+.locale-picker-value {
+  flex: none;
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--brand) 14%, var(--surface));
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.locale-picker-chevron {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  opacity: .68;
+}
+
+.locale-picker select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .public-login,
 .public-signup {
   display: inline-flex;
@@ -1028,6 +1091,13 @@
     font-size: 10px;
   }
 
+  .public-nav-actions .locale-picker {
+    min-height: 36px;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
   .public-nav-actions .public-signup {
     min-height: 36px;
     padding: 8px 10px;
@@ -1035,6 +1105,10 @@
   }
 
   .public-nav-actions .public-signup svg {
+    display: none;
+  }
+
+  .locale-picker-label {
     display: none;
   }
 

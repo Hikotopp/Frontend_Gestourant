@@ -1,4 +1,12 @@
-import { TranslatePipe, activeLocale, localeOptions, setLocale } from './locale';
+import {
+  formatLocalizedDate,
+  formatLocalizedNumber,
+  TranslatePipe,
+  activeLocale,
+  localeOptions,
+  setLocale,
+  translate,
+} from './locale';
 
 describe('Gestourant language selector', () => {
   afterEach(async () => {
@@ -27,5 +35,47 @@ describe('Gestourant language selector', () => {
     expect(activeLocale()).toBe('en');
     expect(setItem).toHaveBeenCalledWith('gestourant_locale', 'en');
     expect(document.documentElement.lang).toBe('en');
+  });
+
+  it('localizes the document title and description', async () => {
+    const description = document.createElement('meta');
+    description.name = 'description';
+    document.head.append(description);
+    try {
+      await setLocale('fr');
+      expect(document.title).toBe('Gestourant | Les services de votre restaurant au même endroit');
+      expect(description.content).toBe('Gérez les tables, les commandes et le menu de votre restaurant avec Gestourant. Découvrez la démo interactive.');
+    } finally {
+      description.remove();
+    }
+  });
+
+  it('interpolates translated parameters and preserves unknown messages', async () => {
+    await setLocale('en');
+    expect(translate('{count} productos disponibles', { count: 4 })).toBe('4 products available');
+    expect(translate('Error desconocido del servidor.')).toBe('Error desconocido del servidor.');
+  });
+
+  it('translates known backend messages that include a product name', async () => {
+    await setLocale('en');
+    expect(translate('Inventario insuficiente para Limonada')).toBe('There is not enough stock for Lemonade.');
+    expect(translate('Pollo a la plancha no está disponible en la cantidad solicitada'))
+      .toBe('Grilled chicken breast is not available in the requested quantity.');
+    await setLocale('fr');
+    expect(translate('Pollo no está disponible en la cantidad solicitada'))
+      .toBe('Pollo n’est pas disponible dans la quantité demandée.');
+  });
+
+  it('formats numbers and dates using the selected language', async () => {
+    await setLocale('de');
+    expect(formatLocalizedNumber(1234567)).toBe('1.234.567');
+    expect(formatLocalizedDate('2026-10-15T10:00:00Z', 'medium', 'UTC'))
+      .toBe(new Intl.DateTimeFormat('de', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'UTC',
+      }).format(new Date('2026-10-15T10:00:00Z')));
+    await setLocale('en');
+    expect(formatLocalizedNumber(1234567)).toBe('1,234,567');
   });
 });

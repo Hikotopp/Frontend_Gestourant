@@ -1,15 +1,12 @@
-import { CommonModule, registerLocaleData } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, signal } from '@angular/core';
-import localeEsCo from '@angular/common/locales/es-CO';
-import { TranslatePipe } from './locale';
-
-registerLocaleData(localeEsCo);
+import { LocalizedDatePipe, LocalizedNumberPipe, TranslatePipe } from './locale';
 
 type RequestQueue = 'orders' | 'kitchen';
 
 @Component({
   selector: 'app-requests-page',
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, LocalizedDatePipe, LocalizedNumberPipe, TranslatePipe],
   templateUrl: './requests-page.html',
 })
 export class RequestsPage implements OnInit, OnDestroy {

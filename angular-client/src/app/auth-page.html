@@ -53,7 +53,7 @@
           </div>
         </label>
         <div #captchaContainer class="captcha-slot"></div>
-        <label class="honeypot" aria-hidden="true">No llenar<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
+        <label class="honeypot" aria-hidden="true">{{ 'No llenar' | tr }}<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
         <p class="form-message" role="alert">{{ error() | tr }}</p>
         <button class="primary" type="submit" [disabled]="pending()">{{ 'Iniciar sesión' | tr }} <span>→</span></button>
         <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
@@ -71,11 +71,11 @@
         <label>{{ 'Contraseña' | tr }}
           <div class="password-wrap">
             <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="new-password" [placeholder]="'Mínimo 10 caracteres y un número' | tr" required minlength="10">
-            <button type="button" aria-label="Mostrar contraseña" (click)="togglePassword()">◉</button>
+            <button type="button" [attr.aria-label]="'Mostrar contraseña' | tr" (click)="togglePassword()">◉</button>
           </div>
         </label>
         <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>{{ 'Autorizo el tratamiento de mis datos para crear mi cuenta.' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Leer política' | tr }}</a>.</span></label>
-        <label class="honeypot" aria-hidden="true">No llenar<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
+        <label class="honeypot" aria-hidden="true">{{ 'No llenar' | tr }}<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
         <input type="hidden" name="captchaToken" [(ngModel)]="captchaToken">
         <div #captchaContainer class="captcha-slot"></div>
         <p class="form-hint">{{ 'Los permisos administrativos los asigna el responsable del sistema.' | tr }}</p>

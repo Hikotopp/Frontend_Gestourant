@@ -2,11 +2,11 @@ import { AfterViewInit, Component, signal } from '@angular/core';
 import { PublicHome } from './public-home';
 import { AuthPage } from './auth-page';
 import { DashboardPage } from './dashboard-page';
-import { activeLocale } from './locale';
+import { activeLocale, TranslatePipe } from './locale';
 
 @Component({
   selector: 'app-root',
-  imports: [PublicHome, AuthPage, DashboardPage],
+  imports: [PublicHome, AuthPage, DashboardPage, TranslatePipe],
   styleUrl: './app.css',
   template: `
     @if (showAngularHome() && authMode() === 'home') {
@@ -37,15 +37,15 @@ import { activeLocale } from './locale';
       }
     }
     @if (cookieNoticeVisible()) {
-      <aside class="cookie-notice" aria-label="Preferencias de cookies">
+      <aside class="cookie-notice" [attr.aria-label]="'Preferencias de cookies' | tr">
         <div>
-          <p class="eyebrow">TU PRIVACIDAD</p>
-          <strong>Cookies y almacenamiento</strong>
-          <p>Usamos almacenamiento esencial para mantener tu sesión y preferencias, y protección anti-bots cuando está habilitada. Consulta nuestra <a href="/politica-tratamiento.html" target="_blank" rel="noopener">política de datos y cookies</a>.</p>
+          <p class="eyebrow">{{ 'TU PRIVACIDAD' | tr }}</p>
+          <strong>{{ 'Cookies y almacenamiento' | tr }}</strong>
+          <p>{{ 'Usamos almacenamiento esencial para mantener tu sesión y preferencias, y protección anti-bots cuando está habilitada. Consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos y cookies' | tr }}</a>.</p>
         </div>
         <div class="cookie-actions">
-          <button type="button" class="outline" (click)="chooseCookies('necessary')">Solo necesarias</button>
-          <button type="button" class="primary" (click)="chooseCookies('all')">Aceptar</button>
+          <button type="button" class="outline" (click)="chooseCookies('necessary')">{{ 'Solo necesarias' | tr }}</button>
+          <button type="button" class="primary" (click)="chooseCookies('all')">{{ 'Aceptar' | tr }}</button>
         </div>
       </aside>
     }

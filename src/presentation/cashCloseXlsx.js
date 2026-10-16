@@ -1,3 +1,5 @@
+import { getLocale, translate } from '../shared/locale.js';
+
 const encoder = new TextEncoder();
 const CRC_TABLE = new Uint32Array(256);
 const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -145,7 +147,7 @@ function validateReport(report) {
     || !Number.isFinite(report.facturas) || !Number.isFinite(report.efectivo)
     || !Number.isFinite(report.digital) || !Number.isFinite(report.total)
     || !Array.isArray(report.invoices)) {
-    throw new TypeError('El historial contiene datos incompletos para exportar.');
+    throw new TypeError(translate('El historial contiene datos incompletos para exportar.'));
   }
 
   for (const invoice of report.invoices) {
@@ -153,7 +155,7 @@ function validateReport(report) {
       || typeof invoice.issuedAt !== 'string' || !Number.isFinite(invoice.tableNumber)
       || !['EFECTIVO', 'DIGITAL'].includes(invoice.paymentMethod)
       || !Number.isFinite(invoice.total) || typeof invoice.employee !== 'string') {
-      throw new TypeError('Una factura del historial contiene datos incompletos.');
+      throw new TypeError(translate('Una factura del historial contiene datos incompletos.'));
     }
   }
 }
@@ -167,7 +169,7 @@ function buildSalesSheet(report, includeEmployee) {
   const cashInvoices = invoices.filter(invoice => invoice.paymentMethod === 'EFECTIVO');
   const digitalInvoices = invoices.filter(invoice => invoice.paymentMethod === 'DIGITAL');
   const averageTicket = report.facturas ? report.total / report.facturas : 0;
-  const period = report.from === report.to ? report.from : `${report.from} a ${report.to}`;
+  const period = report.from === report.to ? report.from : translate('{from} a {to}', { from: report.from, to: report.to });
   const dailyTotals = new Map();
 
   for (const invoice of invoices) {
@@ -180,18 +182,18 @@ function buildSalesSheet(report, includeEmployee) {
   }
 
   const rows = [
-    { height: 34, cells: [styledCell('GESTOURANT  |  REPORTE DE VENTAS', 1)] },
-    { height: 25, cells: [styledCell(`Resumen ejecutivo · Periodo ${period}`, 2)] },
+    { height: 34, cells: [styledCell(translate('GESTOURANT  |  REPORTE DE VENTAS'), 1)] },
+    { height: 25, cells: [styledCell(translate('Resumen ejecutivo · Periodo {period}', { period }), 2)] },
     { height: 10, cells: [] },
-    { height: 24, cells: [styledCell('INDICADORES DEL PERIODO', 3)] },
+    { height: 24, cells: [styledCell(translate('INDICADORES DEL PERIODO'), 3)] },
     {
       height: 22,
       cells: [
-        styledCell('TOTAL VENDIDO', 4),
+        styledCell(translate('TOTAL VENDIDO'), 4),
         styledCell(null),
-        styledCell('FACTURAS', 4),
+        styledCell(translate('FACTURAS'), 4),
         styledCell(null),
-        styledCell('PROMEDIO POR FACTURA', 4),
+        styledCell(translate('PROMEDIO POR FACTURA'), 4),
         styledCell(null)
       ]
     },
@@ -207,18 +209,18 @@ function buildSalesSheet(report, includeEmployee) {
       ]
     },
     { height: 10, cells: [] },
-    { height: 24, cells: [styledCell('DESGLOSE DE PAGOS', 3)] },
+    { height: 24, cells: [styledCell(translate('DESGLOSE DE PAGOS'), 3)] },
     {
       cells: [
-        styledCell('MÉTODO DE PAGO', 8),
-        styledCell('FACTURAS', 8),
-        styledCell('TOTAL RECAUDADO', 8),
-        styledCell('PARTICIPACIÓN', 8)
+        styledCell(translate('MÉTODO DE PAGO'), 8),
+        styledCell(translate('FACTURAS'), 8),
+        styledCell(translate('TOTAL RECAUDADO'), 8),
+        styledCell(translate('PARTICIPACIÓN'), 8)
       ]
     },
     {
       cells: [
-        styledCell('Efectivo', 9),
+        styledCell(translate('Efectivo'), 9),
         styledCell(cashInvoices.length, 10),
         styledCell(report.efectivo, 11),
         styledCell(report.total ? report.efectivo / report.total : 0, 12)
@@ -226,7 +228,7 @@ function buildSalesSheet(report, includeEmployee) {
     },
     {
       cells: [
-        styledCell('Digital', 13),
+        styledCell(translate('Digital'), 13),
         styledCell(digitalInvoices.length, 10),
         styledCell(report.digital, 11),
         styledCell(report.total ? report.digital / report.total : 0, 12)
@@ -234,28 +236,28 @@ function buildSalesSheet(report, includeEmployee) {
     },
     {
       cells: [
-        styledCell('TOTAL', 15),
+        styledCell(translate('TOTAL'), 15),
         styledCell(report.facturas, 16),
         styledCell(report.total, 17),
         styledCell(report.total ? 1 : 0, 18)
       ]
     },
     { height: 10, cells: [] },
-    { height: 24, cells: [styledCell('VENTAS POR DIA', 3)] },
+    { height: 24, cells: [styledCell(translate('VENTAS POR DIA'), 3)] },
     {
       cells: [
-        styledCell('FECHA', 8),
-        styledCell('FACTURAS', 8),
-        styledCell('EFECTIVO', 8),
-        styledCell('DIGITAL', 8),
-        styledCell('TOTAL DEL DIA', 8)
+        styledCell(translate('FECHA'), 8),
+        styledCell(translate('FACTURAS'), 8),
+        styledCell(translate('EFECTIVO'), 8),
+        styledCell(translate('DIGITAL'), 8),
+        styledCell(translate('TOTAL DEL DIA'), 8)
       ]
     }
   ];
 
   const days = [...dailyTotals.entries()].sort(([first], [second]) => first.localeCompare(second));
   if (!days.length) {
-    rows.push({ cells: [styledCell('No hay facturas para el periodo seleccionado.', 19)] });
+    rows.push({ cells: [styledCell(translate('No hay facturas para el periodo seleccionado.'), 19)] });
   } else {
     days.forEach(([date, day], index) => rows.push({
       cells: [
@@ -268,11 +270,11 @@ function buildSalesSheet(report, includeEmployee) {
     }));
   }
 
-  const headers = ['Factura', 'Fecha y hora', 'Mesa', 'Método de pago', 'Total (COP)'];
-  if (includeEmployee) headers.push('Pedido abierto por');
+  const headers = ['Factura', 'Fecha y hora', 'Mesa', 'Método de pago', 'Total (COP)'].map(value => translate(value));
+  if (includeEmployee) headers.push(translate('Pedido abierto por'));
   const detailTitleRow = rows.length + 2;
   rows.push({ height: 10, cells: [] });
-  rows.push({ height: 24, cells: [styledCell('DETALLE DE FACTURAS', 3)] });
+  rows.push({ height: 24, cells: [styledCell(translate('DETALLE DE FACTURAS'), 3)] });
   rows.push({ height: 25, cells: headers.map(header => styledCell(header, 8)) });
   const headerRow = rows.length;
 
@@ -282,7 +284,7 @@ function buildSalesSheet(report, includeEmployee) {
       styledCell(invoice.invoiceNumber, style),
       styledCell(invoice.issuedAt.replace('T', ' '), style),
       styledCell(invoice.tableNumber, index % 2 ? 21 : 10),
-      styledCell(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital', style),
+      styledCell(translate(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'), style),
       styledCell(invoice.total, index % 2 ? 22 : 11)
     ];
     if (includeEmployee) cells.push(styledCell(invoice.employee, style));
@@ -291,8 +293,8 @@ function buildSalesSheet(report, includeEmployee) {
 
   const lastInvoiceRow = Math.max(headerRow, rows.length);
   const totalCells = [
-    styledCell('TOTAL DEL PERIODO', 15),
-    styledCell(`${report.invoices.length} facturas`, 16),
+    styledCell(translate('TOTAL DEL PERIODO'), 15),
+    styledCell(translate('{count} facturas', { count: report.invoices.length }), 16),
     styledCell(null),
     styledCell(null),
     styledCell(report.total, 17)
@@ -300,9 +302,9 @@ function buildSalesSheet(report, includeEmployee) {
   if (includeEmployee) totalCells.push(styledCell(null));
   rows.push({ height: 25, cells: totalCells });
 
-  const generatedAt = new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  const generatedAt = new Date().toLocaleString(getLocale(), { dateStyle: 'medium', timeStyle: 'short' });
   const footerRow = rows.length + 1;
-  rows.push({ height: 24, cells: [styledCell(`Generado el ${generatedAt} · Valores expresados en pesos colombianos (COP).`, 24)] });
+  rows.push({ height: 24, cells: [styledCell(translate('Generado el {date} · Valores expresados en pesos colombianos (COP).', { date: generatedAt }), 24)] });
   const lastColumn = includeEmployee ? 'F' : 'E';
   return {
     rows: rows.map(row => Object.assign(row.cells, { height: row.height })),
@@ -361,7 +363,7 @@ function createWorkbook(sheet, sheetName) {
 
 export function createCashCloseXlsx(report, includeEmployee = false) {
   validateReport(report);
-  return createWorkbook(buildSalesSheet(report, includeEmployee), 'Ventas');
+  return createWorkbook(buildSalesSheet(report, includeEmployee), translate('Ventas'));
 }
 
 const menuCategoryNames = {
@@ -375,26 +377,26 @@ function validateMenu(products) {
     !product || typeof product.name !== 'string'
     || (product.description !== null && product.description !== undefined && typeof product.description !== 'string')
     || typeof product.category !== 'string' || !Number.isFinite(Number(product.price)))) {
-    throw new TypeError('La carta contiene datos incompletos para exportar.');
+    throw new TypeError(translate('La carta contiene datos incompletos para exportar.'));
   }
 }
 
 export function createMenuXlsx(products, tableNumber) {
   validateMenu(products);
   const rows = [
-    { height: 38, cells: [styledCell('GESTOURANT  |  LA CARTA', 1)] },
-    { height: 24, cells: [styledCell(`Menú digital${tableNumber ? ` · Mesa ${tableNumber}` : ''} · Valores en pesos colombianos (COP)`, 2)] },
+    { height: 38, cells: [styledCell(translate('GESTOURANT  |  LA CARTA'), 1)] },
+    { height: 24, cells: [styledCell(translate('Menú digital{table} · Valores en pesos colombianos (COP)', { table: tableNumber ? ` · ${translate('Mesa')} ${tableNumber}` : '' }), 2)] },
     { height: 12, cells: [] },
-    { height: 25, cells: [styledCell('PREPARADO PARA DISFRUTAR', 3)] },
+    { height: 25, cells: [styledCell(translate('PREPARADO PARA DISFRUTAR'), 3)] },
     {
       height: 27,
-      cells: ['Categoría', 'Producto', 'Descripción', 'Precio (COP)'].map(value => styledCell(value, 8))
+      cells: ['Categoría', 'Producto', 'Descripción', 'Precio (COP)'].map(value => styledCell(translate(value), 8))
     }
   ];
 
   const sortedProducts = [...products].sort((first, second) =>
-    (menuCategoryNames[first.category] || first.category).localeCompare(menuCategoryNames[second.category] || second.category, 'es')
-    || first.name.localeCompare(second.name, 'es')
+    (menuCategoryNames[first.category] || first.category).localeCompare(menuCategoryNames[second.category] || second.category, getLocale())
+    || first.name.localeCompare(second.name, getLocale())
   );
 
   sortedProducts.forEach((product, index) => {
@@ -402,9 +404,9 @@ export function createMenuXlsx(products, tableNumber) {
     rows.push({
       height: 26,
       cells: [
-        styledCell(menuCategoryNames[product.category] || product.category, style),
-        styledCell(product.name, style),
-        styledCell(product.description || 'Preparado al momento en nuestra cocina.', style),
+        styledCell(menuCategoryNames[product.category] ? translate(menuCategoryNames[product.category]) : product.category, style),
+        styledCell(translate(product.name), style),
+        styledCell(product.description ? translate(product.description) : translate('Preparado al momento en nuestra cocina.'), style),
         styledCell(Number(product.price), index % 2 ? 22 : 11)
       ]
     });
@@ -418,7 +420,7 @@ export function createMenuXlsx(products, tableNumber) {
     autoFilterRange: `A5:D${endRow}`,
     tabColor: 'E7B34F'
   };
-  return createWorkbook(sheet, 'Menú');
+  return createWorkbook(sheet, translate('Menú'));
 }
 
 export function downloadCashCloseXlsx(report, includeEmployee = false) {

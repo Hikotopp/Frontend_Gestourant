@@ -1,13 +1,13 @@
 <header class="page-heading">
   <div><p class="eyebrow">{{ 'CARTA · COCINA Y BAR' | tr }}</p><h1>{{ 'Menú del restaurante' | tr }}</h1><p class="muted">{{ 'Platos y bebidas disponibles durante el servicio.' | tr }}</p></div>
-  <span class="menu-count">{{ products().filter(isActive).length }} productos disponibles</span>
+  <span class="menu-count">{{ '{count} productos disponibles' | tr: { count: products().filter(isActive).length } }}</span>
 </header>
 
 @if (error()) { <p class="form-message" role="alert">{{ error() | tr }}</p> }
 @if (notice()) { <p class="auth-notice" role="status">{{ notice() | tr }}</p> }
 
 @if (activeOrder(); as order) {
-  <div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>Pedido en curso · Mesa {{ order.tableNumber }}</strong><small>Pedido #{{ order.id }} · Los productos se agregarán a esta cuenta</small></div></div>
+  <div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>{{ 'Pedido en curso · Mesa {table}' | tr: { table: order.tableNumber } }}</strong><small>{{ 'Pedido #{id} · Los productos se agregarán a esta cuenta' | tr: { id: order.id } }}</small></div></div>
 } @else {
   <div class="active-order-banner no-active-order"><div><span><strong>{{ 'Para tomar un pedido' | tr }}</strong><small>{{ 'Selecciona una mesa libre o en servicio.' | tr }}</small></span></div><button class="outline" type="button" (click)="chooseTable.emit()">{{ 'Elegir mesa' | tr }} →</button></div>
 }
@@ -38,9 +38,9 @@
     @else {
       @for (product of visibleProducts; track product.id) {
         <article class="product-card" [class.inactive]="!product.active">
-          <div class="product-photo-wrap"><img class="product-photo" [src]="photo(product)" [alt]="product.name" loading="lazy" (error)="fallbackPhoto($event, product)"><span class="product-category">{{ (product.category || 'PLATO') | tr }}</span>@if (!product.active) { <span class="menu-unavailable">{{ 'Pausado' | tr }}</span> }</div>
-          <div class="product-card-body"><div class="product-card-title"><h3>{{ product.name }}</h3><strong>$ {{ product.price | number:'1.0-0':'es-CO' }}</strong></div>
-            <p>{{ (product.description || 'Preparado al momento en nuestra cocina.') | tr }}</p>
+          <div class="product-photo-wrap"><img class="product-photo" [src]="photo(product)" [alt]="product.name | tr" loading="lazy" (error)="fallbackPhoto($event, product)"><span class="product-category">{{ (product.category || 'PLATO') | tr }}</span>@if (!product.active) { <span class="menu-unavailable">{{ 'Pausado' | tr }}</span> }</div>
+          <div class="product-card-body"><div class="product-card-title"><h3>{{ product.name | tr }}</h3><strong>$ {{ product.price | localizedNumber }}</strong></div>
+            <p>{{ product.description ? (product.description | tr) : ('Preparado al momento en nuestra cocina.' | tr) }}</p>
             <div class="product-card-footer"><span class="stock" [class.low]="product.stock < 5">{{ product.stock > 0 ? product.stock + ' ' + ('disponibles' | tr) : ('Agotado' | tr) }}</span><div class="product-actions">
               @if (product.active && product.stock > 0) { <button [class.primary]="activeOrder()" [class.outline]="!activeOrder()" type="button" (click)="addToOrder(product)">{{ (activeOrder() ? '＋ Agregar' : 'Elegir mesa') | tr }}</button> } @else { <span class="unavailable">{{ 'No disponible' | tr }}</span> }
               @if (isAdmin) { <button class="outline" type="button" [attr.aria-label]="'Editar producto' | tr" (click)="editProduct(product)">{{ 'Editar' | tr }}</button><button class="danger" type="button" [attr.aria-label]="'Eliminar producto' | tr" (click)="deleteProduct(product)">{{ 'Eliminar' | tr }}</button> }

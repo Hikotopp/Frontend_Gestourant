@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { LanguagePicker } from './language-picker';
-import { TranslatePipe } from './locale';
+import { formatLocalizedNumber, TranslatePipe } from './locale';
 
 type DemoTableStatus = 'LIBRE' | 'OCUPADA';
 
@@ -82,7 +82,7 @@ export class PublicHome {
   }
 
   formatMoney(amount: number): string {
-    return amount.toLocaleString('es-CO');
+    return formatLocalizedNumber(amount);
   }
 
   scrollToTop(event: Event): void {

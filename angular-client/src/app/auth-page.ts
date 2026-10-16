@@ -2,7 +2,7 @@ import { AfterViewChecked, Component, ElementRef, EventEmitter, Input, Output, V
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LanguagePicker } from './language-picker';
-import { TranslatePipe } from './locale';
+import { TranslatePipe, translate } from './locale';
 
 type AuthMode = 'home' | 'login' | 'register' | 'oauth-register';
 
@@ -43,7 +43,7 @@ export class AuthPage implements AfterViewChecked {
   private captchaScriptLoading = false;
 
   get apiRoot(): string {
-    return (globalThis.__GESTOURANT_CONFIG__?.apiBase || 'http://localhost:8081').replace(/\/+$/, '');
+    return (globalThis.__GESTOURANT_CONFIG__?.apiBase || window.location.origin).replace(/\/+$/, '');
   }
 
   ngAfterViewChecked(): void {
@@ -174,18 +174,18 @@ export class AuthPage implements AfterViewChecked {
     if (invalid instanceof HTMLInputElement) {
       const labelElement = invalid.closest('label');
       const labelText = labelElement?.innerText ?? labelElement?.textContent ?? '';
-      const label = labelText.split('\n')[0].trim() || 'este campo';
+      const label = labelText.split('\n')[0].trim() || translate('este campo');
       const validity = invalid.validity;
       if (validity.valueMissing && invalid.type === 'checkbox') {
         this.error.set('Debes autorizar el tratamiento de tus datos para continuar.');
       } else if (validity.valueMissing) {
-        this.error.set(`Completa el campo «${label}».`);
+        this.error.set(translate('Completa el campo «{label}».', { label }));
       } else if (validity.typeMismatch && invalid.type === 'email') {
         this.error.set('Escribe un correo electrónico válido.');
       } else if (validity.tooShort) {
-        this.error.set(`Este campo debe tener al menos ${invalid.minLength} caracteres.`);
+        this.error.set(translate('Este campo debe tener al menos {count} caracteres.', { count: invalid.minLength }));
       } else {
-        this.error.set(`Revisa el campo «${label}».`);
+        this.error.set(translate('Revisa el campo «{label}».', { label }));
       }
       invalid.focus();
       return false;

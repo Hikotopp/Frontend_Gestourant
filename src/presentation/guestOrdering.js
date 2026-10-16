@@ -5,21 +5,27 @@ import { calculateCartTotal } from '../domain/product';
 import { brandMark } from './brandMark';
 import { downloadMenuXlsx, printMenuPdf } from './menuDownload';
 import { fallbackProductPhoto, productPhoto } from './productPhoto';
+import { bindLanguagePicker, getLocale, languagePicker, translate, translateBackendMessage } from '../shared/locale.js';
 
-const money = value => `$ ${Number(value || 0).toLocaleString('es-CO')} COP`;
+const money = value => `$ ${Number(value || 0).toLocaleString(getLocale())} COP`;
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
-const requestStatusLabel = status => ({
-  PENDIENTE: 'Pendiente de confirmar',
-  EN_COCINA: 'Confirmada · en cocina',
-  PREPARANDO: 'En preparación',
-  LISTO: 'Lista para servir',
-  RECHAZADA: 'No aceptada'
-})[status] || status;
+const requestStatusLabel = status => {
+  const label = ({
+    PENDIENTE: 'Pendiente de confirmar',
+    EN_COCINA: 'Confirmada · en cocina',
+    PREPARANDO: 'En preparación',
+    LISTO: 'Lista para servir',
+    RECHAZADA: 'No aceptada'
+  })[status] || status;
+  return translate(label);
+};
 
 export async function guestOrderingView(token, services) {
   const app = document.querySelector('#app');
-  const state = { token, guestSessionToken: null, data: null, requests: [], cart: new Map(), filter: 'TODOS', search: '', loading: true, message: '', sending: false };
-  app.innerHTML = '<main class="guest-shell"><div class="guest-loading"><span class="guest-spinner"></span><p>Preparando la carta de tu mesa…</p></div></main>';
+  const state = { token, guestSessionToken: null, data: null, requests: [], cart: new Map(), filter: 'TODOS', search: '', loading: true, message: '', sending: false, retryable: true };
+  let refreshInterval = null;
+  document.documentElement.lang = getLocale();
+  app.innerHTML = `<main class="guest-shell"><div class="guest-loading"><span class="guest-spinner"></span><p>${escapeHtml(translate('Preparando la carta de tu mesa…'))}</p></div></main>`;
 
   function getGuestSessionToken() {
     const key = `gestourant_guest_session_${token}`;
@@ -37,6 +43,7 @@ export async function guestOrderingView(token, services) {
 
   async function refresh() {
     try {
+      state.retryable = true;
       const [data, requests] = await Promise.all([
         services.guest.getTable(token),
         services.guest.listRequests(token, state.guestSessionToken)
@@ -45,48 +52,63 @@ export async function guestOrderingView(token, services) {
       state.requests = requests;
       state.message = '';
     } catch (error) {
+      state.retryable = !(error.status >= 400 && error.status < 500);
       state.message = error instanceof TypeError
         ? 'No se pudo conectar con el restaurante. Comprueba la conexión e inténtalo de nuevo.'
-        : error.message;
+        : error.sourceMessage || error.message;
+      if (!state.retryable && refreshInterval) {
+        window.clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
     } finally {
       state.loading = false;
       render();
+      if (state.retryable && !refreshInterval) refreshInterval = window.setInterval(refresh, 5000);
     }
   }
 
   function render() {
     if (!state.data) {
-      app.innerHTML = `<main class="guest-shell"><div class="guest-error"><div class="guest-logo">${brandMark()}</div><p class="guest-eyebrow">GESTOURANT · MENÚ DIGITAL</p><h1>${state.loading ? 'Cargando tu mesa…' : 'No pudimos abrir esta mesa'}</h1><p>${escapeHtml(state.message || 'Estamos preparando el servicio.')}</p><button type="button" class="guest-primary" data-action="retry">Intentar de nuevo</button><small>Si el problema continúa, solicita ayuda a un empleado.</small></div></main>`;
+      app.innerHTML = `<main class="guest-shell"><div class="guest-error"><div class="guest-logo">${brandMark()}</div>${languagePicker()}<p class="guest-eyebrow">${escapeHtml(translate('GESTOURANT · MENÚ DIGITAL'))}</p><h1>${escapeHtml(translate(state.loading ? 'Cargando tu mesa…' : 'No pudimos abrir esta mesa'))}</h1><p>${escapeHtml(state.message ? translateBackendMessage(state.message) : translate('Estamos preparando el servicio.'))}</p><button type="button" class="guest-primary" data-action="retry">${escapeHtml(translate('Intentar de nuevo'))}</button><small>${escapeHtml(translate('Si el problema continúa, solicita ayuda a un empleado.'))}</small></div></main>`;
+      bindLanguagePicker(app);
+      app.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => handleAction(button.dataset.action, button.dataset.product)));
       return;
     }
     const { data } = state;
     const cartItems = [...state.cart.values()].filter(item => item.quantity > 0);
+    const selectedProductCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     const cartTotal = calculateCartTotal(cartItems);
     const filteredProducts = data.menu.filter(product =>
       (state.filter === 'TODOS' || product.category === state.filter)
-      && `${product.name} ${product.description} ${product.category}`.toLowerCase().includes(state.search.toLowerCase())
+      && `${product.name} ${translate(product.name)} ${product.description} ${translate(product.description || '')} ${product.category}`.toLocaleLowerCase(getLocale()).includes(state.search.toLocaleLowerCase(getLocale()))
     );
+    const requestsMarkup = state.requests.length
+      ? `<div class="guest-request-list">${state.requests.map(request => `<article class="guest-request-card"><div class="guest-request-title"><span>${escapeHtml(translate('Solicitud #{id}', { id: request.id }))}</span><b class="request-${request.status.toLowerCase()}">${escapeHtml(requestStatusLabel(request.status))}</b></div><div class="guest-request-lines">${request.items.map(item => `<span>${item.quantity} × ${escapeHtml(translate(item.name))}${item.removedIngredients ? ` <small>· ${escapeHtml(translate('Sin'))} ${escapeHtml(item.removedIngredients)}</small>` : ''}</span>`).join('')}</div><strong>${money(request.total)}</strong></article>`).join('')}</div>`
+      : `<article class="guest-no-account"><span>◷</span><div><strong>${escapeHtml(translate('Aún no has enviado pedidos desde este dispositivo'))}</strong><small>${escapeHtml(translate('Cuando envíes una solicitud, su estado aparecerá aquí.'))}</small></div></article>`;
 
     app.innerHTML = `<main class="guest-shell">
-      <header class="guest-header"><a class="guest-brand" href="/" aria-label="Gestourant">${brandMark()}<span>Gestourant<small>MENÚ DIGITAL</small></span></a><span class="guest-table-chip"><i></i>Mesa ${data.tableNumber}</span></header>
-      <section class="guest-welcome"><div><p class="guest-eyebrow">BIENVENIDO A LA MESA ${data.tableNumber}</p><h1>Algo delicioso<br><em>te espera.</em></h1><p>Explora nuestra carta y envía tu selección. El equipo confirmará cada solicitud antes de enviarla a cocina.</p></div><div class="guest-welcome-art" aria-hidden="true"><span>✳</span><div class="guest-plate"></div><i></i></div></section>
-      ${state.message ? `<div class="guest-inline-error" role="alert">${escapeHtml(state.message)} <button data-action="retry">Actualizar</button></div>` : ''}
-      <section class="guest-account" aria-labelledby="guest-account-title"><div class="guest-section-heading"><div><p class="guest-eyebrow">PRIVADO EN ESTE DISPOSITIVO</p><h2 id="guest-account-title">Mis pedidos</h2></div><button type="button" class="guest-refresh" data-action="refresh" aria-label="Actualizar mis pedidos">↻</button></div>
-        <p class="guest-privacy-note">Aquí solo aparecen las solicitudes enviadas desde esta pestaña. Para consultar la cuenta compartida de la mesa, pide ayuda al equipo.</p>
-        ${state.requests.length ? `<div class="guest-request-list">${state.requests.map(request => `<article class="guest-request-card"><div class="guest-request-title"><span>Solicitud #${request.id}</span><b class="request-${request.status.toLowerCase()}">${escapeHtml(requestStatusLabel(request.status))}</b></div><div class="guest-request-lines">${request.items.map(item => `<span>${item.quantity} × ${escapeHtml(item.name)}${item.removedIngredients ? ` <small>· Sin ${escapeHtml(item.removedIngredients)}</small>` : ''}</span>`).join('')}</div><strong>${money(request.total)}</strong></article>`).join('')}</div>` : '<article class="guest-no-account"><span>◷</span><div><strong>Aún no has enviado pedidos desde este dispositivo</strong><small>Cuando envíes una solicitud, su estado aparecerá aquí.</small></div></article>'}
+      <header class="guest-header"><a class="guest-brand" href="/" aria-label="Gestourant">${brandMark()}<span>Gestourant<small>${escapeHtml(translate('MENÚ DIGITAL'))}</small></span></a><span class="guest-table-chip"><i></i>${escapeHtml(translate('Mesa'))} ${data.tableNumber}</span>${languagePicker()}</header>
+      <section class="guest-welcome"><div><p class="guest-eyebrow">${escapeHtml(translate('BIENVENIDO A LA MESA {table}', { table: data.tableNumber }))}</p><h1>${escapeHtml(translate('Algo delicioso'))}<br><em>${escapeHtml(translate('te espera.'))}</em></h1><p>${escapeHtml(translate('Explora nuestra carta y envía tu selección. El equipo confirmará cada solicitud antes de enviarla a cocina.'))}</p></div><div class="guest-welcome-art" aria-hidden="true"><span>✳</span><div class="guest-plate"></div><i></i></div></section>
+      ${state.message ? `<div class="guest-inline-error" role="alert">${escapeHtml(translateBackendMessage(state.message))} <button data-action="retry">${escapeHtml(translate('Reintentar'))}</button></div>` : ''}
+      <section class="guest-account" aria-labelledby="guest-account-title"><div class="guest-section-heading"><div><p class="guest-eyebrow">${escapeHtml(translate('PRIVADO EN ESTE DISPOSITIVO'))}</p><h2 id="guest-account-title">${escapeHtml(translate('Mis pedidos'))}</h2></div><button type="button" class="guest-refresh" data-action="refresh" aria-label="${escapeHtml(translate('Actualizar mis pedidos'))}">↻</button></div>
+        <p class="guest-privacy-note">${escapeHtml(translate('Aquí solo aparecen las solicitudes enviadas desde esta pestaña. Para consultar la cuenta compartida de la mesa, pide ayuda al equipo.'))}</p>
+        ${requestsMarkup}
       </section>
-      <section class="guest-menu"><div class="guest-section-heading guest-menu-heading"><div><p class="guest-eyebrow">RECIÉN HECHO PARA TI</p><h2>La carta</h2></div><div class="guest-menu-heading-actions"><div class="guest-menu-downloads" aria-label="Descargar carta"><button type="button" class="guest-menu-download" data-action="download-menu-pdf"><span aria-hidden="true">↓</span>PDF</button><button type="button" class="guest-menu-download" data-action="download-menu-xlsx"><span aria-hidden="true">↓</span>Excel</button></div><span class="guest-menu-count">${filteredProducts.length} opciones</span></div></div>
-        <label class="guest-search"><span>⌕</span><input type="search" data-search placeholder="Buscar un plato, bebida…" value="${escapeHtml(state.search)}"></label>
-        <div class="guest-filters" role="group" aria-label="Filtrar carta">${[['TODOS','Todo'],['PLATO','Platos'],['BEBIDA','Bebidas'],['OTRO','Otros']].map(([id,label]) => `<button type="button" data-filter="${id}" class="${state.filter === id ? 'active' : ''}">${label}</button>`).join('')}</div>
+      <section class="guest-menu"><div class="guest-section-heading guest-menu-heading"><div><p class="guest-eyebrow">${escapeHtml(translate('RECIÉN HECHO PARA TI'))}</p><h2>${escapeHtml(translate('La carta'))}</h2></div><div class="guest-menu-heading-actions"><div class="guest-menu-downloads" aria-label="${escapeHtml(translate('Descargar carta'))}"><button type="button" class="guest-menu-download" data-action="download-menu-pdf"><span aria-hidden="true">↓</span>PDF</button><button type="button" class="guest-menu-download" data-action="download-menu-xlsx"><span aria-hidden="true">↓</span>Excel</button></div><span class="guest-menu-count">${escapeHtml(translate(filteredProducts.length === 1 ? '{count} opción' : '{count} opciones', { count: filteredProducts.length }))}</span></div></div>
+        <label class="guest-search"><span>⌕</span><input type="search" data-search placeholder="${escapeHtml(translate('Buscar un plato, bebida…'))}" value="${escapeHtml(state.search)}"></label>
+        <div class="guest-filters" role="group" aria-label="${escapeHtml(translate('Filtrar carta'))}">${[['TODOS','Todo'],['PLATO','Platos'],['BEBIDA','Bebidas'],['OTRO','Otros']].map(([id,label]) => `<button type="button" data-filter="${id}" class="${state.filter === id ? 'active' : ''}">${escapeHtml(translate(label))}</button>` ).join('')}</div>
         <div class="guest-product-grid">${filteredProducts.length ? filteredProducts.map(product => {
           const count = state.cart.get(product.id)?.quantity || 0;
-          return `<article class="guest-product-card"><img class="guest-product-image" src="${escapeHtml(productPhoto(product))}" data-fallback-src="${product.imageUrl ? escapeHtml(fallbackProductPhoto(product)) : ''}" data-category="${escapeHtml(product.category)}" alt="" loading="lazy"><div class="guest-product-body"><span class="guest-category">${escapeHtml(product.category)}</span><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.description)}</p><div class="guest-product-bottom"><strong>${money(product.price)}</strong>${count ? `<div class="guest-quantity"><button type="button" data-action="minus" data-product="${product.id}" aria-label="Quitar uno">−</button><span>${count}</span><button type="button" data-action="plus" data-product="${product.id}" aria-label="Agregar uno">＋</button></div>` : `<button type="button" class="guest-add" data-action="plus" data-product="${product.id}" aria-label="Agregar ${escapeHtml(product.name)}">＋</button>`}</div>${count ? `<label class="guest-allergy">Indicación o ingrediente a retirar<input data-note="${product.id}" maxlength="500" placeholder="Ej. sin maní (se confirmará con cocina)" value="${escapeHtml(state.cart.get(product.id)?.removedIngredients || '')}"></label>` : ''}</div></article>`;
-        }).join('') : '<div class="guest-empty-menu"><span>⌕</span><strong>No encontramos opciones</strong><p>Prueba otra búsqueda o categoría.</p></div>'}</div>
+          const name = translate(product.name);
+          const description = product.description ? translate(product.description) : '';
+          return `<article class="guest-product-card"><img class="guest-product-image" src="${escapeHtml(productPhoto(product))}" data-fallback-src="${product.imageUrl ? escapeHtml(fallbackProductPhoto(product)) : ''}" data-category="${escapeHtml(product.category)}" alt="" loading="lazy"><div class="guest-product-body"><span class="guest-category">${escapeHtml(translate(product.category))}</span><h3>${escapeHtml(name)}</h3><p>${escapeHtml(description)}</p><div class="guest-product-bottom"><strong>${money(product.price)}</strong>${count ? `<div class="guest-quantity"><button type="button" data-action="minus" data-product="${product.id}" aria-label="${escapeHtml(translate('Quitar uno'))}">−</button><span>${count}</span><button type="button" data-action="plus" data-product="${product.id}" aria-label="${escapeHtml(translate('Agregar uno'))}">＋</button></div>` : `<button type="button" class="guest-add" data-action="plus" data-product="${product.id}" aria-label="${escapeHtml(translate('Agregar {product}', { product: name }))}">＋</button>`}</div>${count ? `<label class="guest-allergy">${escapeHtml(translate('Indicación o ingrediente a retirar'))}<input data-note="${product.id}" maxlength="500" placeholder="${escapeHtml(translate('Ej. sin maní (se confirmará con cocina)'))}" value="${escapeHtml(state.cart.get(product.id)?.removedIngredients || '')}"></label>` : ''}</div></article>`;
+        }).join('') : `<div class="guest-empty-menu"><span>⌕</span><strong>${escapeHtml(translate('No encontramos opciones'))}</strong><p>${escapeHtml(translate('Prueba otra búsqueda o categoría.'))}</p></div>`}</div>
       </section>
-      ${cartItems.length ? `<aside class="guest-cart"><div><span>${cartItems.reduce((sum, item) => sum + item.quantity, 0)} productos seleccionados</span><strong>${money(cartTotal)}</strong></div><button type="button" class="guest-primary" data-action="send" ${state.sending ? 'disabled' : ''}>${state.sending ? 'Enviando…' : 'Enviar solicitud al equipo →'}</button><small>Tu pedido no se carga a la cuenta hasta que el empleado lo confirme.</small></aside>` : ''}
-      <footer class="guest-footer"><span>${brandMark()} <strong>Gestourant</strong></span><small>Servicio atento, a tu ritmo.</small><small>¿Necesitas ayuda? Llama a un empleado.</small></footer>
+      ${cartItems.length ? `<aside class="guest-cart"><div><span>${escapeHtml(translate(selectedProductCount === 1 ? '{count} producto seleccionado' : '{count} productos seleccionados', { count: selectedProductCount }))}</span><strong>${money(cartTotal)}</strong></div><button type="button" class="guest-primary" data-action="send" ${state.sending ? 'disabled' : ''}>${escapeHtml(translate(state.sending ? 'Enviando…' : 'Enviar solicitud al equipo →'))}</button><small>${escapeHtml(translate('Tu pedido no se carga a la cuenta hasta que el empleado lo confirme.'))}</small></aside>` : ''}
+      <footer class="guest-footer"><span>${brandMark()} <strong>Gestourant</strong></span><small>${escapeHtml(translate('Servicio atento, a tu ritmo.'))}</small><small>${escapeHtml(translate('¿Necesitas ayuda? Llama a un empleado.'))}</small></footer>
     </main>`;
 
+    bindLanguagePicker(app);
     app.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => handleAction(button.dataset.action, button.dataset.product)));
     app.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => { state.filter = button.dataset.filter; render(); }));
     app.querySelector('[data-search]')?.addEventListener('input', event => {
@@ -112,7 +134,7 @@ export async function guestOrderingView(token, services) {
       const icon = document.createElement('span');
       icon.textContent = image.dataset.category === 'BEBIDA' ? '◉' : '✳';
       const category = document.createElement('small');
-      category.textContent = image.dataset.category || 'PLATO';
+      category.textContent = translate(image.dataset.category || 'PLATO');
       placeholder.append(icon, category);
       image.replaceWith(placeholder);
     }));
@@ -124,7 +146,7 @@ export async function guestOrderingView(token, services) {
       try {
         printMenuPdf(state.data.menu, state.data.tableNumber);
       } catch (error) {
-        state.message = error.message;
+        state.message = error.sourceMessage || error.message;
         render();
       }
       return;
@@ -133,7 +155,7 @@ export async function guestOrderingView(token, services) {
       try {
         downloadMenuXlsx(state.data.menu, state.data.tableNumber);
       } catch (error) {
-        state.message = error.message;
+        state.message = error.sourceMessage || error.message;
         render();
       }
       return;
@@ -163,7 +185,7 @@ export async function guestOrderingView(token, services) {
         state.message = '';
         await refresh();
       } catch (error) {
-        state.message = error.message;
+        state.message = error.sourceMessage || error.message;
       } finally {
         state.sending = false;
         render();
@@ -172,6 +194,7 @@ export async function guestOrderingView(token, services) {
     }
   }
 
+  window.addEventListener('gestourant:locale-change', render);
   try {
     state.guestSessionToken = getGuestSessionToken();
   } catch (error) {
@@ -180,7 +203,6 @@ export async function guestOrderingView(token, services) {
   }
   if (state.guestSessionToken) {
     await refresh();
-    window.setInterval(refresh, 5000);
   } else {
     render();
   }

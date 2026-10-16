@@ -8,11 +8,11 @@
       <div class="restaurant">
         <span class="avatar">{{ (session.username || 'Equipo').charAt(0).toUpperCase() }}</span>
         <div>
-          <strong>Restaurante Central</strong>
+          <strong>{{ 'Restaurante Central' | tr }}</strong>
           <small>{{ session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado' }} · Turno activo</small>
         </div>
       </div>
-      <nav aria-label="Navegación principal">
+      <nav [attr.aria-label]="'Navegación principal' | tr">
         @for (item of visibleNavigation; track item.id) {
           <a
             [class.active]="item.id === activeView"

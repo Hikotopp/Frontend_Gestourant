@@ -1,4 +1,5 @@
 import '../pwa.css';
+import { translate } from '../shared/locale.js';
 
 function isLocalhost(hostname) {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
@@ -16,9 +17,9 @@ function updateNetworkStatus() {
     status.className = 'network-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
-    status.textContent = 'Sin conexión. La app y el contenido público guardado están disponibles; los datos y pedidos requieren internet.';
     document.body.prepend(status);
   }
+  status.textContent = translate('Sin conexión. La app y el contenido público guardado están disponibles; los datos y pedidos requieren internet.');
 }
 
 export function initializePwa(logger) {
@@ -31,6 +32,7 @@ export function initializePwa(logger) {
   updateNetworkStatus();
   window.addEventListener('online', updateNetworkStatus);
   window.addEventListener('offline', updateNetworkStatus);
+  window.addEventListener('gestourant:locale-change', updateNetworkStatus);
 
   if (!('serviceWorker' in navigator)) {
     logger.warn('Service workers are not supported by this browser');
