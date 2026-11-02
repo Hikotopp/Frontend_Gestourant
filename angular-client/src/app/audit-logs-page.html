@@ -1,0 +1,46 @@
+<header class="overview-header">
+  <div>
+    <p class="eyebrow">{{ 'ADMINISTRACIÓN' | tr }}</p>
+    <h1>{{ 'Registro de auditoría' | tr }}</h1>
+    <p class="muted">{{ 'Consulta las acciones realizadas por los usuarios del sistema.' | tr }}</p>
+  </div>
+</header>
+
+<section class="report-history-card" [attr.aria-busy]="loading()">
+  <div class="report-history-heading">
+    <div><p class="eyebrow">{{ 'ADMINISTRACIÓN' | tr }}</p><h2>{{ 'Registro de auditoría' | tr }}</h2></div>
+    <span>{{ totalElements() }} {{ 'registros' | tr }}</span>
+  </div>
+  @if (error()) {
+    <p class="form-message" role="alert">{{ 'No se pudieron cargar los registros de auditoría.' | tr }} {{ error() | tr }}</p>
+    <button type="button" class="outline" (click)="load()">{{ 'Reintentar' | tr }}</button>
+  }
+  <div class="report-table-wrap">
+    @if (loading()) {
+      <p class="report-empty">{{ 'Cargando registros de auditoría…' | tr }}</p>
+    } @else if (entries().length) {
+      <table class="report-table">
+        <thead><tr>
+          <th>{{ 'Fecha y hora' | tr }}</th><th>{{ 'Usuario' | tr }}</th><th>{{ 'Acción' | tr }}</th>
+          <th>{{ 'Recurso' | tr }}</th><th>{{ 'Detalles' | tr }}</th><th>{{ 'Dirección IP' | tr }}</th>
+        </tr></thead>
+        <tbody>
+          @for (entry of entries(); track entry.id) {
+            <tr>
+              <td>{{ formatDate(entry.createdAt) }}</td><td>{{ entry.username || '—' }}</td>
+              <td>{{ entry.action }}</td><td>{{ entry.resource }}</td><td>{{ entry.details || '—' }}</td>
+              <td>{{ entry.ipAddress || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="report-empty">{{ 'No hay registros de auditoría para mostrar.' | tr }}</p>
+    }
+  </div>
+  <div class="header-actions">
+    <button type="button" class="outline" [disabled]="loading() || page() <= 0" (click)="load(page() - 1)">{{ 'Anterior' | tr }}</button>
+    <span>{{ 'Página {current} de {total}' | tr:{ current: totalPages() ? page() + 1 : 0, total: totalPages() } }}</span>
+    <button type="button" class="outline" [disabled]="loading() || page() + 1 >= totalPages()" (click)="load(page() + 1)">{{ 'Siguiente' | tr }}</button>
+  </div>
+</section>

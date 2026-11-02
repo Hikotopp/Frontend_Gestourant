@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LanguagePicker } from './language-picker';
 import { TranslatePipe, translate } from './locale';
+import { isValidRegistrationPassword } from '../../../src/shared/passwordPolicy.js';
 
 type AuthMode = 'home' | 'login' | 'register' | 'oauth-register';
 
@@ -101,11 +102,11 @@ export class AuthPage implements AfterViewChecked {
   }
 
   async submitRegistration(form: HTMLFormElement): Promise<void> {
-    if (!this.validate(form)) return;
-    if (!/\d/.test(this.password)) {
-      this.error.set('La contraseña debe incluir al menos un número.');
+    if (this.password && !isValidRegistrationPassword(this.password)) {
+      this.error.set('La contraseña debe tener al menos 12 caracteres e incluir una mayúscula, una minúscula, un número y un carácter especial.');
       return;
     }
+    if (!this.validate(form)) return;
     if (this.config.captchaEnabled && !this.captchaToken) {
       this.error.set('Completa la verificación de seguridad.');
       return;

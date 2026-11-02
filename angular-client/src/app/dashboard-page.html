@@ -49,6 +49,8 @@
         <app-reports-page [session]="session" />
       } @else if (activeView === 'backups' && session && session.role === 'ADMINISTRADOR') {
         <app-backups-page [session]="session" />
+      } @else if (activeView === 'audit' && session && session.role === 'ADMINISTRADOR') {
+        <app-audit-logs-page [session]="session" />
       } @else {
       <header class="overview-header">
         <div>

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { BackupsPage } from './backups-page';
+import { AuditLogsPage } from './audit-logs-page';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
 import { ProductsPage } from './products-page';
 import { ReportsPage } from './reports-page';
@@ -8,7 +9,7 @@ import { TablesPage } from './tables-page';
 import { TranslatePipe } from './locale';
 import { LanguagePicker } from './language-picker';
 
-type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
+type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups' | 'audit';
 
 interface NavigationItem {
   id: DashboardView | 'overview';
@@ -19,7 +20,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [BackupsPage, CommonModule, LanguagePicker, ProductsPage, ReportsPage, RequestsPage, TablesPage, TranslatePipe],
+  imports: [AuditLogsPage, BackupsPage, CommonModule, LanguagePicker, ProductsPage, ReportsPage, RequestsPage, TablesPage, TranslatePipe],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {
@@ -45,6 +46,7 @@ export class DashboardPage implements OnChanges {
     { id: 'products', label: 'Menú e inventario', path: 'M4 7h16v13H4zM7 7l1-4h8l1 4M8 11h8m-8 4h5' },
     { id: 'reports', label: 'Reportes', path: 'M4 19V5m0 14h17M7 15l4-4 3 2 6-7' },
     { id: 'backups', label: 'Copias de seguridad', path: 'M4 19V5m0 14h17M7 15l4-4 3 2 6-7', administratorsOnly: true },
+    { id: 'audit', label: 'Registro de auditoría', path: 'M4 5h16M4 12h16M4 19h16M8 5v.01M8 12v.01M8 19v.01', administratorsOnly: true },
   ];
 
   ngOnChanges(changes: SimpleChanges): void {

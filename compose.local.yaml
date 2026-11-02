@@ -40,6 +40,7 @@ services:
       MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
       MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
       BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_LOCAL_DIRECTORY: /app/backups
       BACKUP_S3_REGION: ${BACKUP_S3_REGION:-us-east-1}
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
       BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-gestourant/backups}
@@ -53,6 +54,7 @@ services:
       - "8081"
     volumes:
       - backend_logs:/app/logs
+      - backup_data:/app/backups
     depends_on:
       mysql:
         condition: service_healthy
@@ -96,4 +98,5 @@ networks:
 
 volumes:
   backend_logs:
+  backup_data:
   mysql_data:

@@ -6,6 +6,7 @@ const requiredOperations = {
   guest: ['getTable', 'listRequests', 'createRequest', 'listStaffRequests', 'approveStaffRequest', 'rejectStaffRequest'],
   kitchen: ['listRequests', 'advanceRequest'],
   backups: ['list', 'create', 'download', 'restore'],
+  audit: ['list'],
   reports: ['getCashClose']
 };
 

@@ -9,6 +9,7 @@ import '../kitchen-board.css';
 import '../qr-network.css';
 import './reports.css';
 import QRCode from 'qrcode';
+import { isValidRegistrationPassword } from '../shared/passwordPolicy.js';
 import {
   formatIdleCountdown,
   IDLE_LOCK_AFTER_MS,
@@ -28,6 +29,7 @@ const app = document.querySelector('#app');
 let tables = [];
 let products = [];
 let activeOrder = null;
+let auditCurrentPage = 0;
 let activeQrTable = null;
 let activeQrRenderId = 0;
 let productCategoryFilter = 'TODOS';
@@ -556,6 +558,14 @@ function registerView() {
   app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← ${escapeHtml(translate('Página principal'))}</button><div class="hero-copy"><p class="eyebrow">${escapeHtml(translate('EMPIEZA HOY'))}</p><h1>${escapeHtml(translate('La operación clara comienza aquí.'))}</h1><p>${escapeHtml(translate('Crea tu acceso y conoce el espacio de trabajo de Gestourant.'))}</p></div><div class="login-proof"><span>✦</span><div><strong>${escapeHtml(translate('Tu información, protegida'))}</strong><small>${escapeHtml(translate('Acceso seguro para cada miembro del equipo.'))}</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}${languagePicker()}</div><form id="register-form" class="login-card" novalidate><p class="eyebrow accent">${escapeHtml(translate('NUEVA CUENTA'))}</p><h2>${escapeHtml(translate('Crear cuenta'))}</h2><p class="muted">${escapeHtml(translate('Completa tus datos para comenzar.'))}</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}<label>${escapeHtml(translate('Nombre de usuario'))}<input name="username" autocomplete="username" placeholder="${escapeHtml(translate('ej. maria.lopez'))}" required minlength="3" /></label><label>${escapeHtml(translate('Correo electrónico'))}<input name="email" type="email" autocomplete="email" placeholder="${escapeHtml(translate('maria@restaurante.com'))}" required /></label><label>${escapeHtml(translate('Contraseña'))}<div class="password-wrap"><input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="${escapeHtml(translate('Mínimo 10 caracteres y un número'))}" required minlength="10" /><button type="button" id="toggle-password" aria-label="${escapeHtml(translate('Mostrar contraseña'))}">◉</button></div></label>${oauthConsentField('Autorizo el tratamiento de mis datos para crear mi cuenta.', true)}<label class="honeypot" aria-hidden="true">${escapeHtml(translate('No llenar'))}<input name="website" tabindex="-1" autocomplete="off" /></label><input type="hidden" name="captchaToken" /><div id="register-captcha" class="captcha-slot"></div><p class="form-hint">${escapeHtml(translate('Los permisos administrativos los asigna el responsable del sistema.'))}</p><p id="register-error" class="form-message" role="alert"></p><button id="register-button" class="primary" type="submit">${escapeHtml(translate('Crear mi cuenta'))} <span>→</span></button>${socialLoginOptions()}<p class="privacy-link">${escapeHtml(translate('Al continuar, consulta nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p><p class="demo-note">${escapeHtml(translate('¿Ya tienes cuenta?'))} <button type="button" class="text-button" id="show-login">${escapeHtml(translate('Inicia sesión'))}</button></p></form></section></main>`;
   bindThemeControls();
   bindLanguagePicker(app);
+  const passwordInput = app.querySelector('#register-password');
+  passwordInput.minLength = 12;
+  passwordInput.maxLength = 72;
+  passwordInput.setAttribute('aria-describedby', 'registration-password-policy');
+  passwordInput.closest('label').insertAdjacentHTML(
+    'afterend',
+    `<p id="registration-password-policy" class="form-hint">${escapeHtml(translate('La contraseña debe tener al menos 12 caracteres e incluir una mayúscula, una minúscula, un número y un carácter especial.'))}</p>`,
+  );
   document.querySelector('#back-home').addEventListener('click', publicHomeView);
   document.querySelector('#toggle-password').addEventListener('click', () => { const field = document.querySelector('#register-password'); field.type = field.type === 'password' ? 'text' : 'password'; });
   document.querySelector('#show-login').addEventListener('click', loginView);
@@ -654,7 +664,10 @@ async function register(event) {
   if (!showSpanishFormValidation(registerForm, message)) return;
   const form = new FormData(registerForm), button = document.querySelector('#register-button');
   const account = { username: form.get('username').trim(), email: form.get('email').trim(), password: form.get('password'), website: form.get('website'), captchaToken: form.get('captchaToken'), privacyConsent: form.get('privacyConsent') === 'on' };
-  if (!/\d/.test(account.password)) { message.textContent = translate('La contraseña debe incluir al menos un número.'); return; }
+  if (!isValidRegistrationPassword(account.password)) {
+    message.textContent = translate('La contraseña debe tener al menos 12 caracteres e incluir una mayúscula, una minúscula, un número y un carácter especial.');
+    return;
+  }
   if (authConfig.captchaEnabled && !account.captchaToken) { message.textContent = translate('Completa la verificación de seguridad.'); return; }
   message.textContent = ''; button.disabled = true; button.textContent = translate('Creando cuenta…');
   try {
@@ -671,7 +684,7 @@ function dashboardView(session) {
   currentSession = session;
   const user = escapeHtml(session.username || 'Equipo');
   const role = session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado';
-  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>${escapeHtml(translate('Restaurante Central'))}</strong><small>${escapeHtml(translate(role))} · ${escapeHtml(translate('Turno activo'))}</small></div></div><nav aria-label="${escapeHtml(translate('Navegación principal'))}"><a data-view="overview">${icon('overview')}<span>${escapeHtml(translate('Resumen'))}</span></a><a class="active" data-view="tables">${icon('tables')}<span>${escapeHtml(translate('Mesas'))}</span></a><a data-view="orders">${icon('orders')}<span>${escapeHtml(translate('Pedidos'))}</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>${escapeHtml(translate('Cocina'))}</span></a><a data-view="products">${icon('products')}<span>${escapeHtml(translate('Menú e inventario'))}</span></a><a data-view="reports">${icon('reports')}<span>${escapeHtml(translate('Reportes'))}</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('reports')}<span>${escapeHtml(translate('Copias de seguridad'))}</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}${languagePicker()}<button id="logout" class="logout">↪ ${escapeHtml(translate('Cerrar sesión'))}</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>${escapeHtml(translate('Tu sala está lista'))}</h3><p>${escapeHtml(translate('Selecciona una mesa para ver la cuenta y comenzar el servicio.'))}</p></div></aside></main>`;
+  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>${escapeHtml(translate('Restaurante Central'))}</strong><small>${escapeHtml(translate(role))} · ${escapeHtml(translate('Turno activo'))}</small></div></div><nav aria-label="${escapeHtml(translate('Navegación principal'))}"><a data-view="overview">${icon('overview')}<span>${escapeHtml(translate('Resumen'))}</span></a><a class="active" data-view="tables">${icon('tables')}<span>${escapeHtml(translate('Mesas'))}</span></a><a data-view="orders">${icon('orders')}<span>${escapeHtml(translate('Pedidos'))}</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>${escapeHtml(translate('Cocina'))}</span></a><a data-view="products">${icon('products')}<span>${escapeHtml(translate('Menú e inventario'))}</span></a><a data-view="reports">${icon('reports')}<span>${escapeHtml(translate('Reportes'))}</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('reports')}<span>${escapeHtml(translate('Copias de seguridad'))}</span></a><a data-view="audit">${icon('reports')}<span>${escapeHtml(translate('Registro de auditoría'))}</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}${languagePicker()}<button id="logout" class="logout">↪ ${escapeHtml(translate('Cerrar sesión'))}</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>${escapeHtml(translate('Tu sala está lista'))}</h3><p>${escapeHtml(translate('Selecciona una mesa para ver la cuenta y comenzar el servicio.'))}</p></div></aside></main>`;
   bindThemeControls();
   bindLanguagePicker(app);
   document.querySelector('#logout').addEventListener('click', () => logout(session));
@@ -720,6 +733,15 @@ async function navigate(view, session) {
     if (session.role !== 'ADMINISTRADOR') { showToast(translate('Solo el administrador puede gestionar copias de seguridad.'), true); return; }
     content.innerHTML = backupsView();
     await loadBackups(session);
+    return;
+  }
+  if (view === 'audit') {
+    if (session.role !== 'ADMINISTRADOR') {
+      showToast(translate('Solo el administrador puede consultar los registros de auditoría.'), true);
+      return;
+    }
+    content.innerHTML = auditLogsView();
+    await loadAuditLogs(session);
     return;
   }
   content.innerHTML = reportsView(session); await loadReport(session);
@@ -858,6 +880,59 @@ async function deleteProduct(id) { const product = products.find(item => item.id
 
 function backupsView() {
   return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('ADMINISTRACIÓN'))}</p><h1>${escapeHtml(translate('Copias de seguridad'))}</h1><p class="muted">${escapeHtml(translate('Crea respaldos completos de MySQL, descarga una copia o restaura un punto anterior.'))}</p></div><div class="header-actions"><button type="button" class="primary" id="create-backup">${escapeHtml(translate('Crear copia ahora'))}</button></div></header><section class="backup-warning"><strong>${escapeHtml(translate('Restaurar reemplaza los datos actuales de la base de datos.'))}</strong><span>${escapeHtml(translate('La operación requiere confirmación y solo está disponible para el administrador.'))}</span></section><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('ALMACENAMIENTO SEGURO'))}</p><h2>${escapeHtml(translate('Historial de respaldos'))}</h2></div><span id="backup-count">${escapeHtml(translate('Cargando…'))}</span></div><p id="backup-message" class="report-message" aria-live="polite"></p><div id="backup-history" class="report-table-wrap"><p class="report-empty">${escapeHtml(translate('Cargando copias de seguridad…'))}</p></div></section>`;
+}
+
+function auditLogsView() {
+  return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('ADMINISTRACIÓN'))}</p><h1>${escapeHtml(translate('Registro de auditoría'))}</h1><p class="muted">${escapeHtml(translate('Consulta las acciones realizadas por los usuarios del sistema.'))}</p></div></header><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('ADMINISTRACIÓN'))}</p><h2>${escapeHtml(translate('Registro de auditoría'))}</h2></div><span id="audit-count"></span></div><p id="audit-message" class="report-message" aria-live="polite"></p><button type="button" class="outline" id="audit-retry" hidden>${escapeHtml(translate('Reintentar'))}</button><div id="audit-history" class="report-table-wrap"><p class="report-empty">${escapeHtml(translate('Cargando registros de auditoría…'))}</p></div><div class="header-actions"><button type="button" class="outline" id="audit-previous">${escapeHtml(translate('Anterior'))}</button><span id="audit-page"></span><button type="button" class="outline" id="audit-next">${escapeHtml(translate('Siguiente'))}</button></div></section>`;
+}
+
+async function loadAuditLogs(session, page = 0) {
+  auditCurrentPage = page;
+  const list = document.querySelector('#audit-history');
+  const message = document.querySelector('#audit-message');
+  const count = document.querySelector('#audit-count');
+  const pageLabel = document.querySelector('#audit-page');
+  const previous = document.querySelector('#audit-previous');
+  const next = document.querySelector('#audit-next');
+  const retry = document.querySelector('#audit-retry');
+  if (!list || !message || !count || !pageLabel || !previous || !next || !retry) return;
+  message.textContent = '';
+  message.classList.remove('is-error');
+  count.textContent = '';
+  pageLabel.textContent = '';
+  list.innerHTML = `<p class="report-empty">${escapeHtml(translate('Cargando registros de auditoría…'))}</p>`;
+  previous.disabled = true;
+  next.disabled = true;
+  retry.hidden = true;
+  retry.onclick = () => { void loadAuditLogs(session, auditCurrentPage); };
+  try {
+    const result = await services.audit.list(session, page, 50);
+    if (!list.isConnected) return;
+    if (!Array.isArray(result?.content)
+      || !Number.isInteger(result.number)
+      || !Number.isInteger(result.totalPages)
+      || !Number.isInteger(result.totalElements)) {
+      throw new TypeError('La respuesta del historial de auditoría no tiene el formato esperado.');
+    }
+    const entries = result.content;
+    const totalPages = result.totalPages;
+    count.textContent = translate('{count} registros', { count: result.totalElements });
+    pageLabel.textContent = translate('Página {current} de {total}', {
+      current: totalPages ? result.number + 1 : 0,
+      total: totalPages,
+    });
+    list.innerHTML = entries.length ? `<table class="report-table"><thead><tr><th>${escapeHtml(translate('Fecha y hora'))}</th><th>${escapeHtml(translate('Usuario'))}</th><th>${escapeHtml(translate('Acción'))}</th><th>${escapeHtml(translate('Recurso'))}</th><th>${escapeHtml(translate('Detalles'))}</th><th>${escapeHtml(translate('Dirección IP'))}</th></tr></thead><tbody>${entries.map(entry => `<tr><td>${escapeHtml(new Date(entry.createdAt).toLocaleString(getLocale()))}</td><td>${escapeHtml(entry.username || '—')}</td><td>${escapeHtml(entry.action || '—')}</td><td>${escapeHtml(entry.resource || '—')}</td><td>${escapeHtml(entry.details || '—')}</td><td>${escapeHtml(entry.ipAddress || '—')}</td></tr>`).join('')}</tbody></table>` : `<p class="report-empty">${escapeHtml(translate('No hay registros de auditoría para mostrar.'))}</p>`;
+    previous.disabled = result.number <= 0;
+    next.disabled = result.number + 1 >= totalPages;
+    previous.onclick = () => { if (result.number > 0) void loadAuditLogs(session, result.number - 1); };
+    next.onclick = () => { if (result.number + 1 < totalPages) void loadAuditLogs(session, result.number + 1); };
+  } catch (error) {
+    if (!list.isConnected) return;
+    list.innerHTML = '';
+    message.textContent = `${translate('No se pudieron cargar los registros de auditoría.')} ${error instanceof Error ? error.message : String(error)}`;
+    message.classList.add('is-error');
+    retry.hidden = false;
+  }
 }
 
 async function loadBackups(session) {
@@ -1435,6 +1510,7 @@ window.addEventListener('gestourant:locale-change', () => {
       products: 'Menú e inventario',
       reports: 'Reportes',
       backups: 'Copias de seguridad',
+      audit: 'Registro de auditoría',
     };
     document.querySelectorAll('.sidebar nav [data-view]').forEach(link => {
       const label = link.querySelector('span');
@@ -1460,8 +1536,11 @@ window.addEventListener('gestourant:locale-change', () => {
     } else if (content?.querySelector('#backup-history')) {
       content.innerHTML = backupsView();
       void loadBackups(currentSession);
+    } else if (content?.querySelector('#audit-history')) {
+      content.innerHTML = auditLogsView();
+      void loadAuditLogs(currentSession, auditCurrentPage);
     }
-    if (content?.querySelector('.overview-header')) {
+    if (content?.querySelector('#overview-busy')) {
       content.innerHTML = overviewView(currentSession);
       void loadOverview(currentSession);
     }
@@ -1609,6 +1688,9 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     create: session => services.backups.create(session),
     download: (session, id) => services.backups.download(session, id),
     restore: (session, id) => services.backups.restore(session, id)
+  };
+  globalThis.__GESTOURANT_AUDIT__ = {
+    list: (session, page, size) => services.audit.list(session, page, size)
   };
   globalThis.__GESTOURANT_PRODUCT_PHOTO__ = product => productPhoto(product);
   globalThis.__GESTOURANT_ADD_ORDER_PRODUCT__ = async productId => {

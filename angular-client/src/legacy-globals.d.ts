@@ -114,6 +114,27 @@ interface GestourantBackup {
   sizeBytes: number;
 }
 
+interface GestourantAuditLog {
+  id: number;
+  username: string | null;
+  action: string;
+  resource: string;
+  details: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
+interface GestourantAuditLogPage {
+  content: GestourantAuditLog[];
+  number: number;
+  totalPages: number;
+  totalElements: number;
+}
+
+interface GestourantAuditBridge {
+  list: (session: GestourantSession, page?: number, size?: number) => Promise<GestourantAuditLogPage>;
+}
+
 interface GestourantBackupRestoreResult {
   safetyBackupFileName: string;
 }
@@ -156,7 +177,7 @@ interface GestourantKitchenRequest {
   items: GestourantRequestItem[];
 }
 
-type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups';
+type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups' | 'audit';
 
 interface GestourantAuthBridge {
   getConfig: () => Promise<GestourantAuthConfig>;
@@ -190,6 +211,7 @@ declare var __GESTOURANT_DOWNLOAD_REPORT__:
   | ((report: GestourantHistoryReport, includeEmployee: boolean) => Promise<void>)
   | undefined;
 declare var __GESTOURANT_BACKUPS__: GestourantBackupsBridge | undefined;
+declare var __GESTOURANT_AUDIT__: GestourantAuditBridge | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:
   | ((view: GestourantDashboardView) => Promise<void>)
   | undefined;

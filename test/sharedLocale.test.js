@@ -190,6 +190,8 @@ test('provides translations for every explicit Vite UI key in all supported lang
     '../angular-client/src/app/app.ts',
     '../angular-client/src/app/auth-page.html',
     '../angular-client/src/app/auth-page.ts',
+    '../angular-client/src/app/audit-logs-page.html',
+    '../angular-client/src/app/audit-logs-page.ts',
     '../angular-client/src/app/backups-page.html',
     '../angular-client/src/app/backups-page.ts',
     '../angular-client/src/app/dashboard-page.html',

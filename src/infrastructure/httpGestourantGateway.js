@@ -94,6 +94,12 @@ export function createHttpGestourantGateway(apiPort) {
         jsonRequest('POST', { confirmation: 'RESTAURAR' })
       )
     },
+    audit: {
+      list: (session, page = 0, size = 50) => api.request(
+        `/api/audit-logs?page=${page}&size=${size}`,
+        session
+      )
+    },
     reports: {
       getCashClose: session => api.request('/api/reports/cash-close', session),
       getHistory: (session, from, to, administrator) => {

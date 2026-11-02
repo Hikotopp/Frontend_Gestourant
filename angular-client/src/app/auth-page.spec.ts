@@ -42,7 +42,7 @@ describe('AuthPage', () => {
     const element = fixture.nativeElement as HTMLElement;
     setInput(element, 'input[name="username"]', 'maria');
     setInput(element, 'input[name="email"]', 'maria@example.com');
-    setInput(element, 'input[name="password"]', 'restaurante123');
+    setInput(element, 'input[name="password"]', 'Restaurante1!');
     fixture.detectChanges();
 
     await component.submitRegistration(element.querySelector('form')!);
@@ -82,7 +82,7 @@ describe('AuthPage', () => {
     globalThis.__GESTOURANT_COMPLETE_AUTH__ = completeAuthentication;
     setInput(element, 'input[name="username"]', 'maria');
     setInput(element, 'input[name="email"]', 'maria@example.com');
-    setInput(element, 'input[name="password"]', 'restaurante123');
+    setInput(element, 'input[name="password"]', 'Restaurante1!');
     const consent = element.querySelector<HTMLInputElement>('input[name="privacyConsent"]')!;
     consent.checked = true;
     consent.dispatchEvent(new Event('input', { bubbles: true }));

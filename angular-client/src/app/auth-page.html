@@ -70,10 +70,11 @@
         <label>{{ 'Correo electrónico' | tr }}<input name="email" [(ngModel)]="email" type="email" autocomplete="email" [placeholder]="'maria@restaurante.com' | tr" required></label>
         <label>{{ 'Contraseña' | tr }}
           <div class="password-wrap">
-            <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="new-password" [placeholder]="'Mínimo 10 caracteres y un número' | tr" required minlength="10">
+            <input name="password" [(ngModel)]="password" [type]="passwordVisible() ? 'text' : 'password'" autocomplete="new-password" [placeholder]="'Mínimo 12 caracteres, una mayúscula, una minúscula, un número y un carácter especial' | tr" required minlength="12" maxlength="72" aria-describedby="registration-password-policy">
             <button type="button" [attr.aria-label]="'Mostrar contraseña' | tr" (click)="togglePassword()">◉</button>
           </div>
         </label>
+        <p id="registration-password-policy" class="form-hint">{{ 'La contraseña debe tener al menos 12 caracteres e incluir una mayúscula, una minúscula, un número y un carácter especial.' | tr }}</p>
         <label class="oauth-consent"><input type="checkbox" name="privacyConsent" [(ngModel)]="privacyConsent" required><span>{{ 'Autorizo el tratamiento de mis datos para crear mi cuenta.' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'Leer política' | tr }}</a>.</span></label>
         <label class="honeypot" aria-hidden="true">{{ 'No llenar' | tr }}<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
         <input type="hidden" name="captchaToken" [(ngModel)]="captchaToken">
