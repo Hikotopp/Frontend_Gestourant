@@ -1,4 +1,4 @@
-import { getLocale, translate } from '../shared/locale.js';
+import { formatColombiaDate, getLocale, translate } from '../shared/locale.js';
 
 const encoder = new TextEncoder();
 const CRC_TABLE = new Uint32Array(256);
@@ -282,7 +282,7 @@ function buildSalesSheet(report, includeEmployee) {
     const style = index % 2 ? 20 : 9;
     const cells = [
       styledCell(invoice.invoiceNumber, style),
-      styledCell(invoice.issuedAt.replace('T', ' '), style),
+      styledCell(formatColombiaDate(invoice.issuedAt, getLocale()), style),
       styledCell(invoice.tableNumber, index % 2 ? 21 : 10),
       styledCell(translate(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'), style),
       styledCell(invoice.total, index % 2 ? 22 : 11)
@@ -302,7 +302,7 @@ function buildSalesSheet(report, includeEmployee) {
   if (includeEmployee) totalCells.push(styledCell(null));
   rows.push({ height: 25, cells: totalCells });
 
-  const generatedAt = new Date().toLocaleString(getLocale(), { dateStyle: 'medium', timeStyle: 'short' });
+  const generatedAt = formatColombiaDate(new Date(), getLocale());
   const footerRow = rows.length + 1;
   rows.push({ height: 24, cells: [styledCell(translate('Generado el {date} · Valores expresados en pesos colombianos (COP).', { date: generatedAt }), 24)] });
   const lastColumn = includeEmployee ? 'F' : 'E';

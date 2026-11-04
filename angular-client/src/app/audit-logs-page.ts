@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnChanges, SimpleChanges, signal } from '@angular/core';
-import { activeLocale, TranslatePipe } from './locale';
+import { formatLocalizedDate, TranslatePipe } from './locale';
 
 @Component({
   selector: 'app-audit-logs-page',
@@ -50,6 +50,6 @@ export class AuditLogsPage implements OnChanges {
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleString(activeLocale());
+    return formatLocalizedDate(date);
   }
 }

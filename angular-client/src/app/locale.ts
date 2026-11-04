@@ -1,4 +1,5 @@
 import { Pipe, PipeTransform, signal } from '@angular/core';
+import { formatColombiaDate } from '../../../src/shared/date-time.js';
 import { localeOptions } from '../../../src/shared/locale-options.js';
 import type { GestourantLocale } from '../../../src/shared/locale-translations.js';
 
@@ -25,12 +26,15 @@ export function formatLocalizedDate(
   format: 'medium' | 'time' = 'medium',
   timeZone?: string,
 ): string {
-  const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) return '';
-  const options: Intl.DateTimeFormatOptions = format === 'time'
-    ? { timeStyle: 'short', ...(timeZone ? { timeZone } : {}) }
-    : { dateStyle: 'medium', timeStyle: 'short', ...(timeZone ? { timeZone } : {}) };
-  return new Intl.DateTimeFormat(formattingLocale(), options).format(date);
+  if (timeZone) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (!Number.isFinite(date.getTime())) return '';
+    const options: Intl.DateTimeFormatOptions = format === 'time'
+      ? { timeStyle: 'short', timeZone }
+      : { dateStyle: 'medium', timeStyle: 'short', timeZone };
+    return new Intl.DateTimeFormat(formattingLocale(), options).format(date);
+  }
+  return formatColombiaDate(value, formattingLocale(), format);
 }
 
 const translations = signal<Record<string, Partial<Record<GestourantLocale, string>>>>({});

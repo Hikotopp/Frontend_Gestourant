@@ -13,9 +13,9 @@
   <div class="report-table-wrap" [attr.aria-busy]="loading()">
     @if (loading() && !backups().length) { <p class="report-empty">{{ 'Consultando las copias de seguridad…' | tr }}</p> }
     @else if (backups().length) {
-      <table class="report-table"><thead><tr><th>{{ 'Archivo' | tr }}</th><th>{{ 'Fecha y hora (UTC)' | tr }}</th><th>{{ 'Tamaño' | tr }}</th><th>{{ 'Acciones' | tr }}</th></tr></thead><tbody>
+      <table class="report-table"><thead><tr><th>{{ 'Archivo' | tr }}</th><th>{{ 'Fecha y hora' | tr }}</th><th>{{ 'Tamaño' | tr }}</th><th>{{ 'Acciones' | tr }}</th></tr></thead><tbody>
         @for (backup of backups(); track backup.id) {
-          <tr><td>{{ backup.fileName }}</td><td>{{ backup.createdAt | localizedDate:'medium':'UTC' }}</td><td>{{ formatSize(backup.sizeBytes) }}</td><td><div class="backup-actions"><button type="button" class="outline" [disabled]="busyIds().has(backup.id)" (click)="download(backup)">{{ 'Descargar' | tr }}</button><button type="button" class="outline" [disabled]="busyIds().has(backup.id)" (click)="restore(backup)">{{ 'Restaurar' | tr }}</button></div></td></tr>
+          <tr><td>{{ backup.fileName }}</td><td>{{ backup.createdAt | localizedDate }}</td><td>{{ formatSize(backup.sizeBytes) }}</td><td><div class="backup-actions"><button type="button" class="outline" [disabled]="busyIds().has(backup.id)" (click)="download(backup)">{{ 'Descargar' | tr }}</button><button type="button" class="outline" [disabled]="busyIds().has(backup.id)" (click)="restore(backup)">{{ 'Restaurar' | tr }}</button></div></td></tr>
         }
       </tbody></table>
     } @else if (!error()) { <p class="report-empty">{{ 'Todavía no hay copias. Crea la primera para que aparezca aquí.' | tr }}</p> }

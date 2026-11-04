@@ -1,5 +1,6 @@
 import { localeOptions } from './locale-options.js';
 import { translations } from './locale-translations.js';
+export { COLOMBIA_TIME_ZONE, formatColombiaDate, todayInBogota } from './date-time.js';
 
 export { localeOptions };
 

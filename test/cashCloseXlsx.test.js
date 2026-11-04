@@ -63,7 +63,12 @@ test('creates a workbook with a report summary and detailed invoices', async () 
   assert.match(files.get('xl/styles.xml'), /<name val="Georgia"\/>/);
   assert.match(files.get('xl/styles.xml'), /<cellXfs count="25">/);
   assert.match(files.get('xl/worksheets/sheet1.xml'), /FAC-1/);
-  assert.match(files.get('xl/worksheets/sheet1.xml'), /2026-10-02 14:30:00/);
+  const expectedIssuedAt = new Intl.DateTimeFormat('es-CO', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'America/Bogota',
+  }).format(new Date('2026-10-02T14:30:00-05:00'));
+  assert.ok(files.get('xl/worksheets/sheet1.xml').includes(expectedIssuedAt));
   assert.match(files.get('xl/worksheets/sheet1.xml'), /<autoFilter ref="A19:F20"\/>/);
   assert.match(files.get('xl/worksheets/sheet1.xml'), /Efectivo/);
   assert.match(files.get('xl/worksheets/sheet1.xml'), /maria/);

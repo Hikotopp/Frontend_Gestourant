@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { todayInBogota } from '../../../src/shared/date-time.js';
 import { LocalizedDatePipe, LocalizedNumberPipe, TranslatePipe, translate } from './locale';
 
 @Component({
@@ -92,6 +93,6 @@ export class ReportsPage implements OnInit {
   }
 
   private today(): string {
-    return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    return todayInBogota();
   }
 }
