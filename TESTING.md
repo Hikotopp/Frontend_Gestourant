@@ -22,9 +22,9 @@ Desde la raíz del repositorio frontend:
 
 ```powershell
 npm ci
+npm ci --prefix .\angular-client
 npm test
 npm run build
-npm ci --prefix .\angular-client
 npm --prefix .\angular-client test
 npm --prefix .\angular-client run build
 ```

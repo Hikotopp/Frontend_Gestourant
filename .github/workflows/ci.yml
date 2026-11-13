@@ -27,10 +27,15 @@ jobs:
         with:
           node-version: 24.15.0
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            angular-client/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Angular test tooling
+        run: npm ci --prefix angular-client
 
       - name: Run tests
         run: npm test
@@ -50,7 +55,12 @@ jobs:
         with:
           node-version: 24.15.0
           cache: npm
-          cache-dependency-path: angular-client/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            angular-client/package-lock.json
+
+      - name: Install shared frontend dependencies
+        run: npm ci
 
       - name: Install dependencies
         working-directory: angular-client
