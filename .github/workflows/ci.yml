@@ -1,0 +1,112 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vite:
+    name: Vite tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out frontend
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+
+  angular:
+    name: Angular tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out frontend
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: angular-client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: angular-client
+        run: npm ci
+
+      - name: Run tests
+        working-directory: angular-client
+        run: npm test
+
+      - name: Build production bundle
+        working-directory: angular-client
+        run: npm run build
+
+  system:
+    name: Docker Compose smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out frontend
+        uses: actions/checkout@v4
+        with:
+          repository: Hikotopp/Frontend_Gestourant
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: Frontend_Gestourant
+
+      - name: Check out backend
+        uses: actions/checkout@v4
+        with:
+          repository: Hikotopp/Backend_Gestourant
+          ref: main
+          path: Backend_Gestourant
+
+      - name: Validate Compose configuration
+        run: docker compose -f Frontend_Gestourant/compose.local.yaml config --quiet
+
+      - name: Start isolated system
+        run: docker compose -f Frontend_Gestourant/compose.local.yaml up --build --detach
+
+      - name: Verify frontend and backend are reachable
+        shell: bash
+        run: |
+          set -eu
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null \
+              && curl --fail --silent http://127.0.0.1:8080/api/auth/config \
+                --output "$RUNNER_TEMP/auth-config.json"; then
+              node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' \
+                "$RUNNER_TEMP/auth-config.json"
+              echo "Frontend is serving and the backend API returned valid JSON."
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f Frontend_Gestourant/compose.local.yaml logs --no-color
+          exit 1
+
+      - name: Stop isolated system
+        if: always()
+        run: docker compose -f Frontend_Gestourant/compose.local.yaml down --volumes --remove-orphans
