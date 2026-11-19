@@ -35,6 +35,7 @@ export class ProductsPage implements OnInit {
   description = '';
   imageUrl = '';
   price: number | null = null;
+  unitCost: number | null = null;
   stock: number | null = null;
   active = true;
 
@@ -101,6 +102,7 @@ export class ProductsPage implements OnInit {
     this.description = product.description || '';
     this.imageUrl = product.imageUrl || '';
     this.price = product.price;
+    this.unitCost = product.unitCost ?? 0;
     this.stock = product.stock;
     this.active = product.active;
     document.querySelector('.menu-admin-tools')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -114,12 +116,13 @@ export class ProductsPage implements OnInit {
     this.description = '';
     this.imageUrl = '';
     this.price = null;
+    this.unitCost = null;
     this.stock = null;
     this.active = true;
   }
 
   async saveProduct(form: HTMLFormElement): Promise<void> {
-    if (!form.reportValidity() || this.price === null || this.stock === null) return;
+    if (!form.reportValidity() || this.price === null || this.unitCost === null || this.stock === null) return;
     if (this.imageUrl && !this.imageUrl.startsWith('https://')) {
       this.error.set('La imagen debe tener una dirección segura que comience con https://');
       return;
@@ -140,6 +143,7 @@ export class ProductsPage implements OnInit {
         description: this.description.trim(),
         imageUrl: this.imageUrl.trim(),
         price: this.price,
+        unitCost: this.unitCost,
         stock: this.stock,
         active: this.active,
       }, editingId);

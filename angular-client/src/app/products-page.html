@@ -21,6 +21,7 @@
       <label class="form-wide">{{ 'Descripción' | tr }}<textarea name="description" maxlength="500" [placeholder]="'Descripción e ingredientes principales' | tr" required [(ngModel)]="description"></textarea></label>
       <label class="form-wide">{{ 'Foto del producto' | tr }}<input name="imageUrl" type="url" maxlength="1000" [placeholder]="'https://… (opcional)' | tr" [(ngModel)]="imageUrl"><small>{{ 'Usa una imagen propia o de tu proveedor, con permiso de uso.' | tr }}</small></label>
       <label>{{ 'Precio (COP)' | tr }}<input name="price" type="number" min="1" step="1" placeholder="28000" required [(ngModel)]="price"></label>
+      <label>{{ 'Costo unitario interno (COP)' | tr }}<input name="unitCost" type="number" min="1" step="1" placeholder="9000" required [(ngModel)]="unitCost"></label>
       <label>{{ 'Existencias' | tr }}<input name="stock" type="number" min="0" step="1" placeholder="20" required [(ngModel)]="stock"></label>
       <label class="product-active"><input name="active" type="checkbox" [(ngModel)]="active">{{ 'Disponible para pedidos' | tr }}</label>
       <div class="product-form-actions"><button class="primary" type="submit" [disabled]="saving()">{{ (editingId() === null ? '＋ Guardar producto' : 'Guardar cambios') | tr }}</button>@if (editingId() !== null) { <button class="outline" type="button" (click)="resetForm(productForm)">{{ 'Cancelar' | tr }}</button> }</div>

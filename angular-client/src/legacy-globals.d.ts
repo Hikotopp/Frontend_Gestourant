@@ -64,6 +64,7 @@ interface GestourantProduct {
   description: string;
   imageUrl?: string | null;
   price: number;
+  unitCost?: number | null;
   stock: number;
   active: boolean;
 }
@@ -80,12 +81,23 @@ interface GestourantActiveOrder {
 }
 
 interface GestourantInvoice {
+  invoiceId: number;
   invoiceNumber: string;
   issuedAt: string;
   tableNumber: number;
   paymentMethod: string;
   total: number;
   employee?: string;
+  items: GestourantInvoiceItem[];
+}
+
+interface GestourantInvoiceItem {
+  orderItemId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  removedIngredients: string;
 }
 
 interface GestourantHistoryReport {
@@ -96,6 +108,58 @@ interface GestourantHistoryReport {
   digital: number;
   total: number;
   invoices: GestourantInvoice[];
+}
+
+interface GestourantReturnHistory {
+  invoiceId: number;
+  returnedQuantities: Record<number, number>;
+  returns: GestourantReturn[];
+}
+
+interface GestourantReturn {
+  id: number;
+  orderItemId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  refundAmount: number;
+  restocked: boolean;
+  lossAmount: number | null;
+  reason: string;
+  notes: string;
+  refundMethod: string;
+  processedBy: string;
+  returnedAt: string;
+}
+
+interface GestourantInventoryLoss {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  reason: string;
+  notes: string;
+  unitCost: number | null;
+  totalCost: number | null;
+  reportedBy: string;
+  reportedAt: string;
+}
+
+interface GestourantLossReport {
+  from: string;
+  to: string;
+  totalCost: number | null;
+  entries: GestourantInventoryLoss[];
+}
+
+interface GestourantReturnsBridge {
+  history: (session: GestourantSession, invoiceId: number) => Promise<GestourantReturnHistory>;
+  create: (session: GestourantSession, invoiceId: number, body: Record<string, unknown>) => Promise<GestourantReturn>;
+}
+
+interface GestourantInventoryBridge {
+  listLosses: (session: GestourantSession, from: string, to: string) => Promise<GestourantLossReport>;
+  recordLoss: (session: GestourantSession, body: Record<string, unknown>) => Promise<GestourantInventoryLoss>;
 }
 
 interface GestourantReportsBridge {
@@ -207,6 +271,8 @@ declare var __GESTOURANT_PRODUCT_PHOTO__: ((product: GestourantProduct) => strin
 declare var __GESTOURANT_ADD_ORDER_PRODUCT__: ((productId: number) => Promise<void>) | undefined;
 declare var __GESTOURANT_GET_ACTIVE_ORDER__: (() => Promise<GestourantActiveOrder | null>) | undefined;
 declare var __GESTOURANT_REPORTS__: GestourantReportsBridge | undefined;
+declare var __GESTOURANT_RETURNS__: GestourantReturnsBridge | undefined;
+declare var __GESTOURANT_INVENTORY__: GestourantInventoryBridge | undefined;
 declare var __GESTOURANT_DOWNLOAD_REPORT__:
   | ((report: GestourantHistoryReport, includeEmployee: boolean) => Promise<void>)
   | undefined;

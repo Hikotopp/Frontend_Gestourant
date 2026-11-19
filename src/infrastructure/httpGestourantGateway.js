@@ -64,6 +64,21 @@ export function createHttpGestourantGateway(apiPort) {
         jsonRequest('POST', { paymentMethod })
       )
     },
+    returns: {
+      history: (session, invoiceId) => api.request(`/api/invoices/${invoiceId}/returns`, session),
+      create: (session, invoiceId, body) => api.request(
+        `/api/invoices/${invoiceId}/returns`,
+        session,
+        jsonRequest('POST', body)
+      )
+    },
+    inventory: {
+      listLosses: (session, from, to) => api.request(
+        `/api/inventory/losses?${new URLSearchParams({ from, to })}`,
+        session
+      ),
+      recordLoss: (session, body) => api.request('/api/inventory/losses', session, jsonRequest('POST', body))
+    },
     guest: {
       getTable: token => api.request(`/api/guest/${encodeURIComponent(token)}`, null),
       listRequests: (token, guestSessionToken) => api.request(

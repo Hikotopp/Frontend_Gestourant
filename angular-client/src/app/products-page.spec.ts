@@ -63,6 +63,7 @@ describe('ProductsPage', () => {
     component.name = 'Nuevo';
     component.description = 'Prueba';
     component.price = 12000;
+    component.unitCost = 4000;
     component.stock = 5;
     component.imageUrl = 'http://invalid';
     await component.saveProduct(form);

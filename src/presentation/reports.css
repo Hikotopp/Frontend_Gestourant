@@ -28,3 +28,30 @@
 .backup-actions button:disabled,#create-backup:disabled{opacity:.55;cursor:wait}
 @media(max-width:900px){.report-filter-card{align-items:stretch;flex-direction:column}.report-actions{justify-content:flex-start;flex-wrap:wrap}.report-actions button{width:auto}.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.report-date-fields{display:grid;grid-template-columns:1fr}.report-date-fields label,.report-date-fields input{width:100%}.report-actions{display:grid;grid-template-columns:1fr}.report-actions button{width:100%}.report-metrics{grid-template-columns:1fr 1fr}.backup-actions{justify-content:flex-start;flex-wrap:wrap}.backup-actions button{width:auto}}
+.invoice-items-row>td{padding:0 12px 12px;border-bottom:1px solid var(--line,#e3e9e5)}
+.invoice-items-details{border:1px solid var(--line,#e3e9e5);border-radius:10px;padding:10px 12px;background:var(--surface,#fff)}
+.invoice-items-details>summary{cursor:pointer;color:var(--accent,#326b50);font-size:12px;font-weight:700}
+.invoice-items-details .report-table{margin-top:8px}
+.invoice-items-details .report-table td,.invoice-items-details .report-table th{padding:9px 8px}
+.invoice-items-details .report-table button{width:auto;margin:0;white-space:nowrap}
+.return-history{padding:8px 0;color:var(--text,#263532);font-size:12px}
+.return-history h3{margin:8px 0;font-size:13px}
+.return-history ul{margin:0;padding-left:18px}
+.return-history li{margin:7px 0}
+.return-history li small{display:block;color:var(--muted,#71807c);margin-top:3px}
+.loss-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:12px;margin:12px 0 18px}
+.loss-form label,.workflow-dialog label{display:grid;gap:6px;color:var(--text,#263532);font-size:12px}
+.loss-form select,.loss-form input,.loss-form textarea,.workflow-dialog select,.workflow-dialog input:not([type=checkbox]),.workflow-dialog textarea{width:100%;padding:10px 11px}
+.loss-form textarea,.workflow-dialog textarea{min-height:74px;resize:vertical}
+.loss-form .loss-notes{grid-column:span 2}
+.loss-form button{width:auto;margin:0}
+.workflow-dialog{width:min(520px,calc(100vw - 28px));max-height:calc(100vh - 32px);overflow:auto;border:1px solid var(--line,#e3e9e5);border-radius:16px;padding:24px;background:var(--surface,#fff);color:var(--text,#263532);box-shadow:0 24px 80px #102a1b40}
+.workflow-dialog::backdrop{background:#15282088}
+.workflow-dialog h2{margin:0 0 12px;font-size:21px}
+.workflow-dialog form{display:grid;gap:13px}
+.workflow-dialog .eyebrow{margin:0;color:var(--muted,#71807c);font-size:11px;font-weight:700}
+.workflow-dialog .return-restock{display:flex;align-items:flex-start;gap:8px}
+.workflow-dialog .return-restock input{margin-top:2px}
+.workflow-dialog .product-form-actions button{width:auto;margin:0}
+@media(max-width:700px){.loss-form{grid-template-columns:1fr 1fr}.loss-form .loss-notes{grid-column:1/-1}}
+@media(max-width:520px){.loss-form{grid-template-columns:1fr}.loss-form .loss-notes{grid-column:auto}.invoice-items-details .report-table button{white-space:normal}}

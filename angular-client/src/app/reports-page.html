@@ -25,9 +25,45 @@
     @if (loading() && !report()) { <p class="muted">{{ 'Cargando facturas…' | tr }}</p> }
     @else if (report()?.invoices?.length) {
       <table class="report-table"><thead><tr><th>{{ 'Factura' | tr }}</th><th>{{ 'Fecha y hora' | tr }}</th><th>{{ 'Mesa' | tr }}</th><th>{{ 'Pago' | tr }}</th><th>{{ 'Total' | tr }}</th>@if (isAdmin) { <th>{{ 'Pedido abierto por' | tr }}</th> }</tr></thead>
-        <tbody>@for (invoice of report()!.invoices; track invoice.invoiceNumber) { <tr><td>{{ invoice.invoiceNumber }}</td><td>{{ invoice.issuedAt | localizedDate }}</td><td>{{ 'Mesa' | tr }} {{ invoice.tableNumber }}</td><td>{{ (invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital') | tr }}</td><td>$ {{ invoice.total | localizedNumber }}</td>@if (isAdmin) { <td>{{ invoice.employee }}</td> }</tr> }</tbody>
+        <tbody>@for (invoice of report()!.invoices; track invoice.invoiceNumber) {
+          <tr><td>{{ invoice.invoiceNumber }}</td><td>{{ invoice.issuedAt | localizedDate }}</td><td>{{ 'Mesa' | tr }} {{ invoice.tableNumber }}</td><td>{{ (invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital') | tr }}</td><td>$ {{ invoice.total | localizedNumber }}</td>@if (isAdmin) { <td>{{ invoice.employee }}</td> }</tr>
+          <tr class="invoice-items-row"><td [attr.colspan]="isAdmin ? 6 : 5"><details class="invoice-items-details" (toggle)="loadReturns(invoice)"><summary>{{ 'Detalle de productos y devoluciones' | tr }}</summary>
+            @if (returnErrors()[invoice.invoiceId]) { <p class="form-message" role="alert">{{ returnErrors()[invoice.invoiceId] | tr }}</p> }
+            <div class="report-table-wrap"><table class="report-table"><thead><tr><th>{{ 'Producto' | tr }}</th><th>{{ 'Cantidad' | tr }}</th><th>{{ 'Precio unitario' | tr }}</th><th>{{ 'Subtotal' | tr }}</th><th>{{ 'Indicaciones' | tr }}</th><th>{{ 'Devoluciones' | tr }}</th><th>{{ 'Acciones' | tr }}</th></tr></thead><tbody>
+              @for (item of invoice.items; track item.orderItemId) { <tr><td>{{ item.productName | tr }}</td><td>{{ item.quantity }}</td><td>$ {{ item.unitPrice | localizedNumber }}</td><td>$ {{ item.subtotal | localizedNumber }}</td><td>{{ item.removedIngredients || '—' }}</td><td>{{ returnedQuantity(invoice, item) }} / {{ item.quantity }}</td><td><button class="outline" type="button" [disabled]="returnedQuantity(invoice, item) >= item.quantity" (click)="openReturn(invoice, item, returnDialog)">{{ 'Registrar devolución' | tr }}</button></td></tr> }
+            </tbody></table></div>
+            @if (returnHistory()[invoice.invoiceId]?.returns?.length) { <div class="return-history"><h3>{{ 'Devoluciones registradas' | tr }}</h3><ul>@for (item of returnHistory()[invoice.invoiceId]!.returns; track item.id) { <li><strong>{{ item.productName | tr }}</strong> · {{ item.quantity }} · $ {{ item.refundAmount | localizedNumber }} · {{ item.reason | tr }} · {{ item.returnedAt | localizedDate }}<small>{{ item.notes }} · @if (item.restocked) { {{ 'Regresó al inventario' | tr }} } @else if (item.lossAmount === null) { {{ 'Costo unitario no registrado' | tr }} } @else { {{ 'No restockeable · pérdida: $ {amount}' | tr: { amount: item.lossAmount | localizedNumber } }} }</small></li> }</ul></div> }
+            @else { <p class="muted">{{ 'Todavía no hay devoluciones para esta factura.' | tr }}</p> }
+          </details></td></tr>
+        }</tbody>
       </table>
     } @else if (report()) { <p class="report-empty">{{ 'No hay facturas para el periodo seleccionado.' | tr }}</p> }
     @else { <p class="report-empty">{{ 'Consulta un periodo para ver las facturas.' | tr }}</p> }
   </div>
 </section>
+
+<section class="report-history-card">
+  <div class="report-history-heading"><div><p class="eyebrow">{{ 'CONTROL DE INVENTARIO' | tr }}</p><h2>{{ 'Mermas y pérdidas' | tr }}</h2></div>@if (adminLossReport; as losses) { @if (losses.totalCost !== null) { <strong>$ {{ losses.totalCost | localizedNumber }}</strong> } }</div>
+  @if (lossError()) { <p class="form-message" role="alert">{{ lossError() | tr }}</p> }
+  <form class="loss-form" #lossForm (submit)="$event.preventDefault(); recordLoss(lossForm)">
+    <label>{{ 'Producto' | tr }}<select name="lossProductId" required [(ngModel)]="lossProductId"><option [ngValue]="null">{{ 'Selecciona un producto' | tr }}</option>@for (product of products(); track product.id) { <option [ngValue]="product.id">{{ product.name | tr }} · {{ product.stock }} {{ 'disponibles' | tr }}</option> }</select></label>
+    <label>{{ 'Cantidad' | tr }}<input name="lossQuantity" type="number" min="1" step="1" required [(ngModel)]="lossQuantity"></label>
+    <label>{{ 'Motivo' | tr }}<select name="lossReason" required [(ngModel)]="lossReason"><option value="MERMA">{{ 'Merma o desperdicio' | tr }}</option><option value="CADUCIDAD">{{ 'Producto vencido' | tr }}</option><option value="DANIO">{{ 'Daño' | tr }}</option><option value="CONTAMINACION">{{ 'Contaminación' | tr }}</option><option value="OTRO">{{ 'Otro' | tr }}</option></select></label>
+    <label class="loss-notes">{{ 'Detalle' | tr }}<textarea name="lossNotes" maxlength="500" required [(ngModel)]="lossNotes"></textarea></label>
+    <button class="primary" type="submit">{{ 'Registrar pérdida' | tr }}</button>
+  </form>
+  @if (lossReport(); as losses) {
+    <div class="report-table-wrap">@if (losses.entries.length) { <table class="report-table"><thead><tr><th>{{ 'Fecha y hora' | tr }}</th><th>{{ 'Producto' | tr }}</th><th>{{ 'Cantidad' | tr }}</th><th>{{ 'Motivo' | tr }}</th><th>{{ 'Detalle' | tr }}</th>@if (isAdmin) { <th>{{ 'Costo' | tr }}</th> }<th>{{ 'Registrado por' | tr }}</th></tr></thead><tbody>@for (loss of losses.entries; track loss.id) { <tr><td>{{ loss.reportedAt | localizedDate }}</td><td>{{ loss.productName | tr }}</td><td>{{ loss.quantity }}</td><td>{{ loss.reason | tr }}</td><td>{{ loss.notes || '—' }}</td>@if (isAdmin) { <td>$ {{ loss.totalCost | localizedNumber }}</td> }<td>{{ loss.reportedBy }}</td></tr> }</tbody></table> } @else { <p class="report-empty">{{ 'No hay mermas registradas en este periodo.' | tr }}</p> }</div>
+  }
+</section>
+
+<dialog #returnDialog class="workflow-dialog"><form (submit)="$event.preventDefault(); submitReturn(returnDialog)">
+  <p class="eyebrow">{{ 'ATENCIÓN AL CLIENTE' | tr }}</p><h2>{{ 'Registrar devolución' | tr }}</h2>
+  <label>{{ 'Cantidad a devolver' | tr }}<input name="returnQuantity" type="number" min="1" [max]="returnMax" required [(ngModel)]="returnQuantity"></label>
+  <label>{{ 'Motivo' | tr }}<select name="returnReason" required [(ngModel)]="returnReason"><option value="CALIDAD">{{ 'Problema de calidad' | tr }}</option><option value="ERROR_PEDIDO">{{ 'Error en el pedido' | tr }}</option><option value="CLIENTE_INSATISFECHO">{{ 'Solicitud del cliente' | tr }}</option><option value="OTRO">{{ 'Otro' | tr }}</option></select></label>
+  <label>{{ 'Forma de reembolso' | tr }}<select name="refundMethod" required [(ngModel)]="refundMethod"><option value="EFECTIVO">{{ 'Efectivo' | tr }}</option><option value="DIGITAL">{{ 'Digital' | tr }}</option></select></label>
+  <label class="return-restock"><input name="returnRestocked" type="checkbox" [(ngModel)]="returnRestocked">{{ 'Devolver al inventario (solo si es seguro y reutilizable)' | tr }}</label>
+  <label>{{ 'Detalle del incidente' | tr }}<textarea name="returnNotes" maxlength="500" required [(ngModel)]="returnNotes"></textarea></label>
+  @if (error()) { <p class="form-message" role="alert">{{ error() | tr }}</p> }
+  <div class="product-form-actions"><button class="primary" type="submit">{{ 'Guardar devolución' | tr }}</button><button class="outline" type="button" (click)="returnDialog.close()">{{ 'Cancelar' | tr }}</button></div>
+</form></dialog>

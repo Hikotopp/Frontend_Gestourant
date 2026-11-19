@@ -19,10 +19,30 @@ export class ReportsPage implements OnInit {
   readonly error = signal('');
   readonly message = signal('Consulta las fechas seleccionadas para cargar el reporte.');
   readonly downloading = signal(false);
+  readonly lossReport = signal<GestourantLossReport | null>(null);
+  readonly lossError = signal('');
+  readonly products = signal<GestourantProduct[]>([]);
+  readonly returnHistory = signal<Record<number, GestourantReturnHistory>>({});
+  readonly returnErrors = signal<Record<number, string>>({});
+  lossProductId: number | null = null;
+  lossQuantity = 1;
+  lossReason = 'MERMA';
+  lossNotes = '';
+  returnQuantity = 1;
+  returnMax = 1;
+  returnReason = 'CALIDAD';
+  returnNotes = '';
+  returnRestocked = false;
+  refundMethod = 'EFECTIVO';
+  private pendingReturn: { invoiceId: number; orderItemId: number; remaining: number } | null = null;
   private requestSequence = 0;
 
   get isAdmin(): boolean {
     return this.session.role === 'ADMINISTRADOR';
+  }
+
+  get adminLossReport(): GestourantLossReport | null {
+    return this.isAdmin ? this.lossReport() : null;
   }
 
   ngOnInit(): void {
@@ -46,6 +66,7 @@ export class ReportsPage implements OnInit {
       this.message.set('');
       return;
     }
+
     const getHistory = globalThis.__GESTOURANT_REPORTS__?.getHistory;
     if (!getHistory) {
       this.report.set(null);
@@ -59,10 +80,12 @@ export class ReportsPage implements OnInit {
       const report = await getHistory(this.session, from, to, this.isAdmin);
       if (requestId !== this.requestSequence) return;
       this.report.set(report);
+      this.returnHistory.set({});
       const count = report.invoices?.length ?? 0;
       this.message.set(count === 1
         ? translate('1 factura encontrada.')
         : translate('{count} facturas encontradas.', { count }));
+      await this.loadLosses(from, to);
     } catch (error) {
       if (requestId !== this.requestSequence) return;
       this.report.set(null);
@@ -89,6 +112,144 @@ export class ReportsPage implements OnInit {
       this.error.set(error instanceof Error ? error.message : 'No se pudo descargar el reporte.');
     } finally {
       this.downloading.set(false);
+    }
+  }
+
+  async loadReturns(invoice: GestourantInvoice): Promise<void> {
+    if (this.returnHistory()[invoice.invoiceId]) return;
+    const history = globalThis.__GESTOURANT_RETURNS__?.history;
+    if (!history) {
+      this.returnErrors.update((errors) => ({ ...errors, [invoice.invoiceId]: 'No está disponible el historial de devoluciones.' }));
+      return;
+    }
+    try {
+      const result = await history(this.session, invoice.invoiceId);
+      this.returnHistory.update((current) => ({ ...current, [invoice.invoiceId]: result }));
+      this.returnErrors.update((errors) => {
+        const next = { ...errors };
+        delete next[invoice.invoiceId];
+        return next;
+      });
+    } catch (error) {
+      this.returnErrors.update((errors) => ({
+        ...errors,
+        [invoice.invoiceId]: error instanceof Error ? error.message : 'No se pudo cargar el historial de devoluciones.',
+      }));
+    }
+  }
+
+  returnedQuantity(invoice: GestourantInvoice, item: GestourantInvoiceItem): number {
+    return this.returnHistory()[invoice.invoiceId]?.returnedQuantities[item.orderItemId] ?? 0;
+  }
+
+  async openReturn(
+    invoice: GestourantInvoice,
+    item: GestourantInvoiceItem,
+    dialog: HTMLDialogElement,
+  ): Promise<void> {
+    await this.loadReturns(invoice);
+    if (this.returnErrors()[invoice.invoiceId]) {
+      this.error.set(this.returnErrors()[invoice.invoiceId]);
+      return;
+    }
+    const remaining = item.quantity - this.returnedQuantity(invoice, item);
+    if (remaining < 1) {
+      this.error.set('Este producto ya fue devuelto en su totalidad.');
+      return;
+    }
+    this.error.set('');
+    this.pendingReturn = { invoiceId: invoice.invoiceId, orderItemId: item.orderItemId, remaining };
+    this.returnQuantity = 1;
+    this.returnMax = remaining;
+    this.returnReason = 'CALIDAD';
+    this.returnNotes = '';
+    this.returnRestocked = false;
+    this.refundMethod = invoice.paymentMethod;
+    dialog.showModal();
+  }
+
+  async submitReturn(dialog: HTMLDialogElement): Promise<void> {
+    const pending = this.pendingReturn;
+    const create = globalThis.__GESTOURANT_RETURNS__?.create;
+    if (!pending || !create) {
+      this.error.set('No está disponible el servicio de devoluciones.');
+      return;
+    }
+    if (!Number.isInteger(this.returnQuantity) || this.returnQuantity < 1 || this.returnQuantity > pending.remaining) {
+      this.error.set('La cantidad supera las unidades aún disponibles para devolución.');
+      return;
+    }
+    this.error.set('');
+    try {
+      await create(this.session, pending.invoiceId, {
+        orderItemId: pending.orderItemId,
+        quantity: this.returnQuantity,
+        reason: this.returnReason,
+        notes: this.returnNotes.trim(),
+        restocked: this.returnRestocked,
+        refundMethod: this.refundMethod,
+      });
+      dialog.close();
+      this.pendingReturn = null;
+      this.returnHistory.update((current) => {
+        const next = { ...current };
+        delete next[pending.invoiceId];
+        return next;
+      });
+      this.message.set('Devolución registrada y guardada.');
+      await this.search();
+      const invoice = this.report()?.invoices.find((item) => item.invoiceId === pending.invoiceId);
+      if (invoice) await this.loadReturns(invoice);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'No se pudo registrar la devolución.');
+    }
+  }
+
+  async recordLoss(form: HTMLFormElement): Promise<void> {
+    const record = globalThis.__GESTOURANT_INVENTORY__?.recordLoss;
+    if (!record || this.lossProductId === null) {
+      this.lossError.set('Selecciona un producto y verifica el servicio de inventario.');
+      return;
+    }
+    this.lossError.set('');
+    try {
+      await record(this.session, {
+        productId: this.lossProductId,
+        quantity: this.lossQuantity,
+        reason: this.lossReason,
+        notes: this.lossNotes.trim(),
+      });
+      form.reset();
+      this.lossProductId = null;
+      this.lossQuantity = 1;
+      this.lossReason = 'MERMA';
+      this.lossNotes = '';
+      this.message.set('Pérdida registrada y descontada del inventario.');
+      await this.search();
+    } catch (error) {
+      this.lossError.set(error instanceof Error ? error.message : 'No se pudo registrar la pérdida.');
+    }
+  }
+
+  private async loadLosses(from: string, to: string): Promise<void> {
+    const listLosses = globalThis.__GESTOURANT_INVENTORY__?.listLosses;
+    const listProducts = globalThis.__GESTOURANT_PRODUCTS__?.list;
+    if (!listLosses || !listProducts) {
+      this.lossReport.set(null);
+      this.lossError.set('No están disponibles los servicios de inventario.');
+      return;
+    }
+    try {
+      const [report, products] = await Promise.all([
+        listLosses(this.session, from, to),
+        listProducts(this.session),
+      ]);
+      this.lossReport.set(report);
+      this.products.set(products);
+      this.lossError.set('');
+    } catch (error) {
+      this.lossReport.set(null);
+      this.lossError.set(error instanceof Error ? error.message : 'No se pudieron cargar las pérdidas.');
     }
   }
 

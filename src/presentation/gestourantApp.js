@@ -795,7 +795,7 @@ function bindTableAdmin(session) {
   joinForm?.addEventListener('submit', async event => { event.preventDefault(); const data = new FormData(event.currentTarget); try { await services.tables.join(session, { firstTableId: Number(data.get('firstTableId')), secondTableId: Number(data.get('secondTableId')) }); showToast(translate('Mesas unidas.')); navigate('tables', session); } catch (error) { showToast(error.message, true); } });
 }
 function productsView(session) {
-  const adminTools = session.role === 'ADMINISTRADOR' ? `<details class="admin-tools menu-admin-tools"><summary><span><strong id="product-form-title">${escapeHtml(translate('Administrar menú'))}</strong><small>${escapeHtml(translate('Crear o actualizar platos, bebidas y precios'))}</small></span><span class="tools-plus">＋</span></summary><form id="create-product-form" class="product-form"><label>${escapeHtml(translate('Nombre del producto'))}<input name="name" maxlength="120" placeholder="${escapeHtml(translate('Ej. Trucha a la plancha'))}" required></label><label>${escapeHtml(translate('Categoría'))}<select name="category"><option value="PLATO">${escapeHtml(translate('Plato'))}</option><option value="BEBIDA">${escapeHtml(translate('Bebida'))}</option><option value="OTRO">${escapeHtml(translate('Otro'))}</option></select></label><label class="form-wide">${escapeHtml(translate('Descripción'))}<textarea name="description" maxlength="500" placeholder="${escapeHtml(translate('Descripción e ingredientes principales'))}" required></textarea></label><label class="form-wide">${escapeHtml(translate('Foto del producto'))}<input name="imageUrl" type="url" maxlength="1000" placeholder="${escapeHtml(translate('https://… (opcional)'))}"><small>${escapeHtml(translate('Usa una imagen propia o de tu proveedor, con permiso de uso.'))}</small></label><label>${escapeHtml(translate('Precio (COP)'))}<input name="price" type="number" min="1" step="1" placeholder="28000" required></label><label>${escapeHtml(translate('Existencias'))}<input name="stock" type="number" min="0" step="1" placeholder="20" required></label><label class="product-active"><input name="active" type="checkbox" checked> ${escapeHtml(translate('Disponible para pedidos'))}</label><div class="product-form-actions"><button id="product-submit" class="primary" type="submit">${escapeHtml(translate('＋ Guardar producto'))}</button><button id="cancel-product-edit" class="outline hidden-field" type="button">${escapeHtml(translate('Cancelar'))}</button></div></form></details>` : '';
+  const adminTools = session.role === 'ADMINISTRADOR' ? `<details class="admin-tools menu-admin-tools"><summary><span><strong id="product-form-title">${escapeHtml(translate('Administrar menú'))}</strong><small>${escapeHtml(translate('Crear o actualizar platos, bebidas y precios'))}</small></span><span class="tools-plus">＋</span></summary><form id="create-product-form" class="product-form"><label>${escapeHtml(translate('Nombre del producto'))}<input name="name" maxlength="120" placeholder="${escapeHtml(translate('Ej. Trucha a la plancha'))}" required></label><label>${escapeHtml(translate('Categoría'))}<select name="category"><option value="PLATO">${escapeHtml(translate('Plato'))}</option><option value="BEBIDA">${escapeHtml(translate('Bebida'))}</option><option value="OTRO">${escapeHtml(translate('Otro'))}</option></select></label><label class="form-wide">${escapeHtml(translate('Descripción'))}<textarea name="description" maxlength="500" placeholder="${escapeHtml(translate('Descripción e ingredientes principales'))}" required></textarea></label><label class="form-wide">${escapeHtml(translate('Foto del producto'))}<input name="imageUrl" type="url" maxlength="1000" placeholder="${escapeHtml(translate('https://… (opcional)'))}"><small>${escapeHtml(translate('Usa una imagen propia o de tu proveedor, con permiso de uso.'))}</small></label><label>${escapeHtml(translate('Precio (COP)'))}<input name="price" type="number" min="1" step="1" placeholder="28000" required></label><label>${escapeHtml(translate('Costo unitario interno (COP)'))}<input name="unitCost" type="number" min="1" step="1" placeholder="9000" required></label><label>${escapeHtml(translate('Existencias'))}<input name="stock" type="number" min="0" step="1" placeholder="20" required></label><label class="product-active"><input name="active" type="checkbox" checked> ${escapeHtml(translate('Disponible para pedidos'))}</label><div class="product-form-actions"><button id="product-submit" class="primary" type="submit">${escapeHtml(translate('＋ Guardar producto'))}</button><button id="cancel-product-edit" class="outline hidden-field" type="button">${escapeHtml(translate('Cancelar'))}</button></div></form></details>` : '';
   const orderContext = activeOrder ? `<div class="active-order-banner"><span class="order-live-indicator"></span><div><strong>${escapeHtml(translate('Pedido en curso · Mesa {table}', { table: activeOrder.table.tableNumber }))}</strong><small>${escapeHtml(translate('Pedido #{id} · Los productos se agregarán a esta cuenta', { id: activeOrder.id }))}</small></div><button id="return-to-order" class="outline" type="button">${escapeHtml(translate('Ver cuenta'))} ${icon('arrow')}</button></div>` : `<div class="active-order-banner no-active-order"><div>${icon('tables')}<span><strong>${escapeHtml(translate('Para tomar un pedido'))}</strong><small>${escapeHtml(translate('Selecciona una mesa libre o en servicio.'))}</small></span></div><button id="choose-table" class="outline" type="button">${escapeHtml(translate('Elegir mesa'))} ${icon('arrow')}</button></div>`;
   return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('CARTA · COCINA Y BAR'))}</p><h1>${escapeHtml(translate('Menú del restaurante'))}</h1><p class="muted">${escapeHtml(translate('Platos y bebidas disponibles durante el servicio.'))}</p></div><span class="menu-count">${escapeHtml(translate('{count} productos disponibles', { count: products.filter(product => product.active).length }))}</span></header>${orderContext}${adminTools}<section class="menu-section"><div class="menu-toolbar"><div><p class="eyebrow">${escapeHtml(translate('LA CARTA'))}</p><h2>${escapeHtml(translate('Elige algo delicioso'))}</h2></div><label class="menu-search"><span>⌕</span><input id="product-search" type="search" placeholder="${escapeHtml(translate('Buscar en el menú…'))}" aria-label="${escapeHtml(translate('Buscar productos'))}"></label></div><div class="catalog-filters menu-filters"><button class="filter-button active" data-category-filter="TODOS">${escapeHtml(translate('Todo el menú'))}</button><button class="filter-button" data-category-filter="PLATO">${escapeHtml(translate('Platos'))}</button><button class="filter-button" data-category-filter="BEBIDA">${escapeHtml(translate('Bebidas'))}</button><button class="filter-button" data-category-filter="OTRO">${escapeHtml(translate('Otros'))}</button></div><div id="product-list" class="product-list menu-grid"><p class="muted">${escapeHtml(translate('Cargando menú…'))}</p></div></section>`;
 }
@@ -812,7 +812,9 @@ function reportsView(session) {
     <section class="report-filter-card"><div class="report-date-fields"><label for="report-from">${escapeHtml(translate(administrator ? 'Desde' : 'Fecha del turno'))}<input id="report-from" type="date" value="${today}" required></label>${administrator ? `<label for="report-to">${escapeHtml(translate('Hasta'))}<input id="report-to" type="date" value="${today}" required></label>` : ''}</div><div class="report-actions"><button id="report-search" class="outline" type="button">${escapeHtml(translate(administrator ? 'Consultar historial' : 'Consultar fecha'))}</button><button id="download-cash-close" class="primary report-download" type="button" disabled>${escapeHtml(translate('Descargar Excel (.xlsx)'))}</button></div></section>
     <p id="report-message" class="report-message" role="status">${escapeHtml(translate('Cargando reporte…'))}</p>
     <section class="metrics report-metrics"><article><span>${escapeHtml(translate('Facturas'))}</span><strong id="report-invoices">—</strong></article><article><span>${escapeHtml(translate('Efectivo'))}</span><strong id="report-cash">—</strong></article><article><span>${escapeHtml(translate('Pagos digitales'))}</span><strong id="report-digital">—</strong></article><article><span>${escapeHtml(translate('Total vendido'))}</span><strong id="report-total">—</strong></article></section>
-    <section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('DETALLE'))}</p><h2>${escapeHtml(translate('Facturas del periodo'))}</h2></div><span id="report-period"></span></div><div id="report-history" class="report-table-wrap"><p class="muted">${escapeHtml(translate('Cargando facturas…'))}</p></div></section>`;
+    <section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('DETALLE'))}</p><h2>${escapeHtml(translate('Facturas del periodo'))}</h2></div><span id="report-period"></span></div><div id="report-history" class="report-table-wrap"><p class="muted">${escapeHtml(translate('Cargando facturas…'))}</p></div></section>
+    <section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('CONTROL DE INVENTARIO'))}</p><h2>${escapeHtml(translate('Mermas y pérdidas'))}</h2></div><strong id="loss-total"></strong></div><p id="loss-message" class="report-message" role="status"></p><form id="inventory-loss-form" class="loss-form"><label>${escapeHtml(translate('Producto'))}<select name="productId" required><option value="">${escapeHtml(translate('Selecciona un producto'))}</option></select></label><label>${escapeHtml(translate('Cantidad'))}<input name="quantity" type="number" min="1" step="1" required></label><label>${escapeHtml(translate('Motivo'))}<select name="reason" required><option value="MERMA">${escapeHtml(translate('Merma o desperdicio'))}</option><option value="CADUCIDAD">${escapeHtml(translate('Producto vencido'))}</option><option value="DANIO">${escapeHtml(translate('Daño'))}</option><option value="CONTAMINACION">${escapeHtml(translate('Contaminación'))}</option><option value="OTRO">${escapeHtml(translate('Otro'))}</option></select></label><label class="loss-notes">${escapeHtml(translate('Detalle'))}<textarea name="notes" maxlength="500" placeholder="${escapeHtml(translate('Describe qué ocurrió'))}" required></textarea></label><button class="primary" type="submit">${escapeHtml(translate('Registrar pérdida'))}</button></form><div id="loss-history" class="report-table-wrap"><p class="muted">${escapeHtml(translate('Cargando pérdidas…'))}</p></div></section>
+    <dialog id="product-return-dialog" class="workflow-dialog"><form id="product-return-form"><p class="eyebrow">${escapeHtml(translate('ATENCIÓN AL CLIENTE'))}</p><h2>${escapeHtml(translate('Registrar devolución'))}</h2><p id="return-product-summary" class="muted"></p><label>${escapeHtml(translate('Cantidad a devolver'))}<input name="quantity" type="number" min="1" step="1" required></label><label>${escapeHtml(translate('Motivo'))}<select name="reason" required><option value="CALIDAD">${escapeHtml(translate('Problema de calidad'))}</option><option value="ERROR_PEDIDO">${escapeHtml(translate('Error en el pedido'))}</option><option value="CLIENTE_INSATISFECHO">${escapeHtml(translate('Solicitud del cliente'))}</option><option value="OTRO">${escapeHtml(translate('Otro'))}</option></select></label><label>${escapeHtml(translate('Forma de reembolso'))}<select name="refundMethod" required><option value="EFECTIVO">${escapeHtml(translate('Efectivo'))}</option><option value="DIGITAL">${escapeHtml(translate('Digital'))}</option></select></label><label class="return-restock"><input name="restocked" type="checkbox"> ${escapeHtml(translate('Devolver al inventario (solo si es seguro y reutilizable)'))}</label><label>${escapeHtml(translate('Detalle del incidente'))}<textarea name="notes" maxlength="500" required placeholder="${escapeHtml(translate('Ej. Se encontró un objeto extraño en el plato'))}"></textarea></label><div class="product-form-actions"><button class="primary" type="submit">${escapeHtml(translate('Guardar devolución'))}</button><button id="cancel-return" class="outline" type="button">${escapeHtml(translate('Cancelar'))}</button></div></form></dialog>`;
 }
 
 async function loadProducts(session) {
@@ -831,7 +833,7 @@ function bindProductAdmin(session) {
       try {
         const imageUrl = data.get('imageUrl').trim();
         if (imageUrl && !imageUrl.startsWith('https://')) throw new Error('La imagen debe tener una dirección segura que comience con https://');
-        const product = { name: data.get('name').trim(), description: data.get('description').trim(), category: data.get('category'), imageUrl, price: Number(data.get('price')), stock: Number(data.get('stock')), active: data.get('active') === 'on' };
+        const product = { name: data.get('name').trim(), description: data.get('description').trim(), category: data.get('category'), imageUrl, price: Number(data.get('price')), unitCost: Number(data.get('unitCost')), stock: Number(data.get('stock')), active: data.get('active') === 'on' };
         const editingId = form.dataset.editingId;
         await services.products.save(session, product, editingId);
         showToast(translate(editingId ? 'Producto actualizado.' : 'Producto guardado en el menú.'));
@@ -875,7 +877,7 @@ function renderProducts() {
   list.querySelectorAll('.delete-product').forEach(button => button.addEventListener('click', () => deleteProduct(Number(button.closest('[data-product-id]').dataset.productId))));
 }
 
-function editProduct(id) { const product = products.find(item => item.id === id), form = document.querySelector('#create-product-form'); if (!product || !form) return; form.dataset.editingId = String(id); form.elements.name.value = product.name; form.elements.category.value = product.category || 'PLATO'; form.elements.description.value = product.description || ''; form.elements.imageUrl.value = product.imageUrl || ''; form.elements.price.value = product.price; form.elements.stock.value = product.stock; form.elements.active.checked = product.active; document.querySelector('#product-form-title').textContent = translate('Editar producto'); document.querySelector('#product-submit').textContent = translate('Guardar cambios'); document.querySelector('#cancel-product-edit').classList.remove('hidden-field'); form.closest('details').open = true; form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function editProduct(id) { const product = products.find(item => item.id === id), form = document.querySelector('#create-product-form'); if (!product || !form) return; form.dataset.editingId = String(id); form.elements.name.value = product.name; form.elements.category.value = product.category || 'PLATO'; form.elements.description.value = product.description || ''; form.elements.imageUrl.value = product.imageUrl || ''; form.elements.price.value = product.price; form.elements.unitCost.value = product.unitCost ?? 0; form.elements.stock.value = product.stock; form.elements.active.checked = product.active; document.querySelector('#product-form-title').textContent = translate('Editar producto'); document.querySelector('#product-submit').textContent = translate('Guardar cambios'); document.querySelector('#cancel-product-edit').classList.remove('hidden-field'); form.closest('details').open = true; form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 async function deleteProduct(id) { const product = products.find(item => item.id === id), session = JSON.parse(sessionStorage.getItem('gestourant_session')); if (!product || !window.confirm(translate('¿Eliminar {product} del menú?', { product: product.name }))) return; try { await services.products.remove(session, id); showToast(translate('Producto eliminado.')); navigate('products', session); } catch (error) { showToast(error.message, true); } }
 
 function backupsView() {
@@ -1023,6 +1025,9 @@ async function loadReport(session) {
   const toInput = administrator ? document.querySelector('#report-to') : fromInput;
   const searchButton = document.querySelector('#report-search');
   const downloadButton = document.querySelector('#download-cash-close');
+  const returnDialog = document.querySelector('#product-return-dialog');
+  const returnForm = document.querySelector('#product-return-form');
+  let pendingReturn = null;
   let currentReport = null;
   let reportRequest = 0;
 
@@ -1063,10 +1068,15 @@ async function loadReport(session) {
       document.querySelector('#report-total').textContent = `$ ${Number(currentReport.total).toLocaleString(getLocale())}`;
       document.querySelector('#report-period').textContent = from === to ? from : `${from} — ${to}`;
       const invoices = currentReport.invoices || [];
-      const rows = invoices.map(invoice => `<tr><td>${escapeHtml(invoice.invoiceNumber)}</td><td>${escapeHtml(formatColombiaDate(invoice.issuedAt, getLocale()))}</td><td>${escapeHtml(translate('Mesa {table}', { table: invoice.tableNumber }))}</td><td>${escapeHtml(translate(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'))}</td><td>$ ${Number(invoice.total).toLocaleString(getLocale())}</td>${administrator ? `<td>${escapeHtml(invoice.employee)}</td>` : ''}</tr>`).join('');
+      const rows = invoices.map(invoice => {
+        const items = (invoice.items || []).map(item => `<tr><td>${escapeHtml(item.productName)}</td><td>${item.quantity}</td><td>$ ${Number(item.unitPrice).toLocaleString(getLocale())}</td><td>$ ${Number(item.subtotal).toLocaleString(getLocale())}</td><td>${escapeHtml(item.removedIngredients || '—')}</td><td><button class="outline return-item" type="button" data-invoice-id="${invoice.invoiceId}" data-order-item-id="${item.orderItemId}">${escapeHtml(translate('Registrar devolución'))}</button></td></tr>`).join('');
+        const details = `<tr class="invoice-items-row"><td colspan="${administrator ? 6 : 5}"><details class="invoice-items-details" data-invoice-id="${invoice.invoiceId}"><summary>${escapeHtml(translate('Ver productos vendidos ({count})', { count: (invoice.items || []).length }))}</summary><div class="report-table-wrap"><table class="report-table"><thead><tr><th>${escapeHtml(translate('Producto'))}</th><th>${escapeHtml(translate('Cantidad'))}</th><th>${escapeHtml(translate('Precio unitario'))}</th><th>${escapeHtml(translate('Subtotal'))}</th><th>${escapeHtml(translate('Indicaciones'))}</th><th>${escapeHtml(translate('Acciones'))}</th></tr></thead><tbody>${items}</tbody></table></div><div class="return-history" data-return-history="${invoice.invoiceId}"><p class="muted">${escapeHtml(translate('Abre este detalle para consultar devoluciones.'))}</p></div></details></td></tr>`;
+        return `<tr><td>${escapeHtml(invoice.invoiceNumber)}</td><td>${escapeHtml(formatColombiaDate(invoice.issuedAt, getLocale()))}</td><td>${escapeHtml(translate('Mesa {table}', { table: invoice.tableNumber }))}</td><td>${escapeHtml(translate(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'))}</td><td>$ ${Number(invoice.total).toLocaleString(getLocale())}</td>${administrator ? `<td>${escapeHtml(invoice.employee)}</td>` : ''}</tr>${details}`;
+      }).join('');
       document.querySelector('#report-history').innerHTML = invoices.length
         ? `<table class="report-table"><thead><tr><th>${escapeHtml(translate('Factura'))}</th><th>${escapeHtml(translate('Fecha y hora'))}</th><th>${escapeHtml(translate('Mesa'))}</th><th>${escapeHtml(translate('Pago'))}</th><th>${escapeHtml(translate('Total'))}</th>${administrator ? `<th>${escapeHtml(translate('Pedido abierto por'))}</th>` : ''}</tr></thead><tbody>${rows}</tbody></table>`
         : `<p class="report-empty">${escapeHtml(translate('No hay facturas para el periodo seleccionado.'))}</p>`;
+      bindInvoiceDetails(session, document.querySelector('#report-history'), invoices, returnDialog, returnForm, () => showReport());
       message.textContent = translate(invoices.length === 1 ? '{count} factura encontrada.' : '{count} facturas encontradas.', { count: invoices.length });
       downloadButton.disabled = false;
     } catch (error) {
@@ -1078,6 +1088,7 @@ async function loadReport(session) {
     } finally {
       if (requestId === reportRequest) searchButton.disabled = false;
     }
+    await loadInventoryLosses(session, from, to);
   };
 
   searchButton.addEventListener('click', showReport);
@@ -1101,6 +1112,162 @@ async function loadReport(session) {
     }
   });
   await showReport();
+}
+
+function bindInvoiceDetails(session, container, invoices, dialog, form, refreshReport) {
+  container.querySelectorAll('.invoice-items-details').forEach(details => {
+    details.addEventListener('toggle', async () => {
+      if (!details.open || details.dataset.loaded === 'true') return;
+      const invoiceId = Number(details.dataset.invoiceId);
+      const historyContainer = details.querySelector(`[data-return-history="${invoiceId}"]`);
+      try {
+        const history = await services.returns.history(session, invoiceId);
+        details.dataset.loaded = 'true';
+        details.querySelectorAll('.return-item').forEach(button => {
+          const itemId = Number(button.dataset.orderItemId);
+          const item = (invoices.find(invoice => invoice.invoiceId === invoiceId)?.items || [])
+            .find(candidate => candidate.orderItemId === itemId);
+          const refunded = Number(history.returnedQuantities[itemId] || 0);
+          const remaining = Math.max(0, Number(item?.quantity || 0) - refunded);
+          button.textContent = translate('Devolver ({count})', { count: remaining });
+          button.disabled = remaining === 0;
+        });
+        historyContainer.innerHTML = history.returns.length
+          ? `<h3>${escapeHtml(translate('Devoluciones registradas'))}</h3><ul>${history.returns.map(item => `<li><strong>${escapeHtml(item.productName)}</strong> · ${escapeHtml(translate('Cantidad: {count}', { count: item.quantity }))} · $ ${Number(item.refundAmount).toLocaleString(getLocale())} · ${escapeHtml(translate(item.reason))} · ${escapeHtml(formatColombiaDate(item.returnedAt, getLocale()))}<small>${escapeHtml(item.notes)}${item.restocked ? ` · ${escapeHtml(translate('Regresó al inventario'))}` : item.lossAmount === null ? ` · ${escapeHtml(translate('Costo unitario no registrado'))}` : ` · ${escapeHtml(translate('No restockeable · pérdida: $ {amount}', { amount: Number(item.lossAmount).toLocaleString(getLocale()) }))}`}</small></li>`).join('')}</ul>`
+          : `<p class="muted">${escapeHtml(translate('Todavía no hay devoluciones para esta factura.'))}</p>`;
+      } catch (error) {
+        historyContainer.innerHTML = `<p class="report-empty">${escapeHtml(translate('No se pudo cargar el historial de devoluciones: {detail}', { detail: error.message }))}</p>`;
+      }
+    });
+  });
+
+  if (form.dataset.bound !== 'true') {
+    form.dataset.bound = 'true';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const pendingReturn = JSON.parse(dialog.dataset.pendingReturn || 'null');
+      if (!pendingReturn) return;
+      const data = new FormData(form);
+      const quantity = Number(data.get('quantity'));
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > pendingReturn.remaining) {
+        showToast(translate('La cantidad supera las unidades aún disponibles para devolución.'), true);
+        return;
+      }
+      const submit = form.querySelector('[type="submit"]');
+      submit.disabled = true;
+      try {
+        const result = await services.returns.create(session, pendingReturn.invoiceId, {
+          orderItemId: pendingReturn.orderItemId,
+          quantity,
+          reason: data.get('reason'),
+          notes: String(data.get('notes')).trim(),
+          restocked: data.get('restocked') === 'on',
+          refundMethod: data.get('refundMethod')
+        });
+        dialog.close();
+        dialog.dataset.pendingReturn = '';
+        form.reset();
+        showToast(translate('Devolución registrada · reembolso: $ {amount}', {
+          amount: Number(result.refundAmount).toLocaleString(getLocale())
+        }));
+        await refreshReport();
+      } catch (error) {
+        showToast(translate('No se pudo registrar la devolución: {detail}', { detail: error.message }), true);
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    document.querySelector('#cancel-return').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => {
+      dialog.dataset.pendingReturn = '';
+      form.reset();
+    });
+  }
+
+  container.querySelectorAll('.return-item').forEach(button => {
+    button.addEventListener('click', async () => {
+      const invoiceId = Number(button.dataset.invoiceId);
+      const orderItemId = Number(button.dataset.orderItemId);
+      const invoice = invoices.find(candidate => candidate.invoiceId === invoiceId);
+      const item = invoice?.items?.find(candidate => candidate.orderItemId === orderItemId);
+      if (!invoice || !item) return;
+      try {
+        const history = await services.returns.history(session, invoiceId);
+        const remaining = Math.max(0, item.quantity - Number(history.returnedQuantities[orderItemId] || 0));
+        if (!remaining) {
+          showToast(translate('Este producto ya fue devuelto en su totalidad.'), true);
+          return;
+        }
+        dialog.dataset.pendingReturn = JSON.stringify({ invoiceId, orderItemId, remaining });
+        form.elements.quantity.max = String(remaining);
+        form.elements.quantity.value = '1';
+        form.elements.refundMethod.value = invoice.paymentMethod;
+        document.querySelector('#return-product-summary').textContent =
+          `${invoice.invoiceNumber} · ${item.productName} · ${translate('Pendientes de devolución: {count}', { count: remaining })}`;
+        dialog.showModal();
+      } catch (error) {
+        showToast(translate('No se pudo consultar la factura: {detail}', { detail: error.message }), true);
+      }
+    });
+  });
+}
+
+async function loadInventoryLosses(session, from, to) {
+  const form = document.querySelector('#inventory-loss-form');
+  const select = form.elements.productId;
+  const message = document.querySelector('#loss-message');
+  const history = document.querySelector('#loss-history');
+  const total = document.querySelector('#loss-total');
+  const administrator = session.role === 'ADMINISTRADOR';
+  if (form.dataset.bound !== 'true') {
+    form.dataset.bound = 'true';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const submit = form.querySelector('[type="submit"]');
+      submit.disabled = true;
+      try {
+        await services.inventory.recordLoss(session, {
+          productId: Number(data.get('productId')),
+          quantity: Number(data.get('quantity')),
+          reason: data.get('reason'),
+          notes: String(data.get('notes')).trim()
+        });
+        form.reset();
+        showToast(translate('Pérdida registrada y descontada del inventario.'));
+        await loadInventoryLosses(session, document.querySelector('#report-from').value,
+          administrator ? document.querySelector('#report-to').value : document.querySelector('#report-from').value);
+      } catch (error) {
+        message.textContent = translate('No se pudo registrar la pérdida: {detail}', { detail: error.message });
+        message.classList.add('is-error');
+        showToast(message.textContent, true);
+      } finally {
+        submit.disabled = false;
+      }
+    });
+  }
+  message.textContent = translate('Consultando pérdidas…');
+  message.classList.remove('is-error');
+  try {
+    const [report, products] = await Promise.all([
+      services.inventory.listLosses(session, from, to),
+      services.products.list(session)
+    ]);
+    select.innerHTML = `<option value="">${escapeHtml(translate('Selecciona un producto'))}</option>${products.map(product => `<option value="${product.id}">${escapeHtml(product.name)} · ${escapeHtml(translate('{count} disponibles', { count: product.stock }))}</option>`).join('')}`;
+    total.textContent = administrator && report.totalCost !== null
+      ? `${escapeHtml(translate('Costo de merma'))}: $ ${Number(report.totalCost).toLocaleString(getLocale())}`
+      : translate('{count} registros', { count: report.entries.length });
+    const rows = report.entries.map(loss => `<tr><td>${escapeHtml(formatColombiaDate(loss.reportedAt, getLocale()))}</td><td>${escapeHtml(loss.productName)}</td><td>${loss.quantity}</td><td>${escapeHtml(translate(loss.reason))}</td><td>${escapeHtml(loss.notes || '—')}</td>${administrator ? `<td>$ ${Number(loss.totalCost || 0).toLocaleString(getLocale())}</td>` : ''}<td>${escapeHtml(loss.reportedBy)}</td></tr>`).join('');
+    history.innerHTML = report.entries.length
+      ? `<table class="report-table"><thead><tr><th>${escapeHtml(translate('Fecha y hora'))}</th><th>${escapeHtml(translate('Producto'))}</th><th>${escapeHtml(translate('Cantidad'))}</th><th>${escapeHtml(translate('Motivo'))}</th><th>${escapeHtml(translate('Detalle'))}</th>${administrator ? `<th>${escapeHtml(translate('Costo'))}</th>` : ''}<th>${escapeHtml(translate('Registrado por'))}</th></tr></thead><tbody>${rows}</tbody></table>`
+      : `<p class="report-empty">${escapeHtml(translate('No hay mermas registradas en este periodo.'))}</p>`;
+    message.textContent = translate('{count} pérdidas guardadas en el periodo.', { count: report.entries.length });
+  } catch (error) {
+    history.innerHTML = `<p class="report-empty">${escapeHtml(translate('No se pudo consultar las pérdidas: {detail}', { detail: error.message }))}</p>`;
+    total.textContent = '—';
+    message.textContent = translate('No se pudieron cargar las pérdidas.');
+    message.classList.add('is-error');
+  }
 }
 
 async function logout(session, inactivity = false, notifyServer = true) {
@@ -1681,6 +1848,14 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
   };
   globalThis.__GESTOURANT_REPORTS__ = {
     getHistory: (session, from, to, administrator) => services.reports.getHistory(session, from, to, administrator)
+  };
+  globalThis.__GESTOURANT_RETURNS__ = {
+    history: (session, invoiceId) => services.returns.history(session, invoiceId),
+    create: (session, invoiceId, body) => services.returns.create(session, invoiceId, body)
+  };
+  globalThis.__GESTOURANT_INVENTORY__ = {
+    listLosses: (session, from, to) => services.inventory.listLosses(session, from, to),
+    recordLoss: (session, body) => services.inventory.recordLoss(session, body)
   };
   globalThis.__GESTOURANT_DOWNLOAD_REPORT__ = async (report, includeEmployee) => downloadCashCloseXlsx(report, includeEmployee);
   globalThis.__GESTOURANT_BACKUPS__ = {

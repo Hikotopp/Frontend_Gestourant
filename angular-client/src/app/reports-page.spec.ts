@@ -16,18 +16,30 @@ describe('ReportsPage', () => {
     digital: 12000,
     total: 37000,
     invoices: [{
+      invoiceId: 12,
       invoiceNumber: 'F-12',
       issuedAt: '2026-10-15T10:15:00',
       tableNumber: 4,
       paymentMethod: 'EFECTIVO',
       total: 37000,
       employee: 'maria',
+      items: [{
+        orderItemId: 7,
+        productName: 'Sopa del día',
+        quantity: 1,
+        unitPrice: 37000,
+        subtotal: 37000,
+        removedIngredients: '',
+      }],
     }],
   };
 
   afterEach(() => {
     globalThis.__GESTOURANT_REPORTS__ = undefined;
     globalThis.__GESTOURANT_DOWNLOAD_REPORT__ = undefined;
+    globalThis.__GESTOURANT_RETURNS__ = undefined;
+    globalThis.__GESTOURANT_INVENTORY__ = undefined;
+    globalThis.__GESTOURANT_PRODUCTS__ = undefined;
   });
 
   async function createPage(role = session.role) {
@@ -48,7 +60,7 @@ describe('ReportsPage', () => {
     expect(getHistory).toHaveBeenCalledWith(expect.objectContaining({ role: 'EMPLEADO' }), expect.any(String), expect.any(String), false);
     expect(element.textContent).toContain('F-12');
     expect(element.textContent).toContain('37.000');
-    expect(element.querySelector('th:last-child')?.textContent).toBe('Total');
+    expect(element.querySelector('thead > tr > th:last-child')?.textContent).toBe('Total');
     fixture.destroy();
   });
 
