@@ -46,8 +46,8 @@ export class DashboardPage implements OnChanges {
     { id: 'products', label: 'Menú e inventario', path: 'M4 7h16v13H4zM7 7l1-4h8l1 4M8 11h8m-8 4h5' },
     { id: 'reports', label: 'Reportes', path: 'M4 19V5m0 14h17M7 15l4-4 3 2 6-7' },
     { id: 'returns', label: 'Devoluciones', path: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-2' },
-    { id: 'backups', label: 'Copias de seguridad', path: 'M4 19V5m0 14h17M7 15l4-4 3 2 6-7', administratorsOnly: true },
-    { id: 'audit', label: 'Registro de auditoría', path: 'M4 5h16M4 12h16M4 19h16M8 5v.01M8 12v.01M8 19v.01', administratorsOnly: true },
+    { id: 'backups', label: 'Copias de seguridad', path: 'M4 7 12 3l8 4-8 4-8-4Zm0 5 8 4 8-4m-16 5 8 4 8-4', administratorsOnly: true },
+    { id: 'audit', label: 'Registro de auditoría', path: 'M8 4H6a2 2 0 0 0-2 2v14h16V6a2 2 0 0 0-2-2h-2M9 3h6v4H9zM8 12h8m-8 4h6', administratorsOnly: true },
   ];
 
   ngOnChanges(changes: SimpleChanges): void {
