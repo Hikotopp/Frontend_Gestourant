@@ -42,10 +42,11 @@ describe('ReportsPage', () => {
     globalThis.__GESTOURANT_PRODUCTS__ = undefined;
   });
 
-  async function createPage(role = session.role) {
+  async function createPage(role = session.role, mode: 'reports' | 'returns' = 'reports') {
     await TestBed.configureTestingModule({ imports: [ReportsPage] }).compileComponents();
     const fixture = TestBed.createComponent(ReportsPage);
     fixture.componentRef.setInput('session', { ...session, role });
+    fixture.componentRef.setInput('mode', mode);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -75,6 +76,30 @@ describe('ReportsPage', () => {
     expect(getHistory).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'ADMINISTRADOR' }), expect.any(String), expect.any(String), true);
     expect(download).toHaveBeenCalledWith(report, true);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Pedido abierto por');
+    fixture.destroy();
+  });
+
+  it('shows a dedicated returns workflow without report metrics or inventory losses', async () => {
+    const getHistory = vi.fn(async () => report);
+    const history = vi.fn(async () => ({
+      invoiceId: 12,
+      returnedQuantities: {},
+      returns: [],
+    }));
+    globalThis.__GESTOURANT_REPORTS__ = { getHistory };
+    globalThis.__GESTOURANT_RETURNS__ = { history, create: vi.fn() };
+
+    const fixture = await createPage(session.role, 'returns');
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('h1')?.textContent).toBe('Devoluciones');
+    expect(element.querySelector('.report-metrics')).toBeNull();
+    expect(element.querySelector('.inventory-losses-card')).toBeNull();
+    expect(element.querySelector('.report-download')).toBeNull();
+    expect(element.querySelector('details')?.open).toBe(true);
+    expect(element.textContent).toContain('Gestionar devolución · 1 producto');
+    expect(history).toHaveBeenCalledTimes(1);
+    expect(history).toHaveBeenCalledWith(expect.objectContaining({ role: 'EMPLEADO' }), 12);
     fixture.destroy();
   });
 

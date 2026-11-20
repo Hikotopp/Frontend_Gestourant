@@ -1,5 +1,5 @@
 <header class="page-heading">
-  <div><p class="eyebrow">{{ 'CONTROL · CIERRE E HISTORIAL' | tr }}</p><h1>{{ 'Reportes' | tr }}</h1><p class="muted">{{ (isAdmin ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.') | tr }}</p></div>
+  <div><p class="eyebrow">{{ (isReturnsView ? 'ATENCIÓN AL CLIENTE' : 'CONTROL · CIERRE E HISTORIAL') | tr }}</p><h1>{{ (isReturnsView ? 'Devoluciones' : 'Reportes') | tr }}</h1><p class="muted">{{ (isReturnsView ? 'Busca la factura de la venta, abre sus productos y registra la devolución con su motivo y reembolso.' : isAdmin ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.') | tr }}</p></div>
 </header>
 
 <section class="report-filter-card">
@@ -7,27 +7,29 @@
     <label for="report-from">{{ (isAdmin ? 'Desde' : 'Fecha del turno') | tr }}<input id="report-from" type="date" required [ngModel]="from()" (ngModelChange)="from.set($event); datesChanged()"></label>
     @if (isAdmin) { <label for="report-to">{{ 'Hasta' | tr }}<input id="report-to" type="date" required [ngModel]="to()" (ngModelChange)="to.set($event); datesChanged()"></label> }
   </div>
-  <div class="report-actions"><button class="outline" type="button" [disabled]="loading()" (click)="search()">{{ 'Consultar' | tr }} {{ isAdmin ? ('historial' | tr) : ('fecha' | tr) }}</button><button class="primary report-download" type="button" [disabled]="!report() || downloading()" (click)="download()">{{ (downloading() ? 'Preparando…' : 'Descargar Excel (.xlsx)') | tr }}</button></div>
+  <div class="report-actions"><button class="outline" type="button" [disabled]="loading()" (click)="search()">{{ 'Consultar' | tr }} {{ isAdmin ? ('historial' | tr) : ('fecha' | tr) }}</button>@if (!isReturnsView) { <button class="primary report-download" type="button" [disabled]="!report() || downloading()" (click)="download()">{{ (downloading() ? 'Preparando…' : 'Descargar Excel (.xlsx)') | tr }}</button> }</div>
 </section>
+
+@if (isReturnsView) { <section class="report-history-card return-module-intro"><strong>{{ 'Devoluciones' | tr }}</strong><p>{{ 'Las devoluciones no borran la venta original. Elige la factura, expande el detalle y selecciona el producto afectado.' | tr }}</p></section> }
 
 <p class="report-message" [class.is-error]="error()" role="status">{{ (error() || message()) | tr }}</p>
 
-<section class="metrics report-metrics">
+@if (!isReturnsView) { <section class="metrics report-metrics">
   <article><span>{{ 'Facturas' | tr }}</span><strong>{{ report()?.facturas ?? '—' }}</strong></article>
   <article><span>{{ 'Efectivo' | tr }}</span><strong>{{ report() ? '$ ' + (report()!.efectivo | localizedNumber) : '—' }}</strong></article>
   <article><span>{{ 'Pagos digitales' | tr }}</span><strong>{{ report() ? '$ ' + (report()!.digital | localizedNumber) : '—' }}</strong></article>
   <article><span>{{ 'Total vendido' | tr }}</span><strong>{{ report() ? '$ ' + (report()!.total | localizedNumber) : '—' }}</strong></article>
-</section>
+  </section> }
 
 <section class="report-history-card">
-  <div class="report-history-heading"><div><p class="eyebrow">{{ 'DETALLE' | tr }}</p><h2>{{ 'Facturas del periodo' | tr }}</h2></div>@if (report()) { <span>{{ from() === (isAdmin ? to() : from()) ? from() : from() + ' — ' + to() }}</span> }</div>
+  <div class="report-history-heading"><div><p class="eyebrow">{{ (isReturnsView ? 'GESTIÓN DE DEVOLUCIONES' : 'DETALLE') | tr }}</p><h2>{{ (isReturnsView ? 'Ventas para consultar o devolver' : 'Facturas del periodo') | tr }}</h2></div>@if (report()) { <span>{{ from() === (isAdmin ? to() : from()) ? from() : from() + ' — ' + to() }}</span> }</div>
   <div class="report-table-wrap">
     @if (loading() && !report()) { <p class="muted">{{ 'Cargando facturas…' | tr }}</p> }
     @else if (report()?.invoices?.length) {
       <table class="report-table"><thead><tr><th>{{ 'Factura' | tr }}</th><th>{{ 'Fecha y hora' | tr }}</th><th>{{ 'Mesa' | tr }}</th><th>{{ 'Pago' | tr }}</th><th>{{ 'Total' | tr }}</th>@if (isAdmin) { <th>{{ 'Pedido abierto por' | tr }}</th> }</tr></thead>
         <tbody>@for (invoice of report()!.invoices; track invoice.invoiceNumber) {
           <tr><td>{{ invoice.invoiceNumber }}</td><td>{{ invoice.issuedAt | localizedDate }}</td><td>{{ 'Mesa' | tr }} {{ invoice.tableNumber }}</td><td>{{ (invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital') | tr }}</td><td>$ {{ invoice.total | localizedNumber }}</td>@if (isAdmin) { <td>{{ invoice.employee }}</td> }</tr>
-          <tr class="invoice-items-row"><td [attr.colspan]="isAdmin ? 6 : 5"><details class="invoice-items-details" (toggle)="loadReturns(invoice)"><summary>{{ 'Detalle de productos y devoluciones' | tr }}</summary>
+          <tr class="invoice-items-row"><td [attr.colspan]="isAdmin ? 6 : 5"><details class="invoice-items-details" [open]="isReturnsView" (toggle)="loadReturns(invoice)"><summary>{{ (isReturnsView ? (invoice.items.length === 1 ? 'Gestionar devolución · {count} producto' : 'Gestionar devoluciones · {count} productos') : 'Detalle de productos y devoluciones') | tr: { count: invoice.items.length } }}</summary>
             @if (returnErrors()[invoice.invoiceId]) { <p class="form-message" role="alert">{{ returnErrors()[invoice.invoiceId] | tr }}</p> }
             <div class="report-table-wrap"><table class="report-table"><thead><tr><th>{{ 'Producto' | tr }}</th><th>{{ 'Cantidad' | tr }}</th><th>{{ 'Precio unitario' | tr }}</th><th>{{ 'Subtotal' | tr }}</th><th>{{ 'Indicaciones' | tr }}</th><th>{{ 'Devoluciones' | tr }}</th><th>{{ 'Acciones' | tr }}</th></tr></thead><tbody>
               @for (item of invoice.items; track item.orderItemId) { <tr><td>{{ item.productName | tr }}</td><td>{{ item.quantity }}</td><td>$ {{ item.unitPrice | localizedNumber }}</td><td>$ {{ item.subtotal | localizedNumber }}</td><td>{{ item.removedIngredients || '—' }}</td><td>{{ returnedQuantity(invoice, item) }} / {{ item.quantity }}</td><td><button class="outline" type="button" [disabled]="returnedQuantity(invoice, item) >= item.quantity" (click)="openReturn(invoice, item, returnDialog)">{{ 'Registrar devolución' | tr }}</button></td></tr> }
@@ -42,7 +44,7 @@
   </div>
 </section>
 
-<section class="report-history-card">
+@if (!isReturnsView) { <section class="report-history-card inventory-losses-card">
   <div class="report-history-heading"><div><p class="eyebrow">{{ 'CONTROL DE INVENTARIO' | tr }}</p><h2>{{ 'Mermas y pérdidas' | tr }}</h2></div>@if (adminLossReport; as losses) { @if (losses.totalCost !== null) { <strong>$ {{ losses.totalCost | localizedNumber }}</strong> } }</div>
   @if (lossError()) { <p class="form-message" role="alert">{{ lossError() | tr }}</p> }
   <form class="loss-form" #lossForm (submit)="$event.preventDefault(); recordLoss(lossForm)">
@@ -55,7 +57,7 @@
   @if (lossReport(); as losses) {
     <div class="report-table-wrap">@if (losses.entries.length) { <table class="report-table"><thead><tr><th>{{ 'Fecha y hora' | tr }}</th><th>{{ 'Producto' | tr }}</th><th>{{ 'Cantidad' | tr }}</th><th>{{ 'Motivo' | tr }}</th><th>{{ 'Detalle' | tr }}</th>@if (isAdmin) { <th>{{ 'Costo' | tr }}</th> }<th>{{ 'Registrado por' | tr }}</th></tr></thead><tbody>@for (loss of losses.entries; track loss.id) { <tr><td>{{ loss.reportedAt | localizedDate }}</td><td>{{ loss.productName | tr }}</td><td>{{ loss.quantity }}</td><td>{{ loss.reason | tr }}</td><td>{{ loss.notes || '—' }}</td>@if (isAdmin) { <td>$ {{ loss.totalCost | localizedNumber }}</td> }<td>{{ loss.reportedBy }}</td></tr> }</tbody></table> } @else { <p class="report-empty">{{ 'No hay mermas registradas en este periodo.' | tr }}</p> }</div>
   }
-</section>
+</section> }
 
 <dialog #returnDialog class="workflow-dialog"><form (submit)="$event.preventDefault(); submitReturn(returnDialog)">
   <p class="eyebrow">{{ 'ATENCIÓN AL CLIENTE' | tr }}</p><h2>{{ 'Registrar devolución' | tr }}</h2>

@@ -157,7 +157,7 @@ export class App implements AfterViewInit {
       this.legacyLoadError.set('Solo el administrador puede gestionar copias de seguridad.');
       return;
     }
-    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products' || view === 'reports') {
+    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products' || view === 'reports' || view === 'returns') {
       this.activeDashboardView.set(view);
       this.legacyLoadError.set('');
       return;

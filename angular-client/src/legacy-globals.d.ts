@@ -241,7 +241,7 @@ interface GestourantKitchenRequest {
   items: GestourantRequestItem[];
 }
 
-type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'backups' | 'audit';
+type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'returns' | 'backups' | 'audit';
 
 interface GestourantAuthBridge {
   getConfig: () => Promise<GestourantAuthConfig>;

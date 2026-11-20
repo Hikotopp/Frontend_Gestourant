@@ -58,6 +58,12 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
     expect(requested).toEqual(['tables']);
     expect(element.textContent).not.toContain('Copias de seguridad');
+    const returnsLink = Array.from(element.querySelectorAll<HTMLAnchorElement>('nav a'))
+      .find((link) => link.textContent?.includes('Devoluciones'));
+    expect(returnsLink).toBeDefined();
+    returnsLink?.click();
+    fixture.detectChanges();
+    expect(requested).toEqual(['tables', 'returns']);
 
     fixture.componentRef.setInput('session', { ...session, role: 'ADMINISTRADOR' });
     fixture.detectChanges();

@@ -11,6 +11,7 @@ import { LocalizedDatePipe, LocalizedNumberPipe, TranslatePipe, translate } from
 })
 export class ReportsPage implements OnInit {
   @Input({ required: true }) session!: GestourantSession;
+  @Input() mode: 'reports' | 'returns' = 'reports';
 
   readonly report = signal<GestourantHistoryReport | null>(null);
   readonly from = signal(this.today());
@@ -35,10 +36,15 @@ export class ReportsPage implements OnInit {
   returnRestocked = false;
   refundMethod = 'EFECTIVO';
   private pendingReturn: { invoiceId: number; orderItemId: number; remaining: number } | null = null;
+  private readonly returnRequests = new Map<number, Promise<void>>();
   private requestSequence = 0;
 
   get isAdmin(): boolean {
     return this.session.role === 'ADMINISTRADOR';
+  }
+
+  get isReturnsView(): boolean {
+    return this.mode === 'returns';
   }
 
   get adminLossReport(): GestourantLossReport | null {
@@ -81,11 +87,16 @@ export class ReportsPage implements OnInit {
       if (requestId !== this.requestSequence) return;
       this.report.set(report);
       this.returnHistory.set({});
+      this.returnErrors.set({});
       const count = report.invoices?.length ?? 0;
       this.message.set(count === 1
         ? translate('1 factura encontrada.')
         : translate('{count} facturas encontradas.', { count }));
-      await this.loadLosses(from, to);
+      if (this.isReturnsView) {
+        await Promise.all((report.invoices ?? []).map((invoice) => this.loadReturns(invoice)));
+      } else {
+        await this.loadLosses(from, to);
+      }
     } catch (error) {
       if (requestId !== this.requestSequence) return;
       this.report.set(null);
@@ -116,26 +127,34 @@ export class ReportsPage implements OnInit {
   }
 
   async loadReturns(invoice: GestourantInvoice): Promise<void> {
-    if (this.returnHistory()[invoice.invoiceId]) return;
+    const invoiceId = invoice.invoiceId;
+    if (this.returnHistory()[invoiceId]) return;
+    const pendingRequest = this.returnRequests.get(invoiceId);
+    if (pendingRequest) return pendingRequest;
     const history = globalThis.__GESTOURANT_RETURNS__?.history;
     if (!history) {
-      this.returnErrors.update((errors) => ({ ...errors, [invoice.invoiceId]: 'No está disponible el historial de devoluciones.' }));
+      this.returnErrors.update((errors) => ({ ...errors, [invoiceId]: 'No está disponible el historial de devoluciones.' }));
       return;
     }
-    try {
-      const result = await history(this.session, invoice.invoiceId);
-      this.returnHistory.update((current) => ({ ...current, [invoice.invoiceId]: result }));
-      this.returnErrors.update((errors) => {
-        const next = { ...errors };
-        delete next[invoice.invoiceId];
-        return next;
-      });
-    } catch (error) {
-      this.returnErrors.update((errors) => ({
-        ...errors,
-        [invoice.invoiceId]: error instanceof Error ? error.message : 'No se pudo cargar el historial de devoluciones.',
-      }));
-    }
+    const request = Promise.resolve()
+      .then(() => history(this.session, invoiceId))
+      .then((result) => {
+        this.returnHistory.update((current) => ({ ...current, [invoiceId]: result }));
+        this.returnErrors.update((errors) => {
+          const next = { ...errors };
+          delete next[invoiceId];
+          return next;
+        });
+      })
+      .catch((error: unknown) => {
+        this.returnErrors.update((errors) => ({
+          ...errors,
+          [invoiceId]: error instanceof Error ? error.message : 'No se pudo cargar el historial de devoluciones.',
+        }));
+      })
+      .finally(() => this.returnRequests.delete(invoiceId));
+    this.returnRequests.set(invoiceId, request);
+    await request;
   }
 
   returnedQuantity(invoice: GestourantInvoice, item: GestourantInvoiceItem): number {
