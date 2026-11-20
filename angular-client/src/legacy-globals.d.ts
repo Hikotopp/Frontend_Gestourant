@@ -275,6 +275,9 @@ declare var __GESTOURANT_INVENTORY__: GestourantInventoryBridge | undefined;
 declare var __GESTOURANT_DOWNLOAD_REPORT__:
   | ((report: GestourantHistoryReport, includeEmployee: boolean) => Promise<void>)
   | undefined;
+declare var __GESTOURANT_PRINT_REPORT_PDF__:
+  | ((report: GestourantHistoryReport, includeEmployee: boolean) => void | Promise<void>)
+  | undefined;
 declare var __GESTOURANT_BACKUPS__: GestourantBackupsBridge | undefined;
 declare var __GESTOURANT_AUDIT__: GestourantAuditBridge | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:

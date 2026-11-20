@@ -190,6 +190,7 @@ export const translations = {
   'La carta · Gestourant': { en: 'The menu · Gestourant', fr: 'La carte · Gestourant', de: 'Die Speisekarte · Gestourant', 'es-ES': 'La carta · Gestourant', 'zh-CN': '菜单 · Gestourant' },
   'Opciones de descarga': { en: 'Download options', fr: 'Options de téléchargement', de: 'Downloadoptionen', 'es-ES': 'Opciones de descarga', 'zh-CN': '下载选项' },
   'Guardar o imprimir PDF': { en: 'Save or print PDF', fr: 'Enregistrer ou imprimer en PDF', de: 'Als PDF speichern oder drucken', 'es-ES': 'Guardar o imprimir PDF', 'zh-CN': '保存或打印 PDF' },
+  'El reporte está listo para imprimir o guardar como PDF.': { en: 'The report is ready to print or save as PDF.', fr: 'Le rapport est prêt à être imprimé ou enregistré au format PDF.', de: 'Der Bericht kann jetzt gedruckt oder als PDF gespeichert werden.', 'es-ES': 'El reporte está listo para imprimir o guardar como PDF.', 'zh-CN': '报告已准备好，可打印或另存为 PDF。' },
   'En el diálogo, elige «Guardar como PDF».': { en: 'In the dialog, choose “Save as PDF”.', fr: 'Dans la boîte de dialogue, choisissez « Enregistrer au format PDF ».', de: 'Wählen Sie im Dialog „Als PDF speichern“.', 'es-ES': 'En el diálogo, elige «Guardar como PDF».', 'zh-CN': '在对话框中选择“另存为 PDF”。' },
   'Cocina hecha con cariño': { en: 'Made with care in our kitchen', fr: 'Préparé avec soin dans notre cuisine', de: 'Mit Liebe in unserer Küche zubereitet', 'es-ES': 'Cocina hecha con cariño', 'zh-CN': '用心烹制' },
   'Nuestra carta': { en: 'Our menu', fr: 'Notre carte', de: 'Unsere Speisekarte', 'es-ES': 'Nuestra carta', 'zh-CN': '我们的菜单' },

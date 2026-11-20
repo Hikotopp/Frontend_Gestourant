@@ -7,7 +7,7 @@
     <label for="report-from">{{ (isAdmin ? 'Desde' : 'Fecha del turno') | tr }}<input id="report-from" type="date" required [ngModel]="from()" (ngModelChange)="from.set($event); datesChanged()"></label>
     @if (isAdmin) { <label for="report-to">{{ 'Hasta' | tr }}<input id="report-to" type="date" required [ngModel]="to()" (ngModelChange)="to.set($event); datesChanged()"></label> }
   </div>
-  <div class="report-actions"><button class="outline" type="button" [disabled]="loading()" (click)="search()">{{ 'Consultar' | tr }} {{ isAdmin ? ('historial' | tr) : ('fecha' | tr) }}</button>@if (!isReturnsView) { <button class="primary report-download" type="button" [disabled]="!report() || downloading()" (click)="download()">{{ (downloading() ? 'Preparando…' : 'Descargar Excel (.xlsx)') | tr }}</button> }</div>
+  <div class="report-actions"><button class="outline" type="button" [disabled]="loading()" (click)="search()">{{ 'Consultar' | tr }} {{ isAdmin ? ('historial' | tr) : ('fecha' | tr) }}</button>@if (!isReturnsView) { <button class="primary report-download" type="button" [disabled]="!report() || downloading()" (click)="download()">{{ (downloading() ? 'Preparando…' : 'Descargar Excel (.xlsx)') | tr }}</button><button class="outline report-pdf-download" type="button" [disabled]="!report() || downloading() || printingPdf()" (click)="downloadPdf()">{{ (printingPdf() ? 'Preparando…' : 'Guardar o imprimir PDF') | tr }}</button> }</div>
 </section>
 
 @if (isReturnsView) { <section class="report-history-card return-module-intro"><strong>{{ 'Devoluciones' | tr }}</strong><p>{{ 'Las devoluciones no borran la venta original. Elige la factura, expande el detalle y selecciona el producto afectado.' | tr }}</p></section> }

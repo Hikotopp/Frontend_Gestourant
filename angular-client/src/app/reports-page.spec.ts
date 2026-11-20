@@ -37,6 +37,7 @@ describe('ReportsPage', () => {
   afterEach(() => {
     globalThis.__GESTOURANT_REPORTS__ = undefined;
     globalThis.__GESTOURANT_DOWNLOAD_REPORT__ = undefined;
+    globalThis.__GESTOURANT_PRINT_REPORT_PDF__ = undefined;
     globalThis.__GESTOURANT_RETURNS__ = undefined;
     globalThis.__GESTOURANT_INVENTORY__ = undefined;
     globalThis.__GESTOURANT_PRODUCTS__ = undefined;
@@ -80,6 +81,19 @@ describe('ReportsPage', () => {
     fixture.destroy();
   });
 
+  it('opens the selected report for saving or printing as PDF', async () => {
+    const getHistory = vi.fn(async () => report);
+    const printPdf = vi.fn();
+    globalThis.__GESTOURANT_REPORTS__ = { getHistory };
+    globalThis.__GESTOURANT_PRINT_REPORT_PDF__ = printPdf;
+    const fixture = await createPage('ADMINISTRADOR');
+    await fixture.componentInstance.search();
+    await fixture.componentInstance.downloadPdf();
+    expect(printPdf).toHaveBeenCalledWith(report, true);
+    expect(fixture.componentInstance.message()).toContain('PDF');
+    fixture.destroy();
+  });
+
   it('shows a dedicated returns workflow without report metrics or inventory losses', async () => {
     const getHistory = vi.fn(async () => report);
     const history = vi.fn(async () => ({
@@ -97,6 +111,7 @@ describe('ReportsPage', () => {
     expect(element.querySelector('.report-metrics')).toBeNull();
     expect(element.querySelector('.inventory-losses-card')).toBeNull();
     expect(element.querySelector('.report-download')).toBeNull();
+    expect(element.querySelector('.report-pdf-download')).toBeNull();
     expect(element.querySelector('details')?.open).toBe(true);
     expect(element.textContent).toContain('Gestionar devolución · 1 producto');
     expect(element.querySelector('.return-action')).not.toBeNull();

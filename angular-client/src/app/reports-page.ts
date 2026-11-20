@@ -20,6 +20,7 @@ export class ReportsPage implements OnInit {
   readonly error = signal('');
   readonly message = signal('Consulta las fechas seleccionadas para cargar el reporte.');
   readonly downloading = signal(false);
+  readonly printingPdf = signal(false);
   readonly lossReport = signal<GestourantLossReport | null>(null);
   readonly lossError = signal('');
   readonly products = signal<GestourantProduct[]>([]);
@@ -123,6 +124,25 @@ export class ReportsPage implements OnInit {
       this.error.set(error instanceof Error ? error.message : 'No se pudo descargar el reporte.');
     } finally {
       this.downloading.set(false);
+    }
+  }
+
+  async downloadPdf(): Promise<void> {
+    const report = this.report();
+    const printPdf = globalThis.__GESTOURANT_PRINT_REPORT_PDF__;
+    if (!report || !printPdf) {
+      this.error.set('No está disponible la exportación del reporte.');
+      return;
+    }
+    this.printingPdf.set(true);
+    this.error.set('');
+    try {
+      await printPdf(report, this.isAdmin);
+      this.message.set('El reporte está listo para imprimir o guardar como PDF.');
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'No se pudo descargar el reporte.');
+    } finally {
+      this.printingPdf.set(false);
     }
   }
 

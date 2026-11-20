@@ -20,6 +20,7 @@ import { isAvailableForOrder } from '../domain/product';
 import { guestOrderingView } from './guestOrdering';
 import { productPhoto } from './productPhoto';
 import { downloadCashCloseXlsx } from './cashCloseXlsx';
+import { printCashClosePdf } from './cashClosePdf';
 import { bindLanguagePicker, formatColombiaDate, getLocale, languagePicker, todayInBogota, translate } from '../shared/locale.js';
 
 let services;
@@ -813,7 +814,7 @@ function reportsView(session, returnsOnly = false) {
   const administrator = session.role === 'ADMINISTRADOR';
   const today = todayInBogota();
   return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate(returnsOnly ? 'ATENCIÓN AL CLIENTE' : 'CONTROL · CIERRE E HISTORIAL'))}</p><h1>${escapeHtml(translate(returnsOnly ? 'Devoluciones' : 'Reportes'))}</h1><p class="muted">${escapeHtml(translate(returnsOnly ? 'Busca la factura de la venta, abre sus productos y registra la devolución con su motivo y reembolso.' : administrator ? 'Consulta y descarga el historial de facturas del restaurante. El empleado mostrado es quien abrió cada pedido.' : 'Consulta las facturas de los pedidos que abriste en la fecha seleccionada.'))}</p></div></header>
-    <section class="report-filter-card"><div class="report-date-fields"><label for="report-from">${escapeHtml(translate(administrator ? 'Desde' : 'Fecha del turno'))}<input id="report-from" type="date" value="${today}" required></label>${administrator ? `<label for="report-to">${escapeHtml(translate('Hasta'))}<input id="report-to" type="date" value="${today}" required></label>` : ''}</div><div class="report-actions"><button id="report-search" class="outline" type="button">${escapeHtml(translate(administrator ? 'Consultar historial' : 'Consultar fecha'))}</button><button id="download-cash-close" class="primary report-download" type="button" disabled>${escapeHtml(translate('Descargar Excel (.xlsx)'))}</button></div></section>
+    <section class="report-filter-card"><div class="report-date-fields"><label for="report-from">${escapeHtml(translate(administrator ? 'Desde' : 'Fecha del turno'))}<input id="report-from" type="date" value="${today}" required></label>${administrator ? `<label for="report-to">${escapeHtml(translate('Hasta'))}<input id="report-to" type="date" value="${today}" required></label>` : ''}</div><div class="report-actions"><button id="report-search" class="outline" type="button">${escapeHtml(translate(administrator ? 'Consultar historial' : 'Consultar fecha'))}</button><button id="download-cash-close" class="primary report-download" type="button" disabled>${escapeHtml(translate('Descargar Excel (.xlsx)'))}</button><button id="download-report-pdf" class="outline report-pdf-download" type="button" disabled>${escapeHtml(translate('Guardar o imprimir PDF'))}</button></div></section>
     ${returnsOnly ? `<section class="report-history-card return-module-intro"><strong>${escapeHtml(translate('Devoluciones'))}</strong><p>${escapeHtml(translate('Las devoluciones no borran la venta original. Elige la factura, expande el detalle y selecciona el producto afectado.'))}</p></section>` : ''}
     <p id="report-message" class="report-message" role="status">${escapeHtml(translate('Cargando reporte…'))}</p>
     <section class="metrics report-metrics"><article><span>${escapeHtml(translate('Facturas'))}</span><strong id="report-invoices">—</strong></article><article><span>${escapeHtml(translate('Efectivo'))}</span><strong id="report-cash">—</strong></article><article><span>${escapeHtml(translate('Pagos digitales'))}</span><strong id="report-digital">—</strong></article><article><span>${escapeHtml(translate('Total vendido'))}</span><strong id="report-total">—</strong></article></section>
@@ -1030,6 +1031,7 @@ async function loadReport(session, returnsOnly = false) {
   const toInput = administrator ? document.querySelector('#report-to') : fromInput;
   const searchButton = document.querySelector('#report-search');
   const downloadButton = document.querySelector('#download-cash-close');
+  const pdfButton = document.querySelector('#download-report-pdf');
   const returnDialog = document.querySelector('#product-return-dialog');
   const returnForm = document.querySelector('#product-return-form');
   let pendingReturn = null;
@@ -1053,6 +1055,7 @@ async function loadReport(session, returnsOnly = false) {
       currentReport = null;
       searchButton.disabled = false;
       downloadButton.disabled = true;
+      pdfButton.disabled = true;
       clearResults();
       message.textContent = translate('Verifica las fechas: la fecha final debe ser igual o posterior a la inicial.');
       message.classList.add('is-error');
@@ -1061,6 +1064,7 @@ async function loadReport(session, returnsOnly = false) {
 
     searchButton.disabled = true;
     downloadButton.disabled = true;
+    pdfButton.disabled = true;
     message.textContent = translate('Consultando facturas…');
     message.classList.remove('is-error');
     try {
@@ -1094,6 +1098,7 @@ async function loadReport(session, returnsOnly = false) {
       bindInvoiceDetails(session, document.querySelector('#report-history'), invoices, returnDialog, returnForm, () => showReport(), returnsOnly);
       message.textContent = translate(invoices.length === 1 ? '{count} factura encontrada.' : '{count} facturas encontradas.', { count: invoices.length });
       downloadButton.disabled = false;
+      pdfButton.disabled = false;
     } catch (error) {
       if (requestId !== reportRequest) return;
       currentReport = null;
@@ -1112,6 +1117,7 @@ async function loadReport(session, returnsOnly = false) {
     searchButton.disabled = false;
     currentReport = null;
     downloadButton.disabled = true;
+    pdfButton.disabled = true;
     clearResults();
     const message = document.querySelector('#report-message');
     message.textContent = translate('Consulta las fechas seleccionadas para cargar el reporte.');
@@ -1122,6 +1128,15 @@ async function loadReport(session, returnsOnly = false) {
     try {
       downloadCashCloseXlsx(currentReport, administrator);
       showToast(translate('Historial de facturas descargado en Excel.'));
+    } catch (error) {
+      showToast(translate('No se pudo descargar el reporte: {detail}', { detail: error.message }), true);
+    }
+  });
+  pdfButton.addEventListener('click', () => {
+    if (!currentReport) return;
+    try {
+      printCashClosePdf(currentReport, administrator);
+      showToast(translate('El reporte está listo para imprimir o guardar como PDF.'));
     } catch (error) {
       showToast(translate('No se pudo descargar el reporte: {detail}', { detail: error.message }), true);
     }
@@ -1874,6 +1889,7 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     recordLoss: (session, body) => services.inventory.recordLoss(session, body)
   };
   globalThis.__GESTOURANT_DOWNLOAD_REPORT__ = async (report, includeEmployee) => downloadCashCloseXlsx(report, includeEmployee);
+  globalThis.__GESTOURANT_PRINT_REPORT_PDF__ = (report, includeEmployee) => printCashClosePdf(report, includeEmployee);
   globalThis.__GESTOURANT_BACKUPS__ = {
     list: session => services.backups.list(session),
     create: session => services.backups.create(session),

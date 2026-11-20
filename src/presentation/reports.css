@@ -9,7 +9,7 @@
 .report-message{min-height:20px;margin:14px 0;color:var(--muted,#71807c);font-size:13px}
 .report-message.is-error{color:#b82931}
 .report-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
-.returns-only-view .report-metrics,.returns-only-view .inventory-losses-card,.returns-only-view #download-cash-close{display:none}
+.returns-only-view .report-metrics,.returns-only-view .inventory-losses-card,.returns-only-view #download-cash-close,.returns-only-view #download-report-pdf{display:none}
 .return-module-intro{border-color:color-mix(in srgb,var(--accent,#326b50) 24%,var(--line,#e3e9e5))}
 .return-module-intro strong{color:var(--accent,#326b50)}
 .return-module-intro p{margin:7px 0 0;color:var(--muted,#71807c);font-size:13px}
