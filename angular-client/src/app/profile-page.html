@@ -1,0 +1,34 @@
+<header class="overview-header">
+  <div><p class="eyebrow">{{ 'MI CUENTA' | tr }}</p><h1>{{ 'Mi perfil' | tr }}</h1><p class="muted">{{ 'Actualiza tu acceso y agrega una foto para identificar tu cuenta.' | tr }}</p></div>
+</header>
+
+@if (error()) { <p class="report-message is-error" role="alert">{{ error() | tr }}</p> }
+@if (message()) { <p class="report-message" role="status">{{ message() | tr }}</p> }
+@if (loading()) { <p class="report-empty">{{ 'Cargando tu perfil…' | tr }}</p> }
+@else if (profile()) {
+  <div class="account-profile-grid">
+    <section class="account-card account-photo-card">
+      <div class="account-avatar-preview">
+        @if (photoUrl()) { <img [src]="photoUrl()" [alt]="'Foto de perfil' | tr"> }
+        @else { <span>{{ (profile()?.username || 'U').charAt(0).toUpperCase() }}</span> }
+      </div>
+      <h2>{{ profile()?.username }}</h2>
+      <p class="muted">{{ (profile()?.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado') | tr }}</p>
+      <label class="primary account-photo-picker">{{ (photoBusy() ? 'Guardando…' : 'Elegir foto') | tr }}<input type="file" accept="image/jpeg,image/png" [disabled]="photoBusy()" (change)="uploadPhoto($event)"></label>
+      <p class="account-hint">{{ 'JPG o PNG, máximo 1 MB y 2048 × 2048 píxeles.' | tr }}</p>
+      @if (profile()?.photoAvailable) { <button type="button" class="outline" [disabled]="photoBusy()" (click)="deletePhoto()">{{ 'Eliminar foto' | tr }}</button> }
+    </section>
+
+    <section class="account-card">
+      <div class="report-history-heading"><div><p class="eyebrow">{{ 'DATOS DE ACCESO' | tr }}</p><h2>{{ 'Credenciales' | tr }}</h2></div></div>
+      <form class="account-form account-profile-form" #profileForm (submit)="$event.preventDefault(); update(profileForm)">
+        <label>{{ 'Nombre de usuario' | tr }}<input name="username" [(ngModel)]="username" autocomplete="username" minlength="3" maxlength="50" pattern="[A-Za-z0-9_.\-]+" required></label>
+        <label>{{ 'Correo electrónico' | tr }}<input name="email" [(ngModel)]="email" type="email" autocomplete="email" maxlength="150" required></label>
+        <label>{{ 'Contraseña actual' | tr }}<input name="currentPassword" [(ngModel)]="currentPassword" type="password" autocomplete="current-password" required></label>
+        <label>{{ 'Nueva contraseña (opcional)' | tr }}<input name="newPassword" [(ngModel)]="newPassword" type="password" autocomplete="new-password" maxlength="72"></label>
+        <p class="account-hint">{{ 'Si cambias la contraseña, usa al menos 12 caracteres con mayúscula, minúscula, número y carácter especial.' | tr }}</p>
+        <div class="account-form-actions"><button class="primary" type="submit" [disabled]="saving()">{{ (saving() ? 'Guardando…' : 'Guardar cambios') | tr }}</button></div>
+      </form>
+    </section>
+  </div>
+}

@@ -7,6 +7,7 @@ import '../floor-layout.css';
 import '../floor-polish.css';
 import '../kitchen-board.css';
 import '../qr-network.css';
+import '../account-management.css';
 import './reports.css';
 import QRCode from 'qrcode';
 import { isValidRegistrationPassword } from '../shared/passwordPolicy.js';
@@ -46,6 +47,7 @@ let idleLogoutDeadline = 0;
 let idleLogoutStarted = false;
 let idleActivityReportWarningShown = false;
 let currentSession = null;
+let profilePhotoObjectUrl = '';
 let sessionValidationPoll;
 let sessionValidationInProgress = false;
 let authNotice = '';
@@ -116,6 +118,8 @@ function icon(name, className = '') {
     returns: '<path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-2"/>',
     backups: '<path d="m4 7 8-4 8 4-8 4-8-4Zm0 5 8 4 8-4m-16 5 8 4 8-4"/>',
     audit: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 10h6m-6 4h6m-6 4h3"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m15-11a4 4 0 1 0-8 0 4 4 0 0 0 8 0m3 11v-2a4 4 0 0 0-3-3.87"/>',
+    profile: '<path d="M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/>',
     arrow: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
     close: '<path d="m6 6 12 12M18 6 6 18"/>'
   };
@@ -685,19 +689,19 @@ function dashboardView(session) {
   currentSession = session;
   const user = escapeHtml(session.username || 'Equipo');
   const role = session.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado';
-  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar">${user.charAt(0).toUpperCase()}</span><div><strong>${escapeHtml(translate('Restaurante Central'))}</strong><small>${escapeHtml(translate(role))} · ${escapeHtml(translate('Turno activo'))}</small></div></div><nav aria-label="${escapeHtml(translate('Navegación principal'))}"><a data-view="overview">${icon('overview')}<span>${escapeHtml(translate('Resumen'))}</span></a><a class="active" data-view="tables">${icon('tables')}<span>${escapeHtml(translate('Mesas'))}</span></a><a data-view="orders">${icon('orders')}<span>${escapeHtml(translate('Pedidos'))}</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>${escapeHtml(translate('Cocina'))}</span></a><a data-view="products">${icon('products')}<span>${escapeHtml(translate('Menú e inventario'))}</span></a><a data-view="reports">${icon('reports')}<span>${escapeHtml(translate('Reportes'))}</span></a><a data-view="returns">${icon('returns')}<span>${escapeHtml(translate('Devoluciones'))}</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="backups">${icon('backups')}<span>${escapeHtml(translate('Copias de seguridad'))}</span></a><a data-view="audit">${icon('audit')}<span>${escapeHtml(translate('Registro de auditoría'))}</span></a>` : ''}</nav><div class="sidebar-footer">${themeSwitcher()}${languagePicker()}<button id="logout" class="logout">↪ ${escapeHtml(translate('Cerrar sesión'))}</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>${escapeHtml(translate('Tu sala está lista'))}</h3><p>${escapeHtml(translate('Selecciona una mesa para ver la cuenta y comenzar el servicio.'))}</p></div></aside></main>`;
+  app.innerHTML = `<main class="dashboard"><aside class="sidebar"><div class="brand">${brandMark()}Gestourant</div><div class="restaurant"><span class="avatar" id="session-avatar">${user.charAt(0).toUpperCase()}</span><div><strong>${escapeHtml(translate('Restaurante Central'))}</strong><small>${escapeHtml(translate(role))} · ${escapeHtml(translate('Turno activo'))}</small></div></div><nav aria-label="${escapeHtml(translate('Navegación principal'))}"><a data-view="overview">${icon('overview')}<span>${escapeHtml(translate('Resumen'))}</span></a><a class="active" data-view="tables">${icon('tables')}<span>${escapeHtml(translate('Mesas'))}</span></a><a data-view="orders">${icon('orders')}<span>${escapeHtml(translate('Pedidos'))}</span><b class="nav-pending-count" id="nav-pending-count" hidden>0</b></a><a data-view="kitchen">${icon('kitchen')}<span>${escapeHtml(translate('Cocina'))}</span></a><a data-view="products">${icon('products')}<span>${escapeHtml(translate('Menú e inventario'))}</span></a><a data-view="reports">${icon('reports')}<span>${escapeHtml(translate('Reportes'))}</span></a><a data-view="returns">${icon('returns')}<span>${escapeHtml(translate('Devoluciones'))}</span></a>${session.role === 'ADMINISTRADOR' ? `<a data-view="users">${icon('users')}<span>${escapeHtml(translate('Equipo y usuarios'))}</span></a><a data-view="backups">${icon('backups')}<span>${escapeHtml(translate('Copias de seguridad'))}</span></a><a data-view="audit">${icon('audit')}<span>${escapeHtml(translate('Registro de auditoría'))}</span></a>` : ''}<a data-view="profile">${icon('profile')}<span>${escapeHtml(translate('Mi perfil'))}</span></a></nav><div class="sidebar-footer">${themeSwitcher()}${languagePicker()}<button id="logout" class="logout">↪ ${escapeHtml(translate('Cerrar sesión'))}</button></div></aside><section id="content" class="workspace"></section><aside id="detail" class="detail"><div class="detail-empty"><span>${icon('tables')}</span><h3>${escapeHtml(translate('Tu sala está lista'))}</h3><p>${escapeHtml(translate('Selecciona una mesa para ver la cuenta y comenzar el servicio.'))}</p></div></aside></main>`;
   bindThemeControls();
   bindLanguagePicker(app);
-  document.querySelector('#logout').addEventListener('click', () => logout(session));
+  document.querySelector('#logout').addEventListener('click', () => logout(currentSession || session));
   document.querySelectorAll('[data-view]').forEach(link => link.addEventListener('click', () => {
     if (link.dataset.view === 'overview' && globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__) {
       stopViewPolling();
       globalThis.__GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__(session);
       return;
     }
-    navigate(link.dataset.view, session);
+    navigate(link.dataset.view, currentSession || session);
   }));
-  if (!globalThis.__GESTOURANT_AUTH_ACTIVE__) navigate('overview', session);
+  if (!globalThis.__GESTOURANT_AUTH_ACTIVE__) navigate('overview', currentSession || session);
   updateGuestRequestBadge(session);
   guestRequestBadgePoll = window.setInterval(() => updateGuestRequestBadge(session), 5000);
   setupIdleMonitoring(session);
@@ -714,6 +718,7 @@ async function loadTables(session) {
 }
 
 async function navigate(view, session) {
+  session = currentSession || session;
   stopViewPolling();
   document.querySelectorAll('[data-view]').forEach(link => link.classList.toggle('active', link.dataset.view === view));
   document.querySelector('#detail')?.classList.remove('open');
@@ -731,6 +736,18 @@ async function navigate(view, session) {
   }
   if (view === 'orders') { content.innerHTML = ordersView(); loadGuestRequests(session); guestRequestPoll = window.setInterval(() => loadGuestRequests(session), 5000); return; }
   if (view === 'kitchen') { content.innerHTML = kitchenView(); loadKitchenRequests(session); kitchenPoll = window.setInterval(() => loadKitchenRequests(session), 5000); return; }
+  if (view === 'users') {
+    if (session.role !== 'ADMINISTRADOR') { showToast(translate('Solo el administrador puede gestionar usuarios.'), true); return; }
+    content.innerHTML = usersView();
+    bindUserForm(session);
+    await loadUsers(session);
+    return;
+  }
+  if (view === 'profile') {
+    content.innerHTML = profileView();
+    await loadProfile(session);
+    return;
+  }
   if (view === 'backups') {
     if (session.role !== 'ADMINISTRADOR') { showToast(translate('Solo el administrador puede gestionar copias de seguridad.'), true); return; }
     content.innerHTML = backupsView();
@@ -753,6 +770,10 @@ async function navigate(view, session) {
 }
 
 function stopViewPolling() {
+  if (profilePhotoObjectUrl) {
+    URL.revokeObjectURL(profilePhotoObjectUrl);
+    profilePhotoObjectUrl = '';
+  }
   if (tableMapPoll) {
     window.clearInterval(tableMapPoll);
     tableMapPoll = null;
@@ -892,6 +913,259 @@ function backupsView() {
 
 function auditLogsView() {
   return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('ADMINISTRACIÓN'))}</p><h1>${escapeHtml(translate('Registro de auditoría'))}</h1><p class="muted">${escapeHtml(translate('Consulta las acciones realizadas por los usuarios del sistema.'))}</p></div></header><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('ADMINISTRACIÓN'))}</p><h2>${escapeHtml(translate('Registro de auditoría'))}</h2></div><span id="audit-count"></span></div><p id="audit-message" class="report-message" aria-live="polite"></p><button type="button" class="outline" id="audit-retry" hidden>${escapeHtml(translate('Reintentar'))}</button><div id="audit-history" class="report-table-wrap"><p class="report-empty">${escapeHtml(translate('Cargando registros de auditoría…'))}</p></div><div class="header-actions"><button type="button" class="outline" id="audit-previous">${escapeHtml(translate('Anterior'))}</button><span id="audit-page"></span><button type="button" class="outline" id="audit-next">${escapeHtml(translate('Siguiente'))}</button></div></section>`;
+}
+
+function usersView() {
+  return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('Administración'))}</p><h1>${escapeHtml(translate('Equipo y usuarios'))}</h1><p class="muted">${escapeHtml(translate('Crea cuentas y administra los permisos del equipo.'))}</p></div><div class="header-actions"><button type="button" class="outline" id="users-refresh">${escapeHtml(translate('Actualizar'))}</button></div></header><p id="users-error" class="report-message is-error" role="alert" hidden></p><p id="users-message" class="report-message" role="status" hidden></p><section class="account-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('NUEVO ACCESO'))}</p><h2>${escapeHtml(translate('Crear usuario'))}</h2></div></div><form class="account-form" id="create-user-form"><label>${escapeHtml(translate('Nombre de usuario'))}<input name="username" autocomplete="off" minlength="3" maxlength="50" pattern="[A-Za-z0-9_.\\-]+" required></label><label>${escapeHtml(translate('Correo electrónico'))}<input name="email" type="email" maxlength="150" autocomplete="email" required></label><label>${escapeHtml(translate('Contraseña inicial'))}<input name="password" type="password" minlength="12" maxlength="72" autocomplete="new-password" required></label><label>${escapeHtml(translate('Rol'))}<select name="role"><option value="EMPLEADO">${escapeHtml(translate('Empleado'))}</option><option value="ADMINISTRADOR">${escapeHtml(translate('Administrador'))}</option></select></label><p class="account-hint">${escapeHtml(translate('La contraseña debe tener 12 caracteres, mayúscula, minúscula, número y carácter especial.'))}</p><div class="account-form-actions"><button class="primary" type="submit">${escapeHtml(translate('Crear usuario'))}</button></div></form></section><section class="report-history-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('Administración'))}</p><h2>${escapeHtml(translate('Cuentas del equipo'))}</h2></div><span id="users-count"></span></div><div class="report-table-wrap" id="users-list" aria-busy="true"><p class="report-empty">${escapeHtml(translate('Cargando los usuarios…'))}</p></div></section>`;
+}
+
+function bindUserForm(session) {
+  const form = document.querySelector('#create-user-form');
+  const submitButton = form?.querySelector('button[type="submit"]');
+  document.querySelector('#users-refresh')?.addEventListener('click', () => { void loadUsers(session); });
+  form?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+    const password = String(data.get('password'));
+    if (!isValidRegistrationPassword(password)) {
+      setUsersNotice('error', translate('La contraseña debe tener 12 caracteres, mayúscula, minúscula, número y carácter especial.'));
+      return;
+    }
+    submitButton.disabled = true;
+    setUsersNotice('', '');
+    try {
+      const user = await services.users.create(session, {
+        username: String(data.get('username')).trim(),
+        email: String(data.get('email')).trim(),
+        password,
+        role: String(data.get('role')),
+      });
+      form.reset();
+      const loaded = await loadUsers(session);
+      if (loaded) setUsersNotice('message', translate('Se creó la cuenta de {username}.', { username: user.username }));
+    } catch (error) {
+      setUsersNotice('error', error instanceof Error ? error.message : translate('No se pudo crear el usuario.'));
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+}
+
+function setUsersNotice(kind, text) {
+  const error = document.querySelector('#users-error');
+  const message = document.querySelector('#users-message');
+  if (!error || !message) return;
+  error.hidden = kind !== 'error';
+  message.hidden = kind !== 'message';
+  error.textContent = kind === 'error' ? text : '';
+  message.textContent = kind === 'message' ? text : '';
+}
+
+async function loadUsers(session) {
+  const list = document.querySelector('#users-list');
+  const count = document.querySelector('#users-count');
+  if (!list || !count) return false;
+  list.setAttribute('aria-busy', 'true');
+  list.innerHTML = `<p class="report-empty">${escapeHtml(translate('Cargando los usuarios…'))}</p>`;
+  setUsersNotice('', '');
+  try {
+    const users = await services.users.list(session);
+    if (!list.isConnected) return false;
+    count.textContent = translate('{count} usuarios', { count: users.length });
+    list.innerHTML = users.length
+      ? `<table class="report-table account-user-table"><thead><tr><th>${escapeHtml(translate('Usuario'))}</th><th>${escapeHtml(translate('Correo electrónico'))}</th><th>${escapeHtml(translate('Rol'))}</th><th>${escapeHtml(translate('Estado'))}</th><th>${escapeHtml(translate('Creado'))}</th><th>${escapeHtml(translate('Acciones'))}</th></tr></thead><tbody>${users.map(user => {
+        const isCurrentUser = user.email.toLowerCase() === session.email.toLowerCase();
+        return `<tr data-user-row="${escapeHtml(user.id)}"><td>${escapeHtml(user.username)}${isCurrentUser ? ` <small>(${escapeHtml(translate('Tú'))})</small>` : ''}</td><td>${escapeHtml(user.email)}</td><td><select data-user-role="${escapeHtml(user.id)}" aria-label="${escapeHtml(translate('Rol de {username}', { username: user.username }))}" ${isCurrentUser ? 'disabled' : ''}><option value="EMPLEADO" ${user.role === 'EMPLEADO' ? 'selected' : ''}>${escapeHtml(translate('Empleado'))}</option><option value="ADMINISTRADOR" ${user.role === 'ADMINISTRADOR' ? 'selected' : ''}>${escapeHtml(translate('Administrador'))}</option></select></td><td><span class="account-status ${user.enabled ? '' : 'account-status-inactive'}">${escapeHtml(translate(user.enabled ? 'Activo' : 'Desactivado'))}</span></td><td>${escapeHtml(formatColombiaDate(user.createdAt, getLocale()))}</td><td><button type="button" class="outline account-status-button" data-user-enabled="${escapeHtml(user.id)}" ${isCurrentUser ? 'disabled' : ''}>${escapeHtml(translate(user.enabled ? 'Desactivar' : 'Reactivar'))}</button></td></tr>`;
+      }).join('')}</tbody></table>`
+      : `<p class="report-empty">${escapeHtml(translate('Todavía no hay cuentas de equipo.'))}</p>`;
+    list.setAttribute('aria-busy', 'false');
+    list.querySelectorAll('[data-user-role]').forEach(select => select.addEventListener('change', () => {
+      const user = users.find(item => item.id === Number(select.dataset.userRole));
+      if (user) void updateManagedUser(session, user.id, { role: select.value, enabled: user.enabled });
+    }));
+    list.querySelectorAll('[data-user-enabled]').forEach(button => button.addEventListener('click', () => {
+      const user = users.find(item => item.id === Number(button.dataset.userEnabled));
+      if (!user) return;
+      const enabled = !user.enabled;
+      if (!enabled && !window.confirm(translate('¿Desactivar la cuenta de {username}? Ya no podrá iniciar sesión.', { username: user.username }))) return;
+      void updateManagedUser(session, user.id, { role: user.role, enabled });
+    }));
+    return true;
+  } catch (error) {
+    if (!list.isConnected) return false;
+    list.innerHTML = '';
+    list.setAttribute('aria-busy', 'false');
+    count.textContent = '';
+    setUsersNotice('error', `${translate('No se pudo cargar el equipo.')} ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
+}
+
+async function updateManagedUser(session, id, updates) {
+  const list = document.querySelector('#users-list');
+  list?.querySelectorAll(`[data-user-row="${id}"] select, [data-user-row="${id}"] button`).forEach(control => { control.disabled = true; });
+  setUsersNotice('', '');
+  try {
+    const user = await services.users.update(session, id, updates);
+    if (await loadUsers(session)) setUsersNotice('message', translate('Se actualizó el acceso de {username}.', { username: user.username }));
+  } catch (error) {
+    await loadUsers(session);
+    setUsersNotice('error', error instanceof Error ? error.message : translate('No se pudo actualizar el acceso.'));
+  }
+}
+
+function profileView() {
+  return `<header class="overview-header"><div><p class="eyebrow">${escapeHtml(translate('MI CUENTA'))}</p><h1>${escapeHtml(translate('Mi perfil'))}</h1><p class="muted">${escapeHtml(translate('Actualiza tu acceso y agrega una foto para identificar tu cuenta.'))}</p></div></header><p id="profile-error" class="report-message is-error" role="alert" hidden></p><p id="profile-message" class="report-message" role="status" hidden></p><p id="profile-loading" class="report-empty">${escapeHtml(translate('Cargando tu perfil…'))}</p><div id="profile-content" hidden></div>`;
+}
+
+function renderProfileContent(profile) {
+  const content = document.querySelector('#profile-content');
+  if (!content) return;
+  const avatar = profilePhotoObjectUrl
+    ? `<img src="${escapeHtml(profilePhotoObjectUrl)}" alt="${escapeHtml(translate('Foto de perfil'))}">`
+    : `<span>${escapeHtml((profile.username || 'U').charAt(0).toUpperCase())}</span>`;
+  content.innerHTML = `<div class="account-profile-grid"><section class="account-card account-photo-card"><div class="account-avatar-preview" id="profile-avatar-preview">${avatar}</div><h2 id="profile-display-name">${escapeHtml(profile.username)}</h2><p class="muted">${escapeHtml(translate(profile.role === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado'))}</p><label class="primary account-photo-picker" id="profile-photo-picker">${escapeHtml(translate('Elegir foto'))}<input id="profile-photo-file" type="file" accept="image/jpeg,image/png"></label><p class="account-hint">${escapeHtml(translate('JPG o PNG, máximo 1 MB y 2048 × 2048 píxeles.'))}</p><button type="button" class="outline" id="profile-photo-delete" ${profile.photoAvailable ? '' : 'hidden'}>${escapeHtml(translate('Eliminar foto'))}</button></section><section class="account-card"><div class="report-history-heading"><div><p class="eyebrow">${escapeHtml(translate('DATOS DE ACCESO'))}</p><h2>${escapeHtml(translate('Credenciales'))}</h2></div></div><form class="account-form account-profile-form" id="profile-form"><label>${escapeHtml(translate('Nombre de usuario'))}<input name="username" value="${escapeHtml(profile.username)}" autocomplete="username" minlength="3" maxlength="50" pattern="[A-Za-z0-9_.\\-]+" required></label><label>${escapeHtml(translate('Correo electrónico'))}<input name="email" type="email" value="${escapeHtml(profile.email)}" autocomplete="email" maxlength="150" required></label><label>${escapeHtml(translate('Contraseña actual'))}<input name="currentPassword" type="password" autocomplete="current-password" required></label><label>${escapeHtml(translate('Nueva contraseña (opcional)'))}<input name="newPassword" type="password" autocomplete="new-password" maxlength="72"></label><p class="account-hint">${escapeHtml(translate('Si cambias la contraseña, usa al menos 12 caracteres con mayúscula, minúscula, número y carácter especial.'))}</p><div class="account-form-actions"><button class="primary" type="submit">${escapeHtml(translate('Guardar cambios'))}</button></div></form></section></div>`;
+  content.hidden = false;
+}
+
+function setProfileNotice(kind, text) {
+  const error = document.querySelector('#profile-error');
+  const message = document.querySelector('#profile-message');
+  if (!error || !message) return;
+  error.hidden = kind !== 'error';
+  message.hidden = kind !== 'message';
+  error.textContent = kind === 'error' ? text : '';
+  message.textContent = kind === 'message' ? text : '';
+}
+
+async function loadProfile(session) {
+  const loading = document.querySelector('#profile-loading');
+  const content = document.querySelector('#profile-content');
+  if (!loading || !content) return;
+  setProfileNotice('', '');
+  try {
+    const profile = await services.profile.get(session);
+    if (!content.isConnected) return;
+    let photoError = '';
+    if (profile.photoAvailable) {
+      try {
+        const photo = await services.profile.getPhoto(session);
+        if (!content.isConnected) return;
+        profilePhotoObjectUrl = URL.createObjectURL(photo);
+      } catch (error) {
+        photoError = `${translate('No se pudo cargar la foto de perfil.')} ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
+    renderProfileContent(profile);
+    loading.hidden = true;
+    bindProfileControls(session, profile);
+    if (photoError) setProfileNotice('error', photoError);
+  } catch (error) {
+    if (!content.isConnected) return;
+    loading.textContent = `${translate('No se pudo cargar tu perfil.')} ${error instanceof Error ? error.message : String(error)}`;
+    loading.classList.add('is-error');
+    loading.setAttribute('role', 'alert');
+  }
+}
+
+function bindProfileControls(session, initialProfile) {
+  let activeSession = session;
+  let profile = { ...initialProfile };
+  const form = document.querySelector('#profile-form');
+  const photoInput = document.querySelector('#profile-photo-file');
+  const photoDelete = document.querySelector('#profile-photo-delete');
+  const photoPicker = document.querySelector('#profile-photo-picker');
+  const savingButton = form?.querySelector('button[type="submit"]');
+  const photoBusy = busy => {
+    if (photoInput) photoInput.disabled = busy;
+    if (photoDelete) photoDelete.disabled = busy;
+    if (photoPicker) photoPicker.classList.toggle('is-busy', busy);
+  };
+  form?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+    const newPassword = String(data.get('newPassword') || '');
+    if (newPassword && !isValidRegistrationPassword(newPassword)) {
+      setProfileNotice('error', translate('La nueva contraseña debe tener al menos 12 caracteres e incluir una mayúscula, una minúscula, un número y un carácter especial.'));
+      return;
+    }
+    savingButton.disabled = true;
+    setProfileNotice('', '');
+    try {
+      const updated = await services.profile.update(activeSession, {
+        username: String(data.get('username')).trim(),
+        email: String(data.get('email')).trim(),
+        currentPassword: String(data.get('currentPassword')),
+        newPassword: newPassword || null,
+      });
+      activeSession = updated;
+      profile = { ...profile, username: updated.username, email: updated.email };
+      globalThis.__GESTOURANT_UPDATE_SESSION__?.(updated);
+      document.querySelector('#profile-display-name').textContent = profile.username;
+      document.querySelector('#session-avatar').textContent = profile.username.charAt(0).toUpperCase();
+      form.elements.currentPassword.value = '';
+      form.elements.newPassword.value = '';
+      setProfileNotice('message', translate('Tus credenciales se actualizaron.'));
+    } catch (error) {
+      setProfileNotice('error', error instanceof Error ? error.message : translate('No se pudieron actualizar tus credenciales.'));
+    } finally {
+      savingButton.disabled = false;
+    }
+  });
+  photoInput?.addEventListener('change', async () => {
+    const file = photoInput.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 1_048_576) {
+      setProfileNotice('error', translate('Selecciona una imagen JPG o PNG de máximo 1 MB.'));
+      photoInput.value = '';
+      return;
+    }
+    photoBusy(true);
+    setProfileNotice('', '');
+    try {
+      await services.profile.uploadPhoto(activeSession, file);
+      if (profilePhotoObjectUrl) URL.revokeObjectURL(profilePhotoObjectUrl);
+      profilePhotoObjectUrl = URL.createObjectURL(file);
+      profile = { ...profile, photoAvailable: true };
+      renderProfilePhoto(profile);
+      setProfileNotice('message', translate('La foto de perfil se actualizó.'));
+    } catch (error) {
+      setProfileNotice('error', error instanceof Error ? error.message : translate('No se pudo guardar la foto de perfil.'));
+    } finally {
+      photoBusy(false);
+      photoInput.value = '';
+    }
+  });
+  photoDelete?.addEventListener('click', async () => {
+    if (!window.confirm(translate('¿Eliminar tu foto de perfil?'))) return;
+    photoBusy(true);
+    setProfileNotice('', '');
+    try {
+      await services.profile.deletePhoto(activeSession);
+      if (profilePhotoObjectUrl) URL.revokeObjectURL(profilePhotoObjectUrl);
+      profilePhotoObjectUrl = '';
+      profile = { ...profile, photoAvailable: false };
+      renderProfilePhoto(profile);
+      setProfileNotice('message', translate('Se eliminó la foto de perfil.'));
+    } catch (error) {
+      setProfileNotice('error', error instanceof Error ? error.message : translate('No se pudo eliminar la foto de perfil.'));
+    } finally {
+      photoBusy(false);
+    }
+  });
+}
+
+function renderProfilePhoto(profile) {
+  const preview = document.querySelector('#profile-avatar-preview');
+  const removeButton = document.querySelector('#profile-photo-delete');
+  if (preview) {
+    preview.innerHTML = profilePhotoObjectUrl
+      ? `<img src="${escapeHtml(profilePhotoObjectUrl)}" alt="${escapeHtml(translate('Foto de perfil'))}">`
+      : `<span>${escapeHtml((profile.username || 'U').charAt(0).toUpperCase())}</span>`;
+  }
+  if (removeButton) removeButton.hidden = !profile.photoAvailable;
 }
 
 async function loadAuditLogs(session, page = 0) {
@@ -1707,8 +1981,10 @@ window.addEventListener('gestourant:locale-change', () => {
       kitchen: 'Cocina',
       products: 'Menú e inventario',
       reports: 'Reportes',
+      users: 'Equipo y usuarios',
       backups: 'Copias de seguridad',
       audit: 'Registro de auditoría',
+      profile: 'Mi perfil',
     };
     document.querySelectorAll('.sidebar nav [data-view]').forEach(link => {
       const label = link.querySelector('span');
@@ -1737,6 +2013,33 @@ window.addEventListener('gestourant:locale-change', () => {
     } else if (content?.querySelector('#audit-history')) {
       content.innerHTML = auditLogsView();
       void loadAuditLogs(currentSession, auditCurrentPage);
+    } else if (content?.querySelector('#users-list')) {
+      const form = content.querySelector('#create-user-form');
+      const values = form ? Object.fromEntries(new FormData(form)) : null;
+      content.innerHTML = usersView();
+      if (values) {
+        const updatedForm = content.querySelector('#create-user-form');
+        for (const [name, value] of Object.entries(values)) {
+          if (updatedForm.elements.namedItem(name)) updatedForm.elements.namedItem(name).value = value;
+        }
+      }
+      void loadUsers(currentSession);
+    } else if (content?.querySelector('#profile-content')) {
+      const form = content.querySelector('#profile-form');
+      const values = form ? Object.fromEntries(new FormData(form)) : null;
+      if (profilePhotoObjectUrl) {
+        URL.revokeObjectURL(profilePhotoObjectUrl);
+        profilePhotoObjectUrl = '';
+      }
+      content.innerHTML = profileView();
+      void loadProfile(currentSession).then(() => {
+        if (!values) return;
+        const updatedForm = content.querySelector('#profile-form');
+        if (!updatedForm) return;
+        for (const [name, value] of Object.entries(values)) {
+          if (updatedForm.elements.namedItem(name)) updatedForm.elements.namedItem(name).value = value;
+        }
+      });
     }
     if (content?.querySelector('#overview-busy')) {
       content.innerHTML = overviewView(currentSession);
@@ -1899,6 +2202,8 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
   globalThis.__GESTOURANT_AUDIT__ = {
     list: (session, page, size) => services.audit.list(session, page, size)
   };
+  globalThis.__GESTOURANT_USERS__ = services.users;
+  globalThis.__GESTOURANT_PROFILE__ = services.profile;
   globalThis.__GESTOURANT_PRODUCT_PHOTO__ = product => productPhoto(product);
   globalThis.__GESTOURANT_ADD_ORDER_PRODUCT__ = async productId => {
     if (!currentSession || !activeOrder) throw new Error('Abre una cuenta antes de agregar productos.');
@@ -1945,6 +2250,18 @@ export function startGestourantApp(applicationServices, applicationLogger, apiBa
     if (previousSessionClosed) {
       showToast(translate('La sesión que estaba abierta en otro navegador se cerró para proteger esta cuenta.'));
     }
+  };
+  globalThis.__GESTOURANT_UPDATE_SESSION__ = session => {
+    session.previousSessionClosed = false;
+    sessionStorage.setItem('gestourant_session', JSON.stringify(session));
+    currentSession = session;
+    const avatar = document.querySelector('#session-avatar');
+    if (avatar && session.username) avatar.textContent = session.username.charAt(0).toUpperCase();
+    setupIdleMonitoring(session);
+    setupSessionValidation(session);
+    if (guestRequestBadgePoll) window.clearInterval(guestRequestBadgePoll);
+    updateGuestRequestBadge(session);
+    guestRequestBadgePoll = window.setInterval(() => updateGuestRequestBadge(currentSession), 5000);
   };
   const applicationReady = globalThis.__GESTOURANT_AUTH_INITIALIZED__;
   globalThis.__GESTOURANT_OPEN_AUTH__ = async mode => {

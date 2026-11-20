@@ -23,6 +23,7 @@ import { activeLocale, TranslatePipe } from './locale';
           (tableSelected)="openTableDetail($event)"
           (requestCountChanged)="pendingRequestCount.set($event)"
           (chooseTable)="openDashboardView('tables')"
+          (sessionUpdated)="updateSession($event)"
           (logoutRequested)="logout()"
         />
       } @else if (authMode() !== 'dashboard') {
@@ -156,7 +157,11 @@ export class App implements AfterViewInit {
       this.legacyLoadError.set('Solo el administrador puede gestionar copias de seguridad.');
       return;
     }
-    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products' || view === 'reports' || view === 'returns') {
+    if (view === 'users' && this.dashboardSession()?.role !== 'ADMINISTRADOR') {
+      this.legacyLoadError.set('Solo el administrador puede gestionar usuarios.');
+      return;
+    }
+    if (view === 'overview' || view === 'tables' || view === 'orders' || view === 'kitchen' || view === 'products' || view === 'reports' || view === 'returns' || view === 'profile' || view === 'users') {
       this.activeDashboardView.set(view);
       this.legacyLoadError.set('');
       return;
@@ -167,6 +172,17 @@ export class App implements AfterViewInit {
       return;
     }
     await this.openLegacyView(view);
+  }
+
+  updateSession(session: GestourantSession): void {
+    this.dashboardSession.set(session);
+    sessionStorage.setItem('gestourant_session', JSON.stringify(session));
+    const updateSession = globalThis.__GESTOURANT_UPDATE_SESSION__;
+    if (!updateSession) {
+      this.legacyLoadError.set('Las credenciales cambiaron, pero no se pudo sincronizar el estado de la sesión. Recarga la página para continuar.');
+      return;
+    }
+    updateSession(session);
   }
 
   async openTableDetail(tableId: number): Promise<void> {

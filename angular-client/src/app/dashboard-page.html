@@ -53,6 +53,18 @@
         <app-backups-page [session]="session" />
       } @else if (activeView === 'audit' && session && session.role === 'ADMINISTRADOR') {
         <app-audit-logs-page [session]="session" />
+      } @else if (activeView === 'users' && session && session.role === 'ADMINISTRADOR') {
+        @defer (when activeView === 'users') {
+          <app-users-page [session]="session" />
+        } @placeholder {
+          <p class="report-empty">{{ 'Cargando administración de usuarios…' | tr }}</p>
+        }
+      } @else if (activeView === 'profile' && session) {
+        @defer (when activeView === 'profile') {
+          <app-profile-page [session]="session" (sessionUpdated)="sessionUpdated.emit($event)" />
+        } @placeholder {
+          <p class="report-empty">{{ 'Cargando tu perfil…' | tr }}</p>
+        }
       } @else {
       <header class="overview-header">
         <div>

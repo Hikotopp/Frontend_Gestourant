@@ -25,10 +25,28 @@ interface GestourantAuthConfig {
 
 interface GestourantSession {
   token: string;
+  userId?: number;
   username: string;
   email: string;
   role: string;
   previousSessionClosed?: boolean;
+}
+
+interface GestourantManagedUser {
+  id: number;
+  username: string;
+  email: string;
+  role: 'ADMINISTRADOR' | 'EMPLEADO';
+  enabled: boolean;
+  createdAt: string;
+}
+
+interface GestourantUserProfile {
+  id: number;
+  username: string;
+  email: string;
+  role: 'ADMINISTRADOR' | 'EMPLEADO';
+  photoAvailable: boolean;
 }
 
 interface GestourantDashboardSummary {
@@ -240,7 +258,7 @@ interface GestourantKitchenRequest {
   items: GestourantRequestItem[];
 }
 
-type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'returns' | 'backups' | 'audit';
+type GestourantDashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'returns' | 'backups' | 'audit' | 'users' | 'profile';
 
 interface GestourantAuthBridge {
   getConfig: () => Promise<GestourantAuthConfig>;
@@ -280,6 +298,22 @@ declare var __GESTOURANT_PRINT_REPORT_PDF__:
   | undefined;
 declare var __GESTOURANT_BACKUPS__: GestourantBackupsBridge | undefined;
 declare var __GESTOURANT_AUDIT__: GestourantAuditBridge | undefined;
+declare var __GESTOURANT_USERS__:
+  | {
+      list: (session: GestourantSession) => Promise<GestourantManagedUser[]>;
+      create: (session: GestourantSession, user: { username: string; email: string; password: string; role: GestourantUserProfile['role'] }) => Promise<GestourantManagedUser>;
+      update: (session: GestourantSession, id: number, updates: { role: GestourantUserProfile['role']; enabled: boolean }) => Promise<GestourantManagedUser>;
+    }
+  | undefined;
+declare var __GESTOURANT_PROFILE__:
+  | {
+      get: (session: GestourantSession) => Promise<GestourantUserProfile>;
+      update: (session: GestourantSession, profile: { username: string; email: string; currentPassword: string; newPassword?: string | null }) => Promise<GestourantSession>;
+      getPhoto: (session: GestourantSession) => Promise<Blob>;
+      uploadPhoto: (session: GestourantSession, file: File) => Promise<GestourantUserProfile>;
+      deletePhoto: (session: GestourantSession) => Promise<void>;
+    }
+  | undefined;
 declare var __GESTOURANT_OPEN_LEGACY_VIEW__:
   | ((view: GestourantDashboardView) => Promise<void>)
   | undefined;
@@ -287,6 +321,7 @@ declare var __GESTOURANT_RETURN_TO_ANGULAR_DASHBOARD__:
   | ((session: GestourantSession) => void)
   | undefined;
 declare var __GESTOURANT_LOGOUT__: (() => Promise<void>) | undefined;
+declare var __GESTOURANT_UPDATE_SESSION__: ((session: GestourantSession) => void) | undefined;
 declare var turnstile:
   | {
       render: (container: HTMLElement, options: Record<string, unknown>) => string;

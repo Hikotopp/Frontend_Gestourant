@@ -115,6 +115,22 @@ export function createHttpGestourantGateway(apiPort) {
         session
       )
     },
+    users: {
+      list: session => api.request('/api/admin/users', session),
+      create: (session, user) => api.request('/api/admin/users', session, jsonRequest('POST', user)),
+      update: (session, id, updates) => api.request(`/api/admin/users/${id}`, session, jsonRequest('PATCH', updates))
+    },
+    profile: {
+      get: session => api.request('/api/users/me', session),
+      update: (session, profile) => api.request('/api/users/me', session, jsonRequest('PUT', profile)),
+      getPhoto: session => api.requestBlob('/api/users/me/photo', session),
+      uploadPhoto: (session, file) => {
+        const form = new FormData();
+        form.append('file', file);
+        return api.request('/api/users/me/photo', session, { method: 'PUT', body: form });
+      },
+      deletePhoto: session => api.request('/api/users/me/photo', session, { method: 'DELETE' })
+    },
     reports: {
       getCashClose: session => api.request('/api/reports/cash-close', session),
       getHistory: (session, from, to, administrator) => {

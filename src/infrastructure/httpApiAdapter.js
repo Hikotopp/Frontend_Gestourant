@@ -38,6 +38,23 @@ export function createHttpApiAdapter(baseUrl = '') {
       logger.info('API request completed', { path: safeLogPath(path), status: response.status });
       return data;
     },
+    async requestBlob(path, session) {
+      const response = await fetch(`${baseUrl}${path}`, {
+        headers: session?.token ? { Authorization: `Bearer ${session.token}` } : {}
+      });
+      if (!response.ok) {
+        let data = {};
+        try { data = await response.json(); } catch { /* The response may not contain JSON. */ }
+        logger.error('API request failed', { path: safeLogPath(path), status: response.status });
+        const message = data.message || 'No fue posible cargar el archivo.';
+        throw Object.assign(new Error(translateBackendMessage(message)), {
+          status: response.status,
+          sourceMessage: message,
+        });
+      }
+      logger.info('API request completed', { path: safeLogPath(path), status: response.status });
+      return response.blob();
+    },
     async download(path, session) {
       const response = await fetch(`${baseUrl}${path}`, {
         headers: session?.token ? { Authorization: `Bearer ${session.token}` } : {}

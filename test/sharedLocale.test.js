@@ -232,6 +232,8 @@ test('provides translations for every explicit Vite UI key in all supported lang
     '../angular-client/src/app/dashboard-page.html',
     '../angular-client/src/app/dashboard-page.ts',
     '../angular-client/src/app/language-picker.ts',
+    '../angular-client/src/app/profile-page.html',
+    '../angular-client/src/app/profile-page.ts',
     '../angular-client/src/app/products-page.html',
     '../angular-client/src/app/products-page.ts',
     '../angular-client/src/app/public-home.html',
@@ -242,6 +244,8 @@ test('provides translations for every explicit Vite UI key in all supported lang
     '../angular-client/src/app/requests-page.ts',
     '../angular-client/src/app/tables-page.html',
     '../angular-client/src/app/tables-page.ts',
+    '../angular-client/src/app/users-page.html',
+    '../angular-client/src/app/users-page.ts',
   ];
   for (const file of angularFiles) {
     const source = readFileSync(new URL(file, import.meta.url), 'utf8');

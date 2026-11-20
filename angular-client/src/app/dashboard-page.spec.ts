@@ -58,6 +58,8 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
     expect(requested).toEqual(['tables']);
     expect(element.textContent).not.toContain('Copias de seguridad');
+    expect(element.textContent).toContain('Mi perfil');
+    expect(element.textContent).not.toContain('Equipo y usuarios');
     const returnsLink = Array.from(element.querySelectorAll<HTMLAnchorElement>('nav a'))
       .find((link) => link.textContent?.includes('Devoluciones'));
     expect(returnsLink).toBeDefined();
@@ -68,6 +70,7 @@ describe('DashboardPage', () => {
     fixture.componentRef.setInput('session', { ...session, role: 'ADMINISTRADOR' });
     fixture.detectChanges();
     expect(element.textContent).toContain('Copias de seguridad');
+    expect(element.textContent).toContain('Equipo y usuarios');
   });
 
   it('shows the pending-request badge and refreshes the summary when returning to overview', async () => {

@@ -1,0 +1,53 @@
+<header class="overview-header">
+  <div><p class="eyebrow">{{ 'Administración' | tr }}</p><h1>{{ 'Equipo y usuarios' | tr }}</h1><p class="muted">{{ 'Crea cuentas y administra los permisos del equipo.' | tr }}</p></div>
+  <div class="header-actions"><button type="button" class="outline" [disabled]="loading()" (click)="refresh()">{{ 'Actualizar' | tr }}</button></div>
+</header>
+
+@if (error()) { <p class="report-message is-error" role="alert">{{ error() | tr }}</p> }
+@if (message()) { <p class="report-message" role="status">{{ message() | tr }}</p> }
+
+<section class="account-card">
+  <div class="report-history-heading"><div><p class="eyebrow">{{ 'NUEVO ACCESO' | tr }}</p><h2>{{ 'Crear usuario' | tr }}</h2></div></div>
+  <form class="account-form" #createForm (submit)="$event.preventDefault(); create(createForm)">
+    <label>{{ 'Nombre de usuario' | tr }}<input name="username" [(ngModel)]="username" autocomplete="off" minlength="3" maxlength="50" pattern="[A-Za-z0-9_.\-]+" required></label>
+    <label>{{ 'Correo electrónico' | tr }}<input name="email" [(ngModel)]="email" type="email" maxlength="150" autocomplete="email" required></label>
+    <label>{{ 'Contraseña inicial' | tr }}<input name="password" [(ngModel)]="password" type="password" minlength="12" maxlength="72" autocomplete="new-password" required></label>
+    <label>{{ 'Rol' | tr }}
+      <select name="role" [(ngModel)]="role">
+        <option value="EMPLEADO">{{ 'Empleado' | tr }}</option>
+        <option value="ADMINISTRADOR">{{ 'Administrador' | tr }}</option>
+      </select>
+    </label>
+    <p class="account-hint">{{ 'La contraseña debe tener 12 caracteres, mayúscula, minúscula, número y carácter especial.' | tr }}</p>
+    <div class="account-form-actions"><button class="primary" type="submit" [disabled]="saving()">{{ (saving() ? 'Creando…' : 'Crear usuario') | tr }}</button></div>
+  </form>
+</section>
+
+<section class="report-history-card">
+  <div class="report-history-heading"><div><p class="eyebrow">{{ 'ADMINISTRACIÓN' | tr }}</p><h2>{{ 'Cuentas del equipo' | tr }}</h2></div><span>{{ loading() ? ('Cargando…' | tr) : users().length === 1 ? ('1 usuario' | tr) : ('{count} usuarios' | tr: { count: users().length }) }}</span></div>
+  <div class="report-table-wrap" [attr.aria-busy]="loading()">
+    @if (loading() && !users().length) { <p class="report-empty">{{ 'Cargando los usuarios…' | tr }}</p> }
+    @else if (users().length) {
+      <table class="report-table account-user-table">
+        <thead><tr><th>{{ 'Usuario' | tr }}</th><th>{{ 'Correo electrónico' | tr }}</th><th>{{ 'Rol' | tr }}</th><th>{{ 'Estado' | tr }}</th><th>{{ 'Creado' | tr }}</th><th>{{ 'Acciones' | tr }}</th></tr></thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td>{{ user.username }} @if (isCurrentUser(user)) { <small>({{ 'Tú' | tr }})</small> }</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <select [value]="user.role" [disabled]="busyIds().has(user.id) || isCurrentUser(user)" [attr.aria-label]="'Rol de {username}' | tr: { username: user.username }" (change)="changeRole(user, $any($event.target).value)">
+                  <option value="EMPLEADO">{{ 'Empleado' | tr }}</option>
+                  <option value="ADMINISTRADOR">{{ 'Administrador' | tr }}</option>
+                </select>
+              </td>
+              <td><span class="account-status" [class.account-status-inactive]="!user.enabled">{{ (user.enabled ? 'Activo' : 'Desactivado') | tr }}</span></td>
+              <td>{{ user.createdAt | localizedDate }}</td>
+              <td><button type="button" class="outline account-status-button" [disabled]="busyIds().has(user.id) || isCurrentUser(user)" (click)="toggleEnabled(user)">{{ (user.enabled ? 'Desactivar' : 'Reactivar') | tr }}</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (!error()) { <p class="report-empty">{{ 'Todavía no hay cuentas de equipo.' | tr }}</p> }
+  </div>
+</section>

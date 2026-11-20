@@ -6,10 +6,12 @@ import { ProductsPage } from './products-page';
 import { ReportsPage } from './reports-page';
 import { RequestsPage } from './requests-page';
 import { TablesPage } from './tables-page';
+import { UsersPage } from './users-page';
+import { ProfilePage } from './profile-page';
 import { TranslatePipe } from './locale';
 import { LanguagePicker } from './language-picker';
 
-type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'returns' | 'backups' | 'audit';
+type DashboardView = 'tables' | 'orders' | 'kitchen' | 'products' | 'reports' | 'returns' | 'backups' | 'audit' | 'users' | 'profile';
 
 interface NavigationItem {
   id: DashboardView | 'overview';
@@ -20,7 +22,7 @@ interface NavigationItem {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [AuditLogsPage, BackupsPage, CommonModule, LanguagePicker, ProductsPage, ReportsPage, RequestsPage, TablesPage, TranslatePipe],
+  imports: [AuditLogsPage, BackupsPage, CommonModule, LanguagePicker, ProductsPage, ProfilePage, ReportsPage, RequestsPage, TablesPage, TranslatePipe, UsersPage],
   templateUrl: './dashboard-page.html',
 })
 export class DashboardPage implements OnChanges {
@@ -33,6 +35,7 @@ export class DashboardPage implements OnChanges {
   @Output() tableSelected = new EventEmitter<number>();
   @Output() requestCountChanged = new EventEmitter<number>();
   @Output() chooseTable = new EventEmitter<void>();
+  @Output() sessionUpdated = new EventEmitter<GestourantSession>();
 
   readonly summary = signal<GestourantDashboardSummary | null>(null);
   readonly loading = signal(false);
@@ -48,6 +51,8 @@ export class DashboardPage implements OnChanges {
     { id: 'returns', label: 'Devoluciones', path: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-2' },
     { id: 'backups', label: 'Copias de seguridad', path: 'M4 7 12 3l8 4-8 4-8-4Zm0 5 8 4 8-4m-16 5 8 4 8-4', administratorsOnly: true },
     { id: 'audit', label: 'Registro de auditoría', path: 'M8 4H6a2 2 0 0 0-2 2v14h16V6a2 2 0 0 0-2-2h-2M9 3h6v4H9zM8 12h8m-8 4h6', administratorsOnly: true },
+    { id: 'users', label: 'Equipo y usuarios', path: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m15-11a4 4 0 1 0-8 0 4 4 0 0 0 8 0m3 11v-2a4 4 0 0 0-3-3.87', administratorsOnly: true },
+    { id: 'profile', label: 'Mi perfil', path: 'M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8' },
   ];
 
   ngOnChanges(changes: SimpleChanges): void {
