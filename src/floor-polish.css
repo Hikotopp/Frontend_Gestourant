@@ -1,2 +1,6 @@
-.floor-table-button .table-card-number{left:auto;right:8px;top:5px;display:grid;min-width:28px;height:26px;place-items:center;padding:0 6px;border-radius:8px;background:var(--brand);color:#fff;font-size:12px;font-weight:800}.floor-table-button.busy .table-card-number{background:var(--accent);color:var(--brand-deep)}
-@media(max-width:760px){.floor-table-button .table-card-number{left:auto;right:6px;top:4px;min-width:26px;height:24px;font-size:11px}}
+.floor-table-button .table-card-info strong{color:#254137}
+.table-qr-card{color:#172728}
+.table-qr-card h2{color:#172728}
+.table-qr-card .locale-picker{border-color:#dbe5dc;background:#f8faf6;color:#254137}
+.table-qr-card .locale-picker-icon,.table-qr-card .locale-picker-value{color:#176758}
+.table-qr-card .locale-picker-value{background:#e5f1ea}

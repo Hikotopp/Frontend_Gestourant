@@ -1593,7 +1593,7 @@ function renderTables() {
     const billRequest = table.billRequested ? `, ${translate('pidió la cuenta')}` : '';
     return `<div class="floor-table-wrap" style="left:${Number(table.floorX ?? (15 + (index % 4) * 22))}%;top:${Number(table.floorY ?? (18 + (Math.floor(index / 4) % 4) * 22))}%">
     <button type="button" class="floor-table-button ${table.status === 'OCUPADA' ? 'busy' : ''} ${table.billRequested ? 'bill-requested' : ''}" data-id="${table.id}" aria-label="${escapeHtml(translate('Mesa'))} ${table.tableNumber}, ${escapeHtml(accessibleStatus)}, ${table.seats} ${escapeHtml(translate('Puestos'))}${escapeHtml(billRequest)}">
-      <span class="table-graphic">${diningTableIcon()}</span><span class="table-card-number">${String(table.tableNumber).padStart(2, '0')}</span>
+      <span class="table-graphic">${diningTableIcon()}</span>
       <span class="table-card-info"><strong>${escapeHtml(translate('Mesa'))} ${table.tableNumber}</strong><small>${table.seats} ${escapeHtml(translate('Puestos'))}${table.joinedTableId ? ` · ${escapeHtml(translate('Salón unido'))}` : ''}</small></span>
       <span class="table-card-status"><i></i>${escapeHtml(translate(status))}</span></button>
     <button type="button" class="floor-qr-button" data-qr-id="${table.id}" aria-label="${escapeHtml(translate('Ver QR de Mesa {table}', { table: table.tableNumber }))}">QR</button></div>`;
