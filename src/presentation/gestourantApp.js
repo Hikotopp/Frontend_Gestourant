@@ -33,7 +33,7 @@ let auditCurrentPage = 0;
 let activeQrTable = null;
 let activeQrRenderId = 0;
 let productCategoryFilter = 'TODOS';
-let authConfig = { captchaEnabled: false, captchaSiteKey: '', googleEnabled: false, microsoftEnabled: false };
+let authConfig = { captchaEnabled: false, captchaSiteKey: '', googleEnabled: false };
 let idleWarningTimer;
 let idleLogoutTimer;
 let idleActivityHandler;
@@ -126,14 +126,11 @@ function diningTableIcon() {
 }
 
 function socialLoginOptions() {
-  const providers = [
-    { id: 'google', label: 'Google', enabled: authConfig.googleEnabled },
-    { id: 'microsoft', label: 'Microsoft', enabled: authConfig.microsoftEnabled }
-  ];
   const apiRoot = (apiBase || window.location.origin).replace(/\/+$/, '');
-  return `<div class="social-login"><div class="social-divider"><span>${escapeHtml(translate('o continúa con'))}</span></div><div class="social-buttons">${providers.map(provider => provider.enabled
-    ? `<a class="social-button" data-oauth-provider="${provider.id}" href="${escapeHtml(apiRoot)}/oauth2/authorization/${provider.id}"><span class="social-mark ${provider.id}">${provider.id === 'google' ? 'G' : 'M'}</span>${escapeHtml(translate('Continuar con {provider}', { provider: provider.label }))}</a>`
-    : `<button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark ${provider.id}">${provider.id === 'google' ? 'G' : 'M'}</span>${escapeHtml(translate('Continuar con {provider}', { provider: provider.label }))}<small>${escapeHtml(translate('No configurado'))}</small></button>`).join('')}</div>${providers.some(provider => !provider.enabled) ? `<p id="provider-setup-note" class="provider-setup-note">${escapeHtml(translate('Algunos proveedores de acceso todavía no están configurados.'))}</p>` : ''}</div>`;
+  const googleOption = authConfig.googleEnabled
+    ? `<a class="social-button" data-oauth-provider="google" href="${escapeHtml(apiRoot)}/oauth2/authorization/google"><span class="social-mark google">G</span>${escapeHtml(translate('Continuar con Google'))}</a>`
+    : `<button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark google">G</span>${escapeHtml(translate('Continuar con Google'))}<small>${escapeHtml(translate('No configurado'))}</small></button>`;
+  return `<div class="social-login"><div class="social-divider"><span>${escapeHtml(translate('o continúa con'))}</span></div><div class="social-buttons">${googleOption}</div>${!authConfig.googleEnabled ? `<p id="provider-setup-note" class="provider-setup-note">${escapeHtml(translate('El inicio con Google todavía no está configurado.'))}</p>` : ''}</div>`;
 }
 
 function oauthConsentField(text, required = false) {
@@ -620,7 +617,7 @@ async function registerOAuthAccount(event) {
     message.textContent = error instanceof TypeError
       ? translate('No se pudo conectar con el servidor. Confirma que el backend esté activo.')
       : error.status === 401
-        ? translate('El paso de registro expiró o ya se usó. Vuelve a iniciar con tu cuenta de Google o Microsoft.')
+        ? translate('El paso de registro expiró o ya se usó. Vuelve a iniciar con tu cuenta de Google.')
         : error.status === 409
           ? translate('Ya existe una cuenta de Gestourant con ese correo. Inicia sesión con ella; no la vinculamos automáticamente.')
           : error.message;

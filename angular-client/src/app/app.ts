@@ -63,7 +63,6 @@ export class App implements AfterViewInit {
     captchaEnabled: false,
     captchaSiteKey: '',
     googleEnabled: false,
-    microsoftEnabled: false,
   });
   homeNotice = signal('');
   legacyLoadError = signal('');

@@ -31,6 +31,9 @@ describe('AuthPage', () => {
 
     expect(element.querySelector('h2')?.textContent).toContain('Inicia sesión');
     expect(element.querySelector('input[name="identifier"]')).toBeTruthy();
+    expect(element.querySelectorAll('.social-button')).toHaveLength(1);
+    expect(element.querySelector('.social-button')?.textContent).toContain('Continuar con Google');
+    expect(element.textContent).not.toContain('Microsoft');
 
     element.querySelector<HTMLButtonElement>('.demo-note .text-button')?.click();
     expect(requested).toEqual(['register']);
@@ -73,7 +76,6 @@ describe('AuthPage', () => {
         captchaEnabled: false,
         captchaSiteKey: '',
         googleEnabled: false,
-        microsoftEnabled: false,
       }),
       login: async () => session,
       register,
@@ -113,7 +115,6 @@ describe('AuthPage', () => {
       captchaEnabled: true,
       captchaSiteKey: 'site-key',
       googleEnabled: false,
-      microsoftEnabled: false,
     });
     fixture.detectChanges();
 

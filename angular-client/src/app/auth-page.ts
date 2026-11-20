@@ -20,7 +20,6 @@ export class AuthPage implements AfterViewChecked {
     captchaEnabled: false,
     captchaSiteKey: '',
     googleEnabled: false,
-    microsoftEnabled: false,
   };
   @Output() modeChanged = new EventEmitter<'home' | 'login' | 'register'>();
   @Output() sessionReady = new EventEmitter<void>();
@@ -201,7 +200,7 @@ export class AuthPage implements AfterViewChecked {
     }
     if (formName === 'oauth-register' && error && typeof error === 'object') {
       const status = 'status' in error ? error.status : undefined;
-      if (status === 401) return 'El paso de registro expiró o ya se usó. Vuelve a iniciar con tu cuenta de Google o Microsoft.';
+      if (status === 401) return 'El paso de registro expiró o ya se usó. Vuelve a iniciar con tu cuenta de Google.';
       if (status === 409) return 'Ya existe una cuenta de Gestourant con ese correo. Inicia sesión con ella; no la vinculamos automáticamente.';
     }
     return error instanceof Error ? error.message : 'No fue posible completar la operación.';

@@ -21,7 +21,6 @@ interface GestourantAuthConfig {
   captchaEnabled: boolean;
   captchaSiteKey: string;
   googleEnabled: boolean;
-  microsoftEnabled: boolean;
 }
 
 interface GestourantSession {

@@ -89,7 +89,7 @@ Usa valores distintos para las cuatro contraseñas/códigos y `JWT_SECRET`. No a
 
 ### Integraciones opcionales
 
-- **Google/Microsoft OAuth:** rellena el ID y secreto del proveedor. Registra como URL de callback `https://<DOMAIN>/login/oauth2/code/google` o `https://<DOMAIN>/login/oauth2/code/microsoft`, según el proveedor habilitado.
+- **Google OAuth:** rellena `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. Registra como URL de callback `https://<DOMAIN>/login/oauth2/code/google`.
 - **Cloudflare Turnstile:** configura juntas `TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET_KEY`, o deja ambas vacías.
 - **Copias S3:** `BACKUP_S3_BUCKET` y las credenciales AWS están vacías por defecto. Sin un destino S3 configurado, las copias fuera de la VM no están disponibles; el volumen local de MySQL no es una copia de seguridad.
 

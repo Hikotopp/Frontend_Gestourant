@@ -39,11 +39,10 @@ $bytes = New-Object byte[] 48
 [Convert]::ToBase64String($bytes)
 ```
 
-No lo guardes en el repositorio ni lo envíes por chat. Si usas Google/Microsoft OAuth, añade también `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID` y `MICROSOFT_CLIENT_SECRET`. En cada consola OAuth registra las redirecciones con el dominio HTTPS del backend:
+No lo guardes en el repositorio ni lo envíes por chat. Para Google OAuth, añade `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. En la consola de Google registra la redirección con el dominio HTTPS del backend:
 
 ```text
 https://<dominio-backend>/login/oauth2/code/google
-https://<dominio-backend>/login/oauth2/code/microsoft
 ```
 
 ## 4. Variable del frontend

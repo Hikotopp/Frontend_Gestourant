@@ -112,14 +112,9 @@
       } @else {
         <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark google">G</span>{{ 'Continuar con Google' | tr }}<small>{{ 'No configurado' | tr }}</small></button>
       }
-      @if (config.microsoftEnabled) {
-        <a class="social-button" href="{{ apiRoot }}/oauth2/authorization/microsoft"><span class="social-mark microsoft">M</span>{{ 'Continuar con Microsoft' | tr }}</a>
-      } @else {
-        <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark microsoft">M</span>{{ 'Continuar con Microsoft' | tr }}<small>{{ 'No configurado' | tr }}</small></button>
-      }
     </div>
-    @if (!config.googleEnabled || !config.microsoftEnabled) {
-      <p id="provider-setup-note" class="provider-setup-note">{{ 'Algunos proveedores de acceso todavía no están configurados.' | tr }}</p>
+    @if (!config.googleEnabled) {
+      <p id="provider-setup-note" class="provider-setup-note">{{ 'El inicio con Google todavía no está configurado.' | tr }}</p>
     }
   </div>
 </ng-template>
