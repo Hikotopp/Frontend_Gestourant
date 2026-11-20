@@ -31,12 +31,19 @@ describe('AuthPage', () => {
 
     expect(element.querySelector('h2')?.textContent).toContain('Inicia sesión');
     expect(element.querySelector('input[name="identifier"]')).toBeTruthy();
-    expect(element.querySelectorAll('.social-button')).toHaveLength(1);
-    expect(element.querySelector('.social-button')?.textContent).toContain('Continuar con Google');
-    expect(element.textContent).not.toContain('Microsoft');
+    expect(element.querySelectorAll('.social-button')).toHaveLength(0);
+    expect(element.textContent).not.toContain('Google');
 
     element.querySelector<HTMLButtonElement>('.demo-note .text-button')?.click();
     expect(requested).toEqual(['register']);
+  });
+
+  it('does not show third-party sign-in on the registration form', async () => {
+    const fixture = await createPage('register');
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelectorAll('.social-button')).toHaveLength(0);
+    expect(element.textContent).not.toContain('Google');
   });
 
   it('requires explicit privacy consent before registration', async () => {

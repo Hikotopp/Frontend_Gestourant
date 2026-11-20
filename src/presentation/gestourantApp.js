@@ -35,7 +35,7 @@ let auditCurrentPage = 0;
 let activeQrTable = null;
 let activeQrRenderId = 0;
 let productCategoryFilter = 'TODOS';
-let authConfig = { captchaEnabled: false, captchaSiteKey: '', googleEnabled: false };
+let authConfig = { captchaEnabled: false, captchaSiteKey: '' };
 let idleWarningTimer;
 let idleLogoutTimer;
 let idleActivityHandler;
@@ -130,14 +130,6 @@ function diningTableIcon() {
   return '<svg class="dining-table-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="18" y="18" width="28" height="28" rx="9" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-width="2"/><rect x="25" y="25" width="14" height="14" rx="7" stroke="currentColor" stroke-width="1.6"/><path d="M24 7v6m16-6v6M24 51v6m16-6v6M7 24h6m-6 16h6m38-16h6m-6 16h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="32" r="2" fill="currentColor"/></svg>';
 }
 
-function socialLoginOptions() {
-  const apiRoot = (apiBase || window.location.origin).replace(/\/+$/, '');
-  const googleOption = authConfig.googleEnabled
-    ? `<a class="social-button" data-oauth-provider="google" href="${escapeHtml(apiRoot)}/oauth2/authorization/google"><span class="social-mark google">G</span>${escapeHtml(translate('Continuar con Google'))}</a>`
-    : `<button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark google">G</span>${escapeHtml(translate('Continuar con Google'))}<small>${escapeHtml(translate('No configurado'))}</small></button>`;
-  return `<div class="social-login"><div class="social-divider"><span>${escapeHtml(translate('o continúa con'))}</span></div><div class="social-buttons">${googleOption}</div>${!authConfig.googleEnabled ? `<p id="provider-setup-note" class="provider-setup-note">${escapeHtml(translate('El inicio con Google todavía no está configurado.'))}</p>` : ''}</div>`;
-}
-
 function oauthConsentField(text, required = false) {
   return `<label class="oauth-consent"><input type="checkbox" name="privacyConsent" ${required ? 'required' : ''}><span>${escapeHtml(translate(text))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('Leer política'))}</a>.</span></label>`;
 }
@@ -169,14 +161,6 @@ function showSpanishFormValidation(form, message) {
   showToast(text, true);
   invalidField.focus();
   return false;
-}
-
-function bindSocialLogin(root) {
-  root.querySelectorAll('[data-oauth-provider]').forEach(link => link.addEventListener('click', event => {
-    event.preventDefault();
-    link.setAttribute('aria-disabled', 'true');
-    window.location.assign(link.href);
-  }));
 }
 
 function initializeCaptcha(containerId) {
@@ -541,7 +525,6 @@ function loginView() {
         <input type="hidden" name="captchaToken" />
         <p id="login-error" class="form-message" role="alert"></p>
         <button id="login-button" class="primary" type="submit">${escapeHtml(translate('Iniciar sesión'))} <span>→</span></button>
-        ${socialLoginOptions()}
         <p class="privacy-link">${escapeHtml(translate('Al continuar, consulta nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p>
         <p class="demo-note">${escapeHtml(translate('¿Aún no tienes cuenta?'))} <button type="button" class="text-button" id="show-register">${escapeHtml(translate('Crear cuenta'))}</button></p>
       </form></section>
@@ -554,13 +537,12 @@ function loginView() {
   });
   document.querySelector('#login-form').addEventListener('submit', authenticate);
   document.querySelector('#show-register').addEventListener('click', registerView);
-  bindSocialLogin(document.querySelector('#login-form'));
   initializeCaptcha('login-captcha');
   showCookieNotice();
 }
 
 function registerView() {
-  app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← ${escapeHtml(translate('Página principal'))}</button><div class="hero-copy"><p class="eyebrow">${escapeHtml(translate('EMPIEZA HOY'))}</p><h1>${escapeHtml(translate('La operación clara comienza aquí.'))}</h1><p>${escapeHtml(translate('Crea tu acceso y conoce el espacio de trabajo de Gestourant.'))}</p></div><div class="login-proof"><span>✦</span><div><strong>${escapeHtml(translate('Tu información, protegida'))}</strong><small>${escapeHtml(translate('Acceso seguro para cada miembro del equipo.'))}</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}${languagePicker()}</div><form id="register-form" class="login-card" novalidate><p class="eyebrow accent">${escapeHtml(translate('NUEVA CUENTA'))}</p><h2>${escapeHtml(translate('Crear cuenta'))}</h2><p class="muted">${escapeHtml(translate('Completa tus datos para comenzar.'))}</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}<label>${escapeHtml(translate('Nombre de usuario'))}<input name="username" autocomplete="username" placeholder="${escapeHtml(translate('ej. maria.lopez'))}" required minlength="3" /></label><label>${escapeHtml(translate('Correo electrónico'))}<input name="email" type="email" autocomplete="email" placeholder="${escapeHtml(translate('maria@restaurante.com'))}" required /></label><label>${escapeHtml(translate('Contraseña'))}<div class="password-wrap"><input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="${escapeHtml(translate('Mínimo 10 caracteres y un número'))}" required minlength="10" /><button type="button" id="toggle-password" aria-label="${escapeHtml(translate('Mostrar contraseña'))}">◉</button></div></label>${oauthConsentField('Autorizo el tratamiento de mis datos para crear mi cuenta.', true)}<label class="honeypot" aria-hidden="true">${escapeHtml(translate('No llenar'))}<input name="website" tabindex="-1" autocomplete="off" /></label><input type="hidden" name="captchaToken" /><div id="register-captcha" class="captcha-slot"></div><p class="form-hint">${escapeHtml(translate('Los permisos administrativos los asigna el responsable del sistema.'))}</p><p id="register-error" class="form-message" role="alert"></p><button id="register-button" class="primary" type="submit">${escapeHtml(translate('Crear mi cuenta'))} <span>→</span></button>${socialLoginOptions()}<p class="privacy-link">${escapeHtml(translate('Al continuar, consulta nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p><p class="demo-note">${escapeHtml(translate('¿Ya tienes cuenta?'))} <button type="button" class="text-button" id="show-login">${escapeHtml(translate('Inicia sesión'))}</button></p></form></section></main>`;
+  app.innerHTML = `<main class="login-layout"><section class="brand-panel"><div class="brand">${brandMark()}Gestourant</div><button type="button" id="back-home" class="auth-home-link">← ${escapeHtml(translate('Página principal'))}</button><div class="hero-copy"><p class="eyebrow">${escapeHtml(translate('EMPIEZA HOY'))}</p><h1>${escapeHtml(translate('La operación clara comienza aquí.'))}</h1><p>${escapeHtml(translate('Crea tu acceso y conoce el espacio de trabajo de Gestourant.'))}</p></div><div class="login-proof"><span>✦</span><div><strong>${escapeHtml(translate('Tu información, protegida'))}</strong><small>${escapeHtml(translate('Acceso seguro para cada miembro del equipo.'))}</small></div></div></section><section class="login-panel"><div class="login-theme">${themeSwitcher()}${languagePicker()}</div><form id="register-form" class="login-card" novalidate><p class="eyebrow accent">${escapeHtml(translate('NUEVA CUENTA'))}</p><h2>${escapeHtml(translate('Crear cuenta'))}</h2><p class="muted">${escapeHtml(translate('Completa tus datos para comenzar.'))}</p>${authNotice ? `<p class="auth-notice" role="status">${escapeHtml(translate(authNotice))}</p>` : ''}<label>${escapeHtml(translate('Nombre de usuario'))}<input name="username" autocomplete="username" placeholder="${escapeHtml(translate('ej. maria.lopez'))}" required minlength="3" /></label><label>${escapeHtml(translate('Correo electrónico'))}<input name="email" type="email" autocomplete="email" placeholder="${escapeHtml(translate('maria@restaurante.com'))}" required /></label><label>${escapeHtml(translate('Contraseña'))}<div class="password-wrap"><input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="${escapeHtml(translate('Mínimo 10 caracteres y un número'))}" required minlength="10" /><button type="button" id="toggle-password" aria-label="${escapeHtml(translate('Mostrar contraseña'))}">◉</button></div></label>${oauthConsentField('Autorizo el tratamiento de mis datos para crear mi cuenta.', true)}<label class="honeypot" aria-hidden="true">${escapeHtml(translate('No llenar'))}<input name="website" tabindex="-1" autocomplete="off" /></label><input type="hidden" name="captchaToken" /><div id="register-captcha" class="captcha-slot"></div><p class="form-hint">${escapeHtml(translate('Los permisos administrativos los asigna el responsable del sistema.'))}</p><p id="register-error" class="form-message" role="alert"></p><button id="register-button" class="primary" type="submit">${escapeHtml(translate('Crear mi cuenta'))} <span>→</span></button><p class="privacy-link">${escapeHtml(translate('Al continuar, consulta nuestra'))} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">${escapeHtml(translate('política de datos personales'))}</a>.</p><p class="demo-note">${escapeHtml(translate('¿Ya tienes cuenta?'))} <button type="button" class="text-button" id="show-login">${escapeHtml(translate('Inicia sesión'))}</button></p></form></section></main>`;
   bindThemeControls();
   bindLanguagePicker(app);
   const passwordInput = app.querySelector('#register-password');
@@ -575,7 +557,6 @@ function registerView() {
   document.querySelector('#toggle-password').addEventListener('click', () => { const field = document.querySelector('#register-password'); field.type = field.type === 'password' ? 'text' : 'password'; });
   document.querySelector('#show-login').addEventListener('click', loginView);
   document.querySelector('#register-form').addEventListener('submit', register);
-  bindSocialLogin(document.querySelector('#register-form'));
   initializeCaptcha('register-captcha');
   showCookieNotice();
 }

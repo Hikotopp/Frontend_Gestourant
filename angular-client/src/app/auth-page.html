@@ -56,7 +56,6 @@
         <label class="honeypot" aria-hidden="true">{{ 'No llenar' | tr }}<input name="website" [(ngModel)]="website" tabindex="-1" autocomplete="off"></label>
         <p class="form-message" role="alert">{{ error() | tr }}</p>
         <button class="primary" type="submit" [disabled]="pending()">{{ 'Iniciar sesión' | tr }} <span>→</span></button>
-        <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
         <p class="privacy-link">{{ 'Al continuar, consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
         <p class="demo-note">{{ '¿Aún no tienes cuenta?' | tr }} <button type="button" class="text-button" (click)="openMode('register')">{{ 'Crear cuenta' | tr }}</button></p>
       </form>
@@ -82,7 +81,6 @@
         <p class="form-hint">{{ 'Los permisos administrativos los asigna el responsable del sistema.' | tr }}</p>
         <p class="form-message" role="alert">{{ error() | tr }}</p>
         <button class="primary" type="submit" [disabled]="pending()">{{ 'Crear mi cuenta' | tr }} <span>→</span></button>
-        <ng-container *ngTemplateOutlet="socialLogin"></ng-container>
         <p class="privacy-link">{{ 'Al continuar, consulta nuestra' | tr }} <a href="/politica-tratamiento.html" target="_blank" rel="noopener">{{ 'política de datos personales' | tr }}</a>.</p>
         <p class="demo-note">{{ '¿Ya tienes cuenta?' | tr }} <button type="button" class="text-button" (click)="openMode('login')">{{ 'Iniciar sesión' | tr }}</button></p>
       </form>
@@ -102,19 +100,3 @@
     }
   </section>
 </main>
-
-<ng-template #socialLogin>
-  <div class="social-login">
-    <div class="social-divider"><span>{{ 'o continúa con' | tr }}</span></div>
-    <div class="social-buttons">
-      @if (config.googleEnabled) {
-        <a class="social-button" href="{{ apiRoot }}/oauth2/authorization/google"><span class="social-mark google">G</span>{{ 'Continuar con Google' | tr }}</a>
-      } @else {
-        <button class="social-button social-button-disabled" type="button" disabled aria-describedby="provider-setup-note"><span class="social-mark google">G</span>{{ 'Continuar con Google' | tr }}<small>{{ 'No configurado' | tr }}</small></button>
-      }
-    </div>
-    @if (!config.googleEnabled) {
-      <p id="provider-setup-note" class="provider-setup-note">{{ 'El inicio con Google todavía no está configurado.' | tr }}</p>
-    }
-  </div>
-</ng-template>
