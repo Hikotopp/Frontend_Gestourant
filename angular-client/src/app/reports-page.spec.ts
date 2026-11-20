@@ -62,6 +62,7 @@ describe('ReportsPage', () => {
     expect(element.textContent).toContain('F-12');
     expect(element.textContent).toContain('37.000');
     expect(element.querySelector('thead > tr > th:last-child')?.textContent).toBe('Total');
+    expect(element.querySelector('.return-action')).toBeNull();
     fixture.destroy();
   });
 
@@ -98,6 +99,7 @@ describe('ReportsPage', () => {
     expect(element.querySelector('.report-download')).toBeNull();
     expect(element.querySelector('details')?.open).toBe(true);
     expect(element.textContent).toContain('Gestionar devolución · 1 producto');
+    expect(element.querySelector('.return-action')).not.toBeNull();
     expect(history).toHaveBeenCalledTimes(1);
     expect(history).toHaveBeenCalledWith(expect.objectContaining({ role: 'EMPLEADO' }), 12);
     fixture.destroy();

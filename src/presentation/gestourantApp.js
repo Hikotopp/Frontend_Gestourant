@@ -1074,12 +1074,18 @@ async function loadReport(session, returnsOnly = false) {
       document.querySelector('#report-period').textContent = from === to ? from : `${from} — ${to}`;
       const invoices = currentReport.invoices || [];
       const rows = invoices.map(invoice => {
-        const items = (invoice.items || []).map(item => `<tr><td>${escapeHtml(item.productName)}</td><td>${item.quantity}</td><td>$ ${Number(item.unitPrice).toLocaleString(getLocale())}</td><td>$ ${Number(item.subtotal).toLocaleString(getLocale())}</td><td>${escapeHtml(item.removedIngredients || '—')}</td><td><button class="outline return-item" type="button" data-invoice-id="${invoice.invoiceId}" data-order-item-id="${item.orderItemId}">${escapeHtml(translate('Registrar devolución'))}</button></td></tr>`).join('');
+        const actionHeader = returnsOnly ? `<th>${escapeHtml(translate('Acciones'))}</th>` : '';
+        const items = (invoice.items || []).map(item => {
+          const returnAction = returnsOnly
+            ? `<td><button class="outline return-item" type="button" data-invoice-id="${invoice.invoiceId}" data-order-item-id="${item.orderItemId}">${escapeHtml(translate('Registrar devolución'))}</button></td>`
+            : '';
+          return `<tr><td>${escapeHtml(item.productName)}</td><td>${item.quantity}</td><td>$ ${Number(item.unitPrice).toLocaleString(getLocale())}</td><td>$ ${Number(item.subtotal).toLocaleString(getLocale())}</td><td>${escapeHtml(item.removedIngredients || '—')}</td>${returnAction}</tr>`;
+        }).join('');
         const itemCount = (invoice.items || []).length;
         const summary = returnsOnly
           ? itemCount === 1 ? 'Gestionar devolución · {count} producto' : 'Gestionar devoluciones · {count} productos'
           : 'Ver productos vendidos ({count})';
-        const details = `<tr class="invoice-items-row"><td colspan="${administrator ? 6 : 5}"><details class="invoice-items-details" data-invoice-id="${invoice.invoiceId}"><summary>${escapeHtml(translate(summary, { count: itemCount }))}</summary><div class="report-table-wrap"><table class="report-table"><thead><tr><th>${escapeHtml(translate('Producto'))}</th><th>${escapeHtml(translate('Cantidad'))}</th><th>${escapeHtml(translate('Precio unitario'))}</th><th>${escapeHtml(translate('Subtotal'))}</th><th>${escapeHtml(translate('Indicaciones'))}</th><th>${escapeHtml(translate('Acciones'))}</th></tr></thead><tbody>${items}</tbody></table></div><div class="return-history" data-return-history="${invoice.invoiceId}"><p class="muted">${escapeHtml(translate('Abre este detalle para consultar devoluciones.'))}</p></div></details></td></tr>`;
+        const details = `<tr class="invoice-items-row"><td colspan="${administrator ? 6 : 5}"><details class="invoice-items-details" data-invoice-id="${invoice.invoiceId}"><summary>${escapeHtml(translate(summary, { count: itemCount }))}</summary><div class="report-table-wrap"><table class="report-table"><thead><tr><th>${escapeHtml(translate('Producto'))}</th><th>${escapeHtml(translate('Cantidad'))}</th><th>${escapeHtml(translate('Precio unitario'))}</th><th>${escapeHtml(translate('Subtotal'))}</th><th>${escapeHtml(translate('Indicaciones'))}</th>${actionHeader}</tr></thead><tbody>${items}</tbody></table></div><div class="return-history" data-return-history="${invoice.invoiceId}"><p class="muted">${escapeHtml(translate('Abre este detalle para consultar devoluciones.'))}</p></div></details></td></tr>`;
         return `<tr><td>${escapeHtml(invoice.invoiceNumber)}</td><td>${escapeHtml(formatColombiaDate(invoice.issuedAt, getLocale()))}</td><td>${escapeHtml(translate('Mesa {table}', { table: invoice.tableNumber }))}</td><td>${escapeHtml(translate(invoice.paymentMethod === 'EFECTIVO' ? 'Efectivo' : 'Digital'))}</td><td>$ ${Number(invoice.total).toLocaleString(getLocale())}</td>${administrator ? `<td>${escapeHtml(invoice.employee)}</td>` : ''}</tr>${details}`;
       }).join('');
       document.querySelector('#report-history').innerHTML = invoices.length
