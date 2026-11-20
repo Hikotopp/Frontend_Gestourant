@@ -58,6 +58,16 @@ export function createHttpGestourantGateway(apiPort) {
         session,
         jsonRequest('PATCH', { removedIngredients: ingredients })
       ),
+      submitToKitchen: (session, id) => api.request(
+        `/api/orders/${id}/kitchen-batches`,
+        session,
+        { method: 'POST' }
+      ),
+      deliverBatch: (session, orderId, batchId) => api.request(
+        `/api/orders/${orderId}/kitchen-batches/${encodeURIComponent(batchId)}/deliver`,
+        session,
+        { method: 'PATCH' }
+      ),
       close: (session, id, paymentMethod) => api.request(
         `/api/orders/${id}/close`,
         session,
@@ -97,7 +107,13 @@ export function createHttpGestourantGateway(apiPort) {
     },
     kitchen: {
       listRequests: session => api.request('/api/kitchen/requests', session),
-      advanceRequest: (session, id) => api.request(`/api/kitchen/requests/${id}/advance`, session, { method: 'PATCH' })
+      advanceRequest: (session, id) => api.request(`/api/kitchen/requests/${id}/advance`, session, { method: 'PATCH' }),
+      listOrderTickets: session => api.request('/api/kitchen/order-batches', session),
+      advanceOrderTicket: (session, batchId) => api.request(
+        `/api/kitchen/order-batches/${encodeURIComponent(batchId)}/advance`,
+        session,
+        { method: 'PATCH' }
+      )
     },
     backups: {
       list: session => api.request('/api/admin/backups', session),

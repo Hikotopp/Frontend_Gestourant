@@ -1,1 +1,1 @@
-.kitchen-ticket{border-left:4px solid #d99a3c}.kitchen-ticket.is-preparing{border-left-color:#2d8a69}.kitchen-modification{color:#a94430!important;font-weight:800;letter-spacing:.2px}
+.kitchen-ticket{border-left:4px solid var(--accent)}.kitchen-ticket.is-preparing{border-left-color:var(--brand)}.kitchen-ticket.is-ready{border-left-color:#48a18a}.kitchen-modification{color:#c7594f!important;font-weight:800;letter-spacing:.2px}

@@ -830,7 +830,7 @@ function bindProductViewControls(session) {
   document.querySelector('#choose-table')?.addEventListener('click', () => navigate('tables', session));
 }
 function ordersView() { return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('OPERACIÓN · PEDIDOS QR'))}</p><h1>${escapeHtml(translate('Solicitudes de clientes'))}</h1><p class="muted">${escapeHtml(translate('Revisa cada solicitud; solo al confirmarla pasa a la cuenta y se descuenta del inventario.'))}</p></div><div class="service-status"><span class="live-dot"></span>${escapeHtml(translate('Actualización automática'))}</div></header><section id="guest-request-queue" class="guest-request-queue"><p class="muted">${escapeHtml(translate('Cargando solicitudes…'))}</p></section>`; }
-function kitchenView() { return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('SERVICIO · PREPARACIÓN'))}</p><h1>${escapeHtml(translate('Comandas de cocina'))}</h1><p class="muted">${escapeHtml(translate('Pedidos confirmados por el equipo. Actualiza el estado para que el cliente sepa cómo va.'))}</p></div><div class="service-status"><span class="live-dot"></span>${escapeHtml(translate('Actualización automática'))}</div></header><section id="kitchen-request-queue" class="guest-request-queue"><p class="muted">${escapeHtml(translate('Cargando comandas…'))}</p></section>`; }
+function kitchenView() { return `<header class="page-heading"><div><p class="eyebrow">${escapeHtml(translate('SERVICIO · PREPARACIÓN'))}</p><h1>${escapeHtml(translate('Comandas de cocina'))}</h1><p class="muted">${escapeHtml(translate('Pedidos tomados en el salón y solicitudes QR. Acepta cada comanda, prepárala y márcala lista.'))}</p></div><div class="service-status"><span class="live-dot"></span>${escapeHtml(translate('Actualización automática'))}</div></header><section id="kitchen-request-queue" class="guest-request-queue"><p class="muted">${escapeHtml(translate('Cargando comandas…'))}</p></section>`; }
 function reportsView(session, returnsOnly = false) {
   const administrator = session.role === 'ADMINISTRADOR';
   const today = todayInBogota();
@@ -1780,16 +1780,47 @@ async function loadKitchenRequests(session) {
   const queue = document.querySelector('#kitchen-request-queue');
   if (!queue) return;
   try {
-    const requests = await services.kitchen.listRequests(session);
-    queue.innerHTML = requests.length ? requests.map(request => {
+    const [requests, orderTickets] = await Promise.all([
+      services.kitchen.listRequests(session),
+      services.kitchen.listOrderTickets(session)
+    ]);
+    const guestCards = requests.map(request => {
       const preparing = request.status === 'PREPARANDO';
       return `<article class="staff-request-card kitchen-ticket ${preparing ? 'is-preparing' : ''}" data-kitchen-request-id="${request.id}"><div class="staff-request-header"><div><span class="staff-request-table">${escapeHtml(translate('MESA {table}', { table: request.tableNumber }))} · ${escapeHtml(translate('COMANDA #{id}', { id: request.id }))}</span><h2>${escapeHtml(translate(preparing ? 'En preparación' : 'Nueva comanda'))}</h2></div><time>${new Date(request.createdAt).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })}</time></div><div class="staff-request-items">${request.items.map(item => `<div><span><strong>${item.quantity} × ${escapeHtml(translate(item.name))}</strong>${item.removedIngredients ? `<small class="kitchen-modification">⚠ ${escapeHtml(translate('PREPARAR SIN: {ingredients} · CONFIRMAR CON COCINA', { ingredients: item.removedIngredients }))}</small>` : ''}</span></div>`).join('')}</div><div class="staff-request-footer"><strong>${escapeHtml(translate(preparing ? 'La preparación está en curso' : 'Confirmado · agregado a la cuenta'))}</strong><div><button type="button" class="primary advance-kitchen-request">${escapeHtml(translate(preparing ? 'Marcar listo para servir' : 'Iniciar preparación'))}</button></div></div></article>`;
-    }).join('') : `<div class="staff-request-empty"><span>✓</span><h2>${escapeHtml(translate('Cocina al día'))}</h2><p>${escapeHtml(translate('Las solicitudes aparecerán aquí después de que el equipo las confirme.'))}</p></div>`;
+    });
+    const orderCards = orderTickets.map(renderKitchenOrderTicket);
+    queue.innerHTML = guestCards.length || orderCards.length
+      ? [...orderCards, ...guestCards].join('')
+      : `<div class="staff-request-empty"><span>✓</span><h2>${escapeHtml(translate('Cocina al día'))}</h2><p>${escapeHtml(translate('Las solicitudes aparecerán aquí después de que el equipo las confirme.'))}</p></div>`;
     queue.querySelectorAll('.advance-kitchen-request').forEach(button => button.addEventListener('click', () => advanceKitchenRequest(button, session)));
+    queue.querySelectorAll('.advance-kitchen-order').forEach(button => button.addEventListener('click', () => advanceKitchenOrder(button, session)));
   } catch (error) {
     queue.innerHTML = `<div class="staff-request-error"><strong>${escapeHtml(translate('No pudimos cargar las comandas.'))}</strong><p>${escapeHtml(error.message)}</p><button class="outline" type="button" id="retry-kitchen-requests">${escapeHtml(translate('Intentar de nuevo'))}</button></div>`;
     queue.querySelector('#retry-kitchen-requests').addEventListener('click', () => loadKitchenRequests(session));
   }
+}
+
+function renderKitchenOrderTicket(ticket) {
+  const actionLabels = {
+    ENVIADO: 'Aceptar pedido',
+    ACEPTADO: 'Iniciar preparación',
+    PREPARANDO: 'Marcar listo para servir',
+  };
+  const descriptions = {
+    ENVIADO: 'Esperando que cocina acepte',
+    ACEPTADO: 'Esperando preparación',
+    PREPARANDO: 'La preparación está en curso',
+    LISTO: 'Esperando entrega a la mesa',
+  };
+  const statusLabels = {
+    ENVIADO: 'Enviado a cocina',
+    ACEPTADO: 'Aceptado por cocina',
+    PREPARANDO: 'En preparación',
+    LISTO: 'Listo para llevar',
+  };
+  const action = actionLabels[ticket.status];
+  const statusLabel = statusLabels[ticket.status] || 'Pedido enviado a cocina';
+  return `<article class="staff-request-card kitchen-ticket ${ticket.status === 'PREPARANDO' ? 'is-preparing' : ''} ${ticket.status === 'LISTO' ? 'is-ready' : ''}" data-kitchen-order-batch-id="${escapeHtml(ticket.batchId)}"><div class="staff-request-header"><div><span class="staff-request-table">${escapeHtml(translate('MESA {table}', { table: ticket.tableNumber }))} · ${escapeHtml(translate('Pedido de mesa'))}</span><h2>${escapeHtml(translate(statusLabel))}</h2></div><time>${new Date(ticket.submittedAt).toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })}</time></div><div class="staff-request-items">${ticket.items.map(item => `<div><span><strong>${item.quantity} × ${escapeHtml(translate(item.name))}</strong>${item.removedIngredients ? `<small class="kitchen-modification">⚠ ${escapeHtml(translate('PREPARAR SIN: {ingredients} · CONFIRMAR CON COCINA', { ingredients: item.removedIngredients }))}</small>` : ''}</span></div>`).join('')}</div><div class="staff-request-footer"><strong>${escapeHtml(translate(descriptions[ticket.status] || 'Esperando que cocina acepte'))}</strong>${action ? `<div><button type="button" class="primary advance-kitchen-order">${escapeHtml(translate(action))}</button></div>` : ''}</div></article>`;
 }
 
 async function advanceKitchenRequest(button, session) {
@@ -1797,6 +1828,19 @@ async function advanceKitchenRequest(button, session) {
   button.disabled = true;
   try {
     await services.kitchen.advanceRequest(session, card.dataset.kitchenRequestId);
+    showToast(translate('Estado de cocina actualizado.'));
+    await loadKitchenRequests(session);
+  } catch (error) {
+    showToast(error.message, true);
+    button.disabled = false;
+  }
+}
+
+async function advanceKitchenOrder(button, session) {
+  const card = button.closest('[data-kitchen-order-batch-id]');
+  button.disabled = true;
+  try {
+    await services.kitchen.advanceOrderTicket(session, card.dataset.kitchenOrderBatchId);
     showToast(translate('Estado de cocina actualizado.'));
     await loadKitchenRequests(session);
   } catch (error) {
@@ -1884,6 +1928,26 @@ async function addProduct(productId) {
   } catch (error) { showToast(error.message, true); }
 }
 
+async function submitOrderToKitchen(orderId, session) {
+  if (!activeOrder || activeOrder.id !== orderId) return;
+  try {
+    const updatedOrder = await services.orders.submitToKitchen(session, orderId);
+    if (await refreshOrderDetail(updatedOrder, session)) {
+      showToast(translate('Pedido enviado; cocina ya puede aceptarlo.'));
+    }
+  } catch (error) { showToast(error.message, true); }
+}
+
+async function deliverKitchenBatch(orderId, batchId, session) {
+  if (!activeOrder || activeOrder.id !== orderId) return;
+  try {
+    const updatedOrder = await services.orders.deliverBatch(session, orderId, batchId);
+    if (await refreshOrderDetail(updatedOrder, session)) {
+      showToast(translate('Pedido entregado a la mesa.'));
+    }
+  } catch (error) { showToast(error.message, true); }
+}
+
 async function removeOrderItem(itemId) {
   const session = JSON.parse(sessionStorage.getItem('gestourant_session'));
   if (!activeOrder) return;
@@ -1906,26 +1970,59 @@ function renderOrderDetail(order, session) {
   const target = document.querySelector('#order-detail');
   if (!target) return;
   const availableProducts = products.filter(isAvailableForOrder);
+  const items = order.items || [];
+  const staffItems = items.filter(item => item.origin === 'STAFF');
+  const draftItems = staffItems.filter(item => item.kitchenStatus === 'BORRADOR');
+  const readyBatches = new Map();
+  staffItems.filter(item => item.kitchenStatus === 'LISTO' && item.kitchenBatchId)
+    .forEach(item => readyBatches.set(item.kitchenBatchId, (readyBatches.get(item.kitchenBatchId) || 0) + 1));
+  const kitchenStatusLabels = {
+    BORRADOR: 'Listo para enviar a cocina',
+    ENVIADO: 'Enviado a cocina',
+    ACEPTADO: 'Aceptado por cocina',
+    PREPARANDO: 'En preparación',
+    LISTO: 'Listo para llevar',
+    ENTREGADO: 'Entregado a la mesa',
+  };
+  const allStaffItemsDelivered = staffItems.every(item => item.kitchenStatus === 'ENTREGADO');
+  const workflowActions = [
+    draftItems.length
+      ? `<div class="order-workflow-submit"><span>${escapeHtml(translate('{count} productos listos para enviar a cocina', { count: draftItems.length }))}</span><button id="submit-order-to-kitchen" class="primary" type="button">${escapeHtml(translate('Enviar pedido a cocina'))}</button></div>`
+      : '',
+    ...[...readyBatches.entries()].map(([batchId, count]) => `<div class="order-workflow-batch"><span>${escapeHtml(translate('Comanda lista · {count} productos', { count }))}</span><button type="button" class="primary deliver-kitchen-batch" data-batch-id="${escapeHtml(batchId)}">${escapeHtml(translate('Entregar a mesa'))}</button></div>`),
+  ].filter(Boolean);
   target.innerHTML = `<div class="order-summary"><strong>${escapeHtml(translate('Pedido #{id}', { id: order.id }))}</strong><span>$ ${Number(order.total).toLocaleString(getLocale())} COP</span></div>
     <p class="order-live-status">${escapeHtml(translate('Cambios guardados al instante'))}</p>
-    <div class="order-items">${(order.items || []).map(item => `<article class="order-item" data-item-id="${item.id}">
+    <div class="order-items">${items.map(item => {
+      const editable = item.origin === 'STAFF' && item.kitchenStatus === 'BORRADOR';
+      const status = item.origin === 'QR'
+        ? `<span class="order-kitchen-status">${escapeHtml(translate('Solicitud QR'))}</span>`
+        : `<span class="order-kitchen-status">${escapeHtml(translate(kitchenStatusLabels[item.kitchenStatus] || 'Listo para enviar a cocina'))}</span>`;
+      return `<article class="order-item" data-item-id="${item.id}">
       <div class="order-item-heading"><img class="order-item-photo" src="${escapeHtml(productPhoto(item.product))}" alt="" loading="lazy"><span><strong>${escapeHtml(translate(item.product.name))} × ${item.quantity}</strong><small>${escapeHtml(translate(item.product.category || 'PLATO'))}</small></span><strong>$ ${Number(item.subtotal).toLocaleString(getLocale())}</strong></div>
       ${item.removedIngredients ? `<p class="removed-ingredients">${escapeHtml(translate('Sin'))}: ${escapeHtml(item.removedIngredients)}</p>` : ''}
-      <label class="allergy-label">${escapeHtml(translate('Ingrediente a retirar (por alergia o preferencia)'))}
+      ${status}
+      ${editable ? `<label class="allergy-label">${escapeHtml(translate('Ingrediente a retirar (por alergia o preferencia)'))}
         <input class="removed-ingredients-input" type="text" maxlength="500" value="${escapeHtml(item.removedIngredients || '')}" placeholder="${escapeHtml(translate('Ej. maní, queso, cilantro'))}">
-      </label>
-      <div class="order-item-actions"><button type="button" class="outline save-modification">${escapeHtml(translate('Guardar indicación'))}</button><button type="button" class="danger remove-order-item">${escapeHtml(translate('Quitar producto'))}</button></div>
-    </article>`).join('') || `<small>${escapeHtml(translate('Aún no hay productos. Agrégalos desde el menú.'))}</small>`}</div>
+      </label><div class="order-item-actions"><button type="button" class="outline save-modification">${escapeHtml(translate('Guardar indicación'))}</button><button type="button" class="danger remove-order-item">${escapeHtml(translate('Quitar producto'))}</button></div>` : ''}
+    </article>`;
+    }).join('') || `<small>${escapeHtml(translate('Aún no hay productos. Agrégalos desde el menú.'))}</small>`}</div>
     <p class="allergy-warning"><strong>${escapeHtml(translate('Atención alergias:'))}</strong> ${escapeHtml(translate('confirma la solicitud con cocina. Esta indicación no garantiza ausencia de contaminación cruzada.'))}</p>
+    ${workflowActions.length ? `<section class="order-workflow"><strong>${escapeHtml(translate('Flujo de cocina'))}</strong>${workflowActions.join('')}</section>` : ''}
     <section class="order-menu"><h3>${escapeHtml(translate('Agregar al pedido'))}</h3>${availableProducts.length ? availableProducts.map(product => `<div class="order-menu-product"><img src="${escapeHtml(productPhoto(product))}" alt="" loading="lazy"><div><strong>${escapeHtml(translate(product.name))}</strong><small>${escapeHtml(translate('{count} disponibles · $ {price} COP', { count: product.stock, price: Number(product.price).toLocaleString(getLocale()) }))}</small></div><button type="button" class="outline add-order-product" data-product-id="${product.id}" aria-label="${escapeHtml(translate('＋ Agregar'))} ${escapeHtml(translate(product.name))}">＋</button></div>`).join('') : `<small>${escapeHtml(translate('No hay productos disponibles en el menú.'))}</small>`}</section>
     <label class="payment-method-label">${escapeHtml(translate('Pago recibido en caja'))}<select id="payment-method"><option value="EFECTIVO">${escapeHtml(translate('Efectivo'))}</option><option value="DIGITAL">${escapeHtml(translate('Digital · Nequi, Bancolombia o tarjeta'))}</option></select></label>
-    <button id="close-order" class="outline full" ${order.items?.length ? '' : 'disabled'}>${escapeHtml(translate('Registrar pago y cerrar cuenta'))}</button>`;
+    ${items.length && !allStaffItemsDelivered ? `<p class="order-payment-hint">${escapeHtml(translate('El pago se habilita cuando cocina termine y el equipo entregue todos los productos.'))}</p>` : ''}
+    <button id="close-order" class="outline full" ${items.length && allStaffItemsDelivered ? '' : 'disabled'}>${escapeHtml(translate('Registrar pago y cerrar cuenta'))}</button>`;
   target.querySelectorAll('.save-modification').forEach(button => button.addEventListener('click', () => {
     const row = button.closest('[data-item-id]');
     saveItemModification(Number(row.dataset.itemId), row.querySelector('.removed-ingredients-input').value.trim());
   }));
   target.querySelectorAll('.remove-order-item').forEach(button => button.addEventListener('click', () => removeOrderItem(Number(button.closest('[data-item-id]').dataset.itemId))));
   target.querySelectorAll('.add-order-product').forEach(button => button.addEventListener('click', () => addProduct(Number(button.dataset.productId))));
+  target.querySelector('#submit-order-to-kitchen')?.addEventListener('click', () => submitOrderToKitchen(order.id, session));
+  target.querySelectorAll('.deliver-kitchen-batch').forEach(button => button.addEventListener('click', () => {
+    deliverKitchenBatch(order.id, button.dataset.batchId, session);
+  }));
   target.querySelectorAll('img').forEach(image => image.addEventListener('error', () => { image.src = defaultFoodPhoto; }, { once: true }));
   target.querySelector('#close-order').addEventListener('click', () => closeOrder(order.id, session, target.querySelector('#payment-method').value));
 }

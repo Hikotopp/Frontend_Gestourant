@@ -2,9 +2,9 @@ const requiredOperations = {
   auth: ['getConfig', 'exchangeOAuthCode', 'registerOAuthAccount', 'login', 'register', 'logout', 'sessionStatus', 'recordActivity', 'unlock'],
   tables: ['list', 'create', 'update', 'remove', 'join', 'unjoin', 'updatePosition', 'openOrder', 'getOpenOrder'],
   products: ['list', 'save', 'remove'],
-  orders: ['addProduct', 'removeItem', 'updateItem', 'close'],
+  orders: ['addProduct', 'removeItem', 'updateItem', 'submitToKitchen', 'deliverBatch', 'close'],
   guest: ['getTable', 'listRequests', 'createRequest', 'listStaffRequests', 'approveStaffRequest', 'rejectStaffRequest'],
-  kitchen: ['listRequests', 'advanceRequest'],
+  kitchen: ['listRequests', 'advanceRequest', 'listOrderTickets', 'advanceOrderTicket'],
   backups: ['list', 'create', 'download', 'restore'],
   audit: ['list'],
   reports: ['getCashClose']
