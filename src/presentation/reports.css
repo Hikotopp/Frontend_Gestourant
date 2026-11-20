@@ -23,7 +23,7 @@
 .report-table th,.report-table td{padding:12px 10px;border-bottom:1px solid var(--line,#e3e9e5);font-size:12px}
 .report-table th{color:var(--muted,#71807c);font-weight:700}
 .report-table td{color:var(--ink,#172728)}
-.report-table td:last-child,.report-table th:nth-last-child(2){text-align:right}
+.report-table td:last-child,.report-table .report-amount-column{text-align:right}
 .report-empty{margin:0;padding:22px 8px;color:var(--muted,#71807c);font-size:13px}
 .backup-warning{display:grid;gap:5px;margin:20px 0;padding:16px 18px;border:1px solid #efd49c;border-radius:12px;background:#fff8e8;color:#704f12;font-size:13px}
 .backup-warning span{color:#836b3b}
